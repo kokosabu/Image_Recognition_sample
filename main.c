@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 
-typedef struct BITMAPFILEHEADER {
+typedef struct tagBITMAPFILEHEADER {
   uint16_t bfType;
   uint32_t bfSize;
   uint16_t bfReserved1;
@@ -9,7 +10,7 @@ typedef struct BITMAPFILEHEADER {
   uint32_t bfOffBits;
 } BITMAPFILEHEADER;
 
-typedef struct BITMAPINFOHEADER {
+typedef struct tagBITMAPINFOHEADER {
   uint32_t biSize;
   int32_t  biWidth;
   int32_t  biHeight;
@@ -23,6 +24,19 @@ typedef struct BITMAPINFOHEADER {
   uint32_t biClrImportant;
 } BITMAPINFOHEADER;
 
+typedef struct tagRGBTRIPLE { 
+  uint8_t rgbtBlue; 
+  uint8_t rgbtGreen; 
+  uint8_t rgbtRed; 
+} RGBTRIPLE;
+
+typedef struct tagRGBQUAD {
+  uint8_t rgbBlue;
+  uint8_t rgbGreen;
+  uint8_t rgbRed;
+  uint8_t rgbReserved;
+} RGBQUAD;
+
 int main(int argc, char *argv[])
 {
     FILE *input;
@@ -30,7 +44,10 @@ int main(int argc, char *argv[])
     BITMAPFILEHEADER file_header;
     BITMAPINFOHEADER info_header;
     uint32_t size;
-    uint8_t t;
+    RGBTRIPLE **image_data;
+    int i;
+    int j;
+    uint8_t dummy;
 
     if(argc <= 1) {
         printf("filename\n");
@@ -41,13 +58,6 @@ int main(int argc, char *argv[])
     if(input == NULL) {
         return 0;
     }
-
-#if 0
-    fread(&t, 1, 1, input);
-    printf("%c\n", t); /* B */
-    fread(&t, 1, 1, input);
-    printf("%c\n", t); /* M */
-#endif
 
     fread(&file_header.bfType, 2, 1, input);
     printf("bfType:%c%c\n", (file_header.bfType >> 8)&0xFF, (file_header.bfType)&0xFF); /* M B */
@@ -89,6 +99,52 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    if(info_header.biSize == 40 && 
+       (info_header.biBitCount == 16 || info_header.biBitCount == 32) &&
+       info_header.biCompression == 3) {
+        printf("Not supported bit field\n");
+        return 0;
+    } else {
+        ;
+    }
+
+    if(info_header.biBitCount == 1 ||
+            info_header.biBitCount == 4 ||
+            info_header.biBitCount == 8 ||
+            info_header.biClrUsed >= 1) {
+        printf("Not supported color pallet\n");
+        return 0;
+    } else {
+        ;
+    }
+
+    if(info_header.biCompression == 0 || info_header.biCompression == 3) {
+        ;
+    } else {
+        printf("Not supported image data\n");
+        return 0;
+    }
+
+    if(info_header.biBitCount == 24) {
+        ;
+    } else {
+        printf("Not supported Bit Count\n");
+        return 0;
+    }
+
+    fseek(input, file_header.bfOffBits, SEEK_SET);
+
+    image_data = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE *) * info_header.biHeight);
+    for(i = info_header.biHeight-1; i >= 0; i--) {
+        image_data[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * info_header.biWidth);
+        for(j = 0; j < info_header.biWidth; j++) {
+            fread(&image_data[i][j].rgbtBlue, 1, 1, input);
+            fread(&image_data[i][j].rgbtGreen, 1, 1, input);
+            fread(&image_data[i][j].rgbtRed, 1, 1, input);
+        }
+        fseek(input, (3*info_header.biWidth)%4, SEEK_CUR);
+    }
+
     output = fopen("test", "wb");
     if(output == NULL) {
         return 0;
@@ -112,8 +168,23 @@ int main(int argc, char *argv[])
     fwrite(&info_header.biClrUsed, 4, 1, output);
     fwrite(&info_header.biClrImportant, 4, 1, output);
 
+    for(i = info_header.biHeight-1; i >= 0; i--) {
+        for(j = 0; j < info_header.biWidth; j++) {
+            fwrite(&image_data[i][j].rgbtBlue, 1, 1, output);
+            fwrite(&image_data[i][j].rgbtGreen, 1, 1, output);
+            fwrite(&image_data[i][j].rgbtRed, 1, 1, output);
+        }
+        dummy = 0;
+        fwrite(&dummy, 1, (3*info_header.biWidth)%4, output);
+    }
+
     fclose(input);
     fclose(output);
+
+    for(i = 0; i < info_header.biHeight; i++) {
+        free((void *)image_data[i]);
+    }
+    free((void *)image_data);
 
     return 0;
 }
