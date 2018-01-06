@@ -45,9 +45,18 @@ int main(int argc, char *argv[])
     BITMAPINFOHEADER info_header;
     uint32_t size;
     RGBTRIPLE **image_data;
+    RGBTRIPLE **output_image_data;
     int i;
     int j;
     uint8_t dummy;
+    uint16_t new_blue;
+    uint16_t new_green;
+    uint16_t new_red;
+    int k;
+    int l;
+    int w;
+    int h;
+    int kernel_size;
 
     if(argc <= 1) {
         printf("filename\n");
@@ -145,6 +154,48 @@ int main(int argc, char *argv[])
         fseek(input, (3*info_header.biWidth)%4, SEEK_CUR);
     }
 
+    output_image_data = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE *) * info_header.biHeight);
+    for(i = info_header.biHeight-1; i >= 0; i--) {
+        output_image_data[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * info_header.biWidth);
+    }
+
+    kernel_size = 11;
+    for(i = 0; i < info_header.biHeight; i++) {
+        for(j = 0; j < info_header.biWidth; j++) {
+            new_blue = 0;
+            new_green = 0;
+            new_red = 0;
+            for(k = -(kernel_size-1)/2; k <= (kernel_size-1)/2; k++) {
+                for(l = -(kernel_size-1)/2; l <= (kernel_size-1)/2; l++) {
+                    h = i + k;
+                    if(h < 0) {
+                        h = 0;
+                    }
+                    if(h > info_header.biHeight-1) {
+                        h = info_header.biHeight - 1;
+                    }
+                    w = j + l;
+                    if(w < 0) {
+                        w = 0;
+                    }
+                    if(w > info_header.biWidth-1) {
+                        w = info_header.biWidth - 1;
+                    }
+
+                    new_blue += image_data[h][w].rgbtBlue;
+                    new_green += image_data[h][w].rgbtGreen;
+                    new_red += image_data[h][w].rgbtRed;
+                }
+            }
+            new_blue /= kernel_size*kernel_size;
+            new_green /= kernel_size*kernel_size;
+            new_red /= kernel_size*kernel_size;
+            output_image_data[i][j].rgbtBlue = new_blue;
+            output_image_data[i][j].rgbtGreen = new_green;
+            output_image_data[i][j].rgbtRed = new_red;
+        }
+    }
+
     output = fopen("test", "wb");
     if(output == NULL) {
         return 0;
@@ -170,9 +221,9 @@ int main(int argc, char *argv[])
 
     for(i = info_header.biHeight-1; i >= 0; i--) {
         for(j = 0; j < info_header.biWidth; j++) {
-            fwrite(&image_data[i][j].rgbtBlue, 1, 1, output);
-            fwrite(&image_data[i][j].rgbtGreen, 1, 1, output);
-            fwrite(&image_data[i][j].rgbtRed, 1, 1, output);
+            fwrite(&output_image_data[i][j].rgbtBlue, 1, 1, output);
+            fwrite(&output_image_data[i][j].rgbtGreen, 1, 1, output);
+            fwrite(&output_image_data[i][j].rgbtRed, 1, 1, output);
         }
         dummy = 0;
         fwrite(&dummy, 1, (3*info_header.biWidth)%4, output);
@@ -183,8 +234,10 @@ int main(int argc, char *argv[])
 
     for(i = 0; i < info_header.biHeight; i++) {
         free((void *)image_data[i]);
+        free((void *)output_image_data[i]);
     }
     free((void *)image_data);
+    free((void *)output_image_data);
 
     return 0;
 }
