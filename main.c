@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <math.h>
 
 typedef struct tagBITMAPFILEHEADER {
   uint16_t bfType;
@@ -57,6 +58,10 @@ int main(int argc, char *argv[])
     int w;
     int h;
     int kernel_size;
+    double sigma;
+    double filter;
+    double filter_sum;
+    double filter_sum2;
 
     if(argc <= 1) {
         printf("filename\n");
@@ -153,13 +158,72 @@ int main(int argc, char *argv[])
         }
         fseek(input, (3*info_header.biWidth)%4, SEEK_CUR);
     }
+    fclose(input);
 
     output_image_data = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE *) * info_header.biHeight);
     for(i = info_header.biHeight-1; i >= 0; i--) {
         output_image_data[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * info_header.biWidth);
     }
 
+#if 0
     kernel_size = 11;
+    for(i = 0; i < info_header.biHeight; i++) {
+        for(j = 0; j < info_header.biWidth; j++) {
+            new_blue = 0;
+            new_green = 0;
+            new_red = 0;
+            for(k = -(kernel_size-1)/2; k <= (kernel_size-1)/2; k++) {
+                for(l = -(kernel_size-1)/2; l <= (kernel_size-1)/2; l++) {
+                    h = i + k;
+                    if(h < 0) {
+                        h = 0;
+                    }
+                    if(h > info_header.biHeight-1) {
+                        h = info_header.biHeight - 1;
+                    }
+                    w = j + l;
+                    if(w < 0) {
+                        w = 0;
+                    }
+                    if(w > info_header.biWidth-1) {
+                        w = info_header.biWidth - 1;
+                    }
+
+                    new_blue += image_data[h][w].rgbtBlue;
+                    new_green += image_data[h][w].rgbtGreen;
+                    new_red += image_data[h][w].rgbtRed;
+                }
+            }
+            new_blue /= kernel_size*kernel_size;
+            new_green /= kernel_size*kernel_size;
+            new_red /= kernel_size*kernel_size;
+            output_image_data[i][j].rgbtBlue = new_blue;
+            output_image_data[i][j].rgbtGreen = new_green;
+            output_image_data[i][j].rgbtRed = new_red;
+        }
+    }
+#endif
+    sigma = 1.4;
+    kernel_size = 5;
+    filter_sum = 0.0;
+    for(k = -(kernel_size-1)/2; k <= (kernel_size-1)/2; k++) {
+        for(l = -(kernel_size-1)/2; l <= (kernel_size-1)/2; l++) {
+            filter = (1.0 / (2.0 * M_PI * sigma * sigma)) * exp(-1.0 * ((k*k)+(l*l)) / (2.0 * sigma * sigma));
+            printf("(%d, %d) %f\n", k, l, filter);
+            filter_sum += filter;
+        }
+    }
+    printf("sum:%f\n", filter_sum);
+    filter_sum2 = 0.0;
+    for(k = -(kernel_size-1)/2; k <= (kernel_size-1)/2; k++) {
+        for(l = -(kernel_size-1)/2; l <= (kernel_size-1)/2; l++) {
+            filter = (1.0 / (2.0 * M_PI * sigma * sigma)) * exp(-1.0 * ((k*k)+(l*l)) / (2.0 * sigma * sigma));
+            filter /= filter_sum;
+            printf("(%d, %d) %f\n", k, l, filter);
+            filter_sum2 += filter;
+        }
+    }
+    printf("sum:%f\n", filter_sum2);
     for(i = 0; i < info_header.biHeight; i++) {
         for(j = 0; j < info_header.biWidth; j++) {
             new_blue = 0;
@@ -229,7 +293,6 @@ int main(int argc, char *argv[])
         fwrite(&dummy, 1, (3*info_header.biWidth)%4, output);
     }
 
-    fclose(input);
     fclose(output);
 
     for(i = 0; i < info_header.biHeight; i++) {
