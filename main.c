@@ -53,13 +53,16 @@ int main(int argc, char *argv[])
     uint16_t new_blue;
     uint16_t new_green;
     uint16_t new_red;
+    double new_blue_double;
+    double new_green_double;
+    double new_red_double;
     int k;
     int l;
     int w;
     int h;
     int kernel_size;
     double sigma;
-    double filter;
+    double **filter;
     double filter_sum;
     double filter_sum2;
 
@@ -203,32 +206,28 @@ int main(int argc, char *argv[])
         }
     }
 #endif
-    sigma = 1.4;
-    kernel_size = 5;
+    sigma = 3.0;
+    kernel_size = 7;
     filter_sum = 0.0;
+    filter = (double **)malloc(sizeof(double *)*kernel_size);
     for(k = -(kernel_size-1)/2; k <= (kernel_size-1)/2; k++) {
+        filter[k+(kernel_size-1)/2] = (double *)malloc(sizeof(double)*kernel_size);
         for(l = -(kernel_size-1)/2; l <= (kernel_size-1)/2; l++) {
-            filter = (1.0 / (2.0 * M_PI * sigma * sigma)) * exp(-1.0 * ((k*k)+(l*l)) / (2.0 * sigma * sigma));
-            printf("(%d, %d) %f\n", k, l, filter);
-            filter_sum += filter;
+            filter[k+(kernel_size-1)/2][l+(kernel_size-1)/2] = (1.0 / (2.0 * M_PI * sigma * sigma)) * exp(-1.0 * ((k*k)+(l*l)) / (2.0 * sigma * sigma));
+            filter_sum += filter[k+(kernel_size-1)/2][l+(kernel_size-1)/2];
         }
     }
     printf("sum:%f\n", filter_sum);
-    filter_sum2 = 0.0;
     for(k = -(kernel_size-1)/2; k <= (kernel_size-1)/2; k++) {
         for(l = -(kernel_size-1)/2; l <= (kernel_size-1)/2; l++) {
-            filter = (1.0 / (2.0 * M_PI * sigma * sigma)) * exp(-1.0 * ((k*k)+(l*l)) / (2.0 * sigma * sigma));
-            filter /= filter_sum;
-            printf("(%d, %d) %f\n", k, l, filter);
-            filter_sum2 += filter;
+            filter[k+(kernel_size-1)/2][l+(kernel_size-1)/2] /= filter_sum;
         }
     }
-    printf("sum:%f\n", filter_sum2);
     for(i = 0; i < info_header.biHeight; i++) {
         for(j = 0; j < info_header.biWidth; j++) {
-            new_blue = 0;
-            new_green = 0;
-            new_red = 0;
+            new_blue_double = 0;
+            new_green_double = 0;
+            new_red_double = 0;
             for(k = -(kernel_size-1)/2; k <= (kernel_size-1)/2; k++) {
                 for(l = -(kernel_size-1)/2; l <= (kernel_size-1)/2; l++) {
                     h = i + k;
@@ -246,17 +245,14 @@ int main(int argc, char *argv[])
                         w = info_header.biWidth - 1;
                     }
 
-                    new_blue += image_data[h][w].rgbtBlue;
-                    new_green += image_data[h][w].rgbtGreen;
-                    new_red += image_data[h][w].rgbtRed;
+                    new_blue_double += image_data[h][w].rgbtBlue * filter[k+(kernel_size-1)/2][l+(kernel_size-1)/2];
+                    new_green_double += image_data[h][w].rgbtGreen * filter[k+(kernel_size-1)/2][l+(kernel_size-1)/2];
+                    new_red_double += image_data[h][w].rgbtRed * filter[k+(kernel_size-1)/2][l+(kernel_size-1)/2];
                 }
             }
-            new_blue /= kernel_size*kernel_size;
-            new_green /= kernel_size*kernel_size;
-            new_red /= kernel_size*kernel_size;
-            output_image_data[i][j].rgbtBlue = new_blue;
-            output_image_data[i][j].rgbtGreen = new_green;
-            output_image_data[i][j].rgbtRed = new_red;
+            output_image_data[i][j].rgbtBlue = (uint16_t)new_blue_double;
+            output_image_data[i][j].rgbtGreen = (uint16_t)new_green_double;
+            output_image_data[i][j].rgbtRed = (uint16_t)new_red_double;
         }
     }
 
