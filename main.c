@@ -47,6 +47,9 @@ int main(int argc, char *argv[])
     uint32_t size;
     RGBTRIPLE **image_data;
     RGBTRIPLE **output_image_data;
+    RGBTRIPLE *color_pallet_rgb;
+    RGBQUAD *color_pallet_rgbr;
+    int color_pallet_num;
     int i;
     int j;
     uint8_t dummy;
@@ -70,6 +73,10 @@ int main(int argc, char *argv[])
     double filter_sum2;
     double sigma_r;
     double sigma_d;
+    uint8_t pixcel;
+    uint8_t data8;
+    uint16_t data16;
+    uint32_t data32;
 
     if(argc <= 1) {
         printf("filename\n");
@@ -130,12 +137,25 @@ int main(int argc, char *argv[])
         ;
     }
 
+    color_pallet_rgbr = NULL;
+    color_pallet_num = 0;
     if(info_header.biBitCount == 1 ||
             info_header.biBitCount == 4 ||
             info_header.biBitCount == 8 ||
             info_header.biClrUsed >= 1) {
-        printf("Not supported color pallet\n");
-        return 0;
+        if(info_header.biClrUsed >= 1) {
+            color_pallet_num = info_header.biClrUsed;
+        } else {
+            color_pallet_num = pow(2, info_header.biClrUsed);
+        }
+        color_pallet_rgbr = (RGBQUAD *)malloc(sizeof(RGBQUAD)*color_pallet_num);
+        for(i = 0; i < color_pallet_num; i++) {
+            fread(&color_pallet_rgbr[i].rgbBlue, 1, 1, input);
+            fread(&color_pallet_rgbr[i].rgbGreen, 1, 1, input);
+            fread(&color_pallet_rgbr[i].rgbRed, 1, 1, input);
+            fread(&color_pallet_rgbr[i].rgbReserved, 1, 1, input);
+            printf("[%d] (%d, %d, %d, %d)\n", i, color_pallet_rgbr[i].rgbBlue, color_pallet_rgbr[i].rgbGreen, color_pallet_rgbr[i].rgbRed, color_pallet_rgbr[i].rgbReserved);
+        }
     } else {
         ;
     }
@@ -147,12 +167,14 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+#if 0
     if(info_header.biBitCount == 24) {
         ;
     } else {
         printf("Not supported Bit Count\n");
         return 0;
     }
+#endif
 
     fseek(input, file_header.bfOffBits, SEEK_SET);
 
@@ -160,9 +182,16 @@ int main(int argc, char *argv[])
     for(i = info_header.biHeight-1; i >= 0; i--) {
         image_data[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * info_header.biWidth);
         for(j = 0; j < info_header.biWidth; j++) {
-            fread(&image_data[i][j].rgbtBlue, 1, 1, input);
-            fread(&image_data[i][j].rgbtGreen, 1, 1, input);
-            fread(&image_data[i][j].rgbtRed, 1, 1, input);
+            if(color_pallet_rgbr == NULL) {
+                fread(&image_data[i][j].rgbtBlue, 1, 1, input);
+                fread(&image_data[i][j].rgbtGreen, 1, 1, input);
+                fread(&image_data[i][j].rgbtRed, 1, 1, input);
+            } else {
+                fread(&pixcel, 1, 1, input);
+                image_data[i][j].rgbtBlue = color_pallet_rgbr[pixcel].rgbBlue;
+                image_data[i][j].rgbtGreen = color_pallet_rgbr[pixcel].rgbGreen;
+                image_data[i][j].rgbtRed = color_pallet_rgbr[pixcel].rgbRed;
+            }
         }
         fseek(input, (3*info_header.biWidth)%4, SEEK_CUR);
     }
@@ -173,7 +202,6 @@ int main(int argc, char *argv[])
         output_image_data[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * info_header.biWidth);
     }
 
-#if 0
     kernel_size = 11;
     for(i = 0; i < info_header.biHeight; i++) {
         for(j = 0; j < info_header.biWidth; j++) {
@@ -210,7 +238,6 @@ int main(int argc, char *argv[])
             output_image_data[i][j].rgbtRed = new_red;
         }
     }
-#endif
 #if 0
     sigma = 3.0;
     kernel_size = 7;
@@ -262,6 +289,7 @@ int main(int argc, char *argv[])
         }
     }
 #endif
+#if 0
     sigma_d = 25.0;
     sigma_r = 25.0;
     kernel_size = 7;
@@ -316,6 +344,7 @@ int main(int argc, char *argv[])
             output_image_data[i][j].rgbtRed = (uint16_t)(new_red_double / new_red_double_d);
         }
     }
+#endif
 
     output = fopen("test", "wb");
     if(output == NULL) {
@@ -332,13 +361,17 @@ int main(int argc, char *argv[])
     fwrite(&info_header.biWidth, 4, 1, output);
     fwrite(&info_header.biHeight, 4, 1, output);
     fwrite(&info_header.biPlanes, 2, 1, output);
+    info_header.biBitCount = 24;
     fwrite(&info_header.biBitCount, 2, 1, output);
     fwrite(&info_header.biCompression, 4, 1, output);
     fwrite(&info_header.biSizeImage, 4, 1, output);
     fwrite(&info_header.biXPelsPerMeter, 4, 1, output);
     fwrite(&info_header.biYPelsPerMeter, 4, 1, output);
+    info_header.biClrUsed = 0;
     fwrite(&info_header.biClrUsed, 4, 1, output);
     fwrite(&info_header.biClrImportant, 4, 1, output);
+
+    fseek(output, file_header.bfOffBits, SEEK_SET);
 
     for(i = info_header.biHeight-1; i >= 0; i--) {
         for(j = 0; j < info_header.biWidth; j++) {
