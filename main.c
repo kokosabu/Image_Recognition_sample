@@ -2,41 +2,103 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <math.h>
+#include "bitmap.h"
 
-typedef struct tagBITMAPFILEHEADER {
-  uint16_t bfType;
-  uint32_t bfSize;
-  uint16_t bfReserved1;
-  uint16_t bfReserved2;
-  uint32_t bfOffBits;
-} BITMAPFILEHEADER;
 
-typedef struct tagBITMAPINFOHEADER {
-  uint32_t biSize;
-  int32_t  biWidth;
-  int32_t  biHeight;
-  uint16_t biPlanes;
-  uint16_t biBitCount;
-  uint32_t biCompression;
-  uint32_t biSizeImage;
-  int32_t  biXPelsPerMeter;
-  int32_t  biYPelsPerMeter;
-  uint32_t biClrUsed;
-  uint32_t biClrImportant;
-} BITMAPINFOHEADER;
+enum {
+    NONE,
+    BITMAP,
+    PNG,
+}; 
 
-typedef struct tagRGBTRIPLE { 
-  uint8_t rgbtBlue; 
-  uint8_t rgbtGreen; 
-  uint8_t rgbtRed; 
-} RGBTRIPLE;
+int check_file_format(FILE *input)
+{
+    uint8_t read_byte;
 
-typedef struct tagRGBQUAD {
-  uint8_t rgbBlue;
-  uint8_t rgbGreen;
-  uint8_t rgbRed;
-  uint8_t rgbReserved;
-} RGBQUAD;
+    fseek(input, 0, SEEK_SET);
+
+    fread(&read_byte, 1, 1, input);
+    if(read_byte == 'B') {
+        fread(&read_byte, 1, 1, input);
+        if(read_byte == 'M') {
+            fseek(input, 0, SEEK_SET);
+            return BITMAP;
+        } else {
+            fseek(input, 0, SEEK_SET);
+            return NONE;
+        }
+    } else if(read_byte == 0x89) {
+        fread(&read_byte, 1, 1, input);
+        if(read_byte != 'P') {
+            fseek(input, 0, SEEK_SET);
+            return NONE;
+        }
+        fread(&read_byte, 1, 1, input);
+        if(read_byte != 'N') {
+            fseek(input, 0, SEEK_SET);
+            return NONE;
+        }
+        fread(&read_byte, 1, 1, input);
+        if(read_byte != 'G') {
+            fseek(input, 0, SEEK_SET);
+            return NONE;
+        }
+        fread(&read_byte, 1, 1, input);
+        if(read_byte != '\r') {
+            fseek(input, 0, SEEK_SET);
+            return NONE;
+        }
+        fread(&read_byte, 1, 1, input);
+        if(read_byte != '\n') {
+            fseek(input, 0, SEEK_SET);
+            return NONE;
+        }
+        fread(&read_byte, 1, 1, input);
+        if(read_byte != 0x1a) {
+            fseek(input, 0, SEEK_SET);
+            return NONE;
+        }
+        fread(&read_byte, 1, 1, input);
+        if(read_byte != '\n') {
+            fseek(input, 0, SEEK_SET);
+            return NONE;
+        }
+        fseek(input, 0, SEEK_SET);
+        return PNG;
+    }
+
+    fseek(input, 0, SEEK_SET);
+    return NONE;
+}
+
+uint16_t read_2bytes(FILE *input)
+{
+    uint8_t byte;
+    uint16_t result;
+
+    fread(&byte, 1, 1, input);
+    result = byte;
+    fread(&byte, 1, 1, input);
+    result = (result << 8) | byte;
+
+    return result;
+}
+uint32_t read_4bytes(FILE *input)
+{
+    uint8_t byte;
+    uint32_t result;
+
+    fread(&byte, 1, 1, input);
+    result = byte;
+    fread(&byte, 1, 1, input);
+    result = (result << 8) | byte;
+    fread(&byte, 1, 1, input);
+    result = (result << 8) | byte;
+    fread(&byte, 1, 1, input);
+    result = (result << 8) | byte;
+
+    return result;
+}
 
 int main(int argc, char *argv[])
 {
@@ -44,12 +106,9 @@ int main(int argc, char *argv[])
     FILE *output;
     BITMAPFILEHEADER file_header;
     BITMAPINFOHEADER info_header;
-    uint32_t size;
     RGBTRIPLE **image_data;
     RGBTRIPLE **output_image_data;
     RGBTRIPLE *color_pallet_rgb;
-    RGBQUAD *color_pallet_rgbr;
-    int color_pallet_num;
     int i;
     int j;
     uint8_t dummy;
@@ -73,10 +132,10 @@ int main(int argc, char *argv[])
     double filter_sum2;
     double sigma_r;
     double sigma_d;
-    uint8_t pixcel;
     uint8_t data8;
     uint16_t data16;
     uint32_t data32;
+    int file_format;
 
     if(argc <= 1) {
         printf("filename\n");
@@ -85,115 +144,73 @@ int main(int argc, char *argv[])
 
     input = fopen(argv[1], "rb");
     if(input == NULL) {
+        printf("don't open file\n");
         return 0;
     }
 
-    fread(&file_header.bfType, 2, 1, input);
-    printf("bfType:%c%c\n", (file_header.bfType >> 8)&0xFF, (file_header.bfType)&0xFF); /* M B */
-    fread(&file_header.bfSize, 4, 1, input);
-    printf("bfSize:%d\n", file_header.bfSize);
-    fread(&file_header.bfReserved1, 2, 1, input);
-    fread(&file_header.bfReserved2, 2, 1, input);
-    fread(&file_header.bfOffBits, 4, 1, input);
-    printf("bfOffBits:%d\n", file_header.bfOffBits);
-
-    fread(&size, 4, 1, input);
-    printf("Size:%d\n", size);
-    if(size == 40) {
-        info_header.biSize = size;
-
-        fread(&info_header.biWidth, 4, 1, input);
-        printf("biWidth:%d\n", info_header.biWidth);
-        fread(&info_header.biHeight, 4, 1, input);
-        printf("biHeight:%d\n", info_header.biHeight);
-        fread(&info_header.biPlanes, 2, 1, input);
-        printf("biPlanes:%d\n", info_header.biPlanes);
-        fread(&info_header.biBitCount, 2, 1, input);
-        printf("biBitCount:%d\n", info_header.biBitCount);
-        fread(&info_header.biCompression, 4, 1, input);
-        printf("biCompression:%d\n", info_header.biCompression);
-        fread(&info_header.biSizeImage, 4, 1, input);
-        printf("biSizeImage:%d\n", info_header.biSizeImage);
-        fread(&info_header.biXPelsPerMeter, 4, 1, input);
-        printf("biXPelsPerMeter:%d\n", info_header.biXPelsPerMeter);
-        fread(&info_header.biYPelsPerMeter, 4, 1, input);
-        printf("biYPelsPerMeter:%d\n", info_header.biYPelsPerMeter);
-        fread(&info_header.biClrUsed, 4, 1, input);
-        printf("biClrUsed:%d\n", info_header.biClrUsed);
-        fread(&info_header.biClrImportant, 4, 1, input);
-        printf("biClrImportant:%d\n", info_header.biClrImportant);
-
-    } else {
-        printf("Not supported file header\n");
+    file_format = check_file_format(input);
+    if(file_format == NONE) {
+        printf("unsupported file format\n");
         return 0;
-    }
+    } else if(file_format == BITMAP) {
+        decode_bitmap(input, &file_header, &info_header, &image_data);
+    } else if(file_format == PNG) {
+        uint8_t byte;
+        uint32_t size;
+        uint32_t width;
+        uint32_t height;
+        uint8_t bps;
+        uint8_t color_type;
+        uint8_t compress_type;
+        uint8_t filter_type;
+        uint8_t interlace_type;
+        uint32_t crc_32;
+        char chunk[5];
+        printf("PNG\n");
 
-    if(info_header.biSize == 40 && 
-       (info_header.biBitCount == 16 || info_header.biBitCount == 32) &&
-       info_header.biCompression == 3) {
-        printf("Not supported bit field\n");
-        return 0;
-    } else {
-        ;
-    }
-
-    color_pallet_rgbr = NULL;
-    color_pallet_num = 0;
-    if(info_header.biBitCount == 1 ||
-            info_header.biBitCount == 4 ||
-            info_header.biBitCount == 8 ||
-            info_header.biClrUsed >= 1) {
-        if(info_header.biClrUsed >= 1) {
-            color_pallet_num = info_header.biClrUsed;
-        } else {
-            color_pallet_num = pow(2, info_header.biClrUsed);
+        for(i = 0; i < 8; i++) {
+            fread(&byte, 1, 1, input);
         }
-        color_pallet_rgbr = (RGBQUAD *)malloc(sizeof(RGBQUAD)*color_pallet_num);
-        for(i = 0; i < color_pallet_num; i++) {
-            fread(&color_pallet_rgbr[i].rgbBlue, 1, 1, input);
-            fread(&color_pallet_rgbr[i].rgbGreen, 1, 1, input);
-            fread(&color_pallet_rgbr[i].rgbRed, 1, 1, input);
-            fread(&color_pallet_rgbr[i].rgbReserved, 1, 1, input);
-            printf("[%d] (%d, %d, %d, %d)\n", i, color_pallet_rgbr[i].rgbBlue, color_pallet_rgbr[i].rgbGreen, color_pallet_rgbr[i].rgbRed, color_pallet_rgbr[i].rgbReserved);
-        }
-    } else {
-        ;
-    }
 
-    if(info_header.biCompression == 0 || info_header.biCompression == 3) {
-        ;
-    } else {
-        printf("Not supported image data\n");
+        size = read_4bytes(input);
+        fread(&chunk[0], 1, 1, input);
+        fread(&chunk[1], 1, 1, input);
+        fread(&chunk[2], 1, 1, input);
+        fread(&chunk[3], 1, 1, input);
+        chunk[4] = '\0';
+        width = read_4bytes(input);
+        height = read_4bytes(input);
+        fread(&bps, 1, 1, input);
+        fread(&color_type, 1, 1, input);
+        fread(&compress_type, 1, 1, input);
+        fread(&filter_type, 1, 1, input);
+        fread(&interlace_type, 1, 1, input);
+        crc_32 = read_4bytes(input);
+
+        printf("size:%d\n", size);
+        printf("chunk:%s\n", chunk);
+        printf("width:%d\n", width);
+        printf("height:%d\n", height);
+        printf("bps:%d\n", bps);
+        printf("color type:%d\n", color_type);
+        printf("compress type:%d\n", compress_type);
+        printf("filter type:%d\n", filter_type);
+        printf("interlace type:%d\n", interlace_type);
+        printf("crc-32: %xh\n", crc_32);
+
+        size = read_4bytes(input);
+        fread(&chunk[0], 1, 1, input);
+        fread(&chunk[1], 1, 1, input);
+        fread(&chunk[2], 1, 1, input);
+        fread(&chunk[3], 1, 1, input);
+        chunk[4] = '\0';
+        printf("size:%d\n", size);
+        printf("chunk:%s\n", chunk);
+
+
+
+
         return 0;
-    }
-
-#if 0
-    if(info_header.biBitCount == 24) {
-        ;
-    } else {
-        printf("Not supported Bit Count\n");
-        return 0;
-    }
-#endif
-
-    fseek(input, file_header.bfOffBits, SEEK_SET);
-
-    image_data = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE *) * info_header.biHeight);
-    for(i = info_header.biHeight-1; i >= 0; i--) {
-        image_data[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * info_header.biWidth);
-        for(j = 0; j < info_header.biWidth; j++) {
-            if(color_pallet_rgbr == NULL) {
-                fread(&image_data[i][j].rgbtBlue, 1, 1, input);
-                fread(&image_data[i][j].rgbtGreen, 1, 1, input);
-                fread(&image_data[i][j].rgbtRed, 1, 1, input);
-            } else {
-                fread(&pixcel, 1, 1, input);
-                image_data[i][j].rgbtBlue = color_pallet_rgbr[pixcel].rgbBlue;
-                image_data[i][j].rgbtGreen = color_pallet_rgbr[pixcel].rgbGreen;
-                image_data[i][j].rgbtRed = color_pallet_rgbr[pixcel].rgbRed;
-            }
-        }
-        fseek(input, (3*info_header.biWidth)%4, SEEK_CUR);
     }
     fclose(input);
 
