@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 #include "bitmap.h"
-
 
 enum {
     NONE,
@@ -136,6 +136,7 @@ int main(int argc, char *argv[])
     uint16_t data16;
     uint32_t data32;
     int file_format;
+    uint8_t *png_image_data;
 
     if(argc <= 1) {
         printf("filename\n");
@@ -206,9 +207,30 @@ int main(int argc, char *argv[])
         chunk[4] = '\0';
         printf("size:%d\n", size);
         printf("chunk:%s\n", chunk);
+        if(strcmp(chunk, "IDAT") == 0) {
+            png_image_data = (uint8_t *)malloc(sizeof(uint8_t) * size);
+            fread(png_image_data, 1, size, input);
+            crc_32 = read_4bytes(input);
+        } else {
+            return 0;
+        }
 
+        size = read_4bytes(input);
+        fread(&chunk[0], 1, 1, input);
+        fread(&chunk[1], 1, 1, input);
+        fread(&chunk[2], 1, 1, input);
+        fread(&chunk[3], 1, 1, input);
+        chunk[4] = '\0';
+        printf("size:%d\n", size);
+        printf("chunk:%s\n", chunk);
+        if(strcmp(chunk, "IEND") == 0) {
+            crc_32 = read_4bytes(input);
+        } else {
+            return 0;
+        }
 
-
+        printf("%02x\n%02x\n", png_image_data[0], png_image_data[1]);
+        printf("%d : %d : %d\n", (png_image_data[1] & 0xC0)>>6, (png_image_data[1]&0x20)>>5, png_image_data[1]&0x1F);
 
         return 0;
     }
