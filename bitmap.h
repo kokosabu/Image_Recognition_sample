@@ -2,6 +2,7 @@
 #define BITMAP_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 typedef struct tagBITMAPFILEHEADER {
   uint16_t bfType;
