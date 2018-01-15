@@ -36,17 +36,17 @@ void average_filter(RGBTRIPLE ***output_image_data, RGBTRIPLE ***image_data, BIT
                         w = info_header->biWidth - 1;
                     }
 
-                    new_blue += image_data[h][w]->rgbtBlue;
-                    new_green += image_data[h][w]->rgbtGreen;
-                    new_red += image_data[h][w]->rgbtRed;
+                    new_blue  += (*image_data)[h][w].rgbtBlue;
+                    new_green += (*image_data)[h][w].rgbtGreen;
+                    new_red   += (*image_data)[h][w].rgbtRed;
                 }
             }
-            new_blue /= kernel_size*kernel_size;
+            new_blue  /= kernel_size*kernel_size;
             new_green /= kernel_size*kernel_size;
-            new_red /= kernel_size*kernel_size;
-            (*output_image_data)[i][j].rgbtBlue = new_blue;
+            new_red   /= kernel_size*kernel_size;
+            (*output_image_data)[i][j].rgbtBlue  = new_blue;
             (*output_image_data)[i][j].rgbtGreen = new_green;
-            (*output_image_data)[i][j].rgbtRed = new_red;
+            (*output_image_data)[i][j].rgbtRed   = new_red;
         }
     }
 }
