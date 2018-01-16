@@ -2,7 +2,7 @@
 #include "bitmap.h"
 #include "average_filter.h"
 
-void average_filter(RGBTRIPLE ***output_image_data, RGBTRIPLE ***image_data, BITMAPINFOHEADER *info_header, int kernel_size)
+void average_filter(RGBTRIPLE ***output_image_data, RGBTRIPLE ***image_data, IMAGEINFO *image_info, int kernel_size)
 {
     uint16_t new_blue;
     uint16_t new_green;
@@ -14,8 +14,8 @@ void average_filter(RGBTRIPLE ***output_image_data, RGBTRIPLE ***image_data, BIT
     int h;
     int w;
 
-    for(i = 0; i < info_header->biHeight; i++) {
-        for(j = 0; j < info_header->biWidth; j++) {
+    for(i = 0; i < image_info->height; i++) {
+        for(j = 0; j < image_info->width; j++) {
             new_blue = 0;
             new_green = 0;
             new_red = 0;
@@ -25,15 +25,15 @@ void average_filter(RGBTRIPLE ***output_image_data, RGBTRIPLE ***image_data, BIT
                     if(h < 0) {
                         h = 0;
                     }
-                    if(h > info_header->biHeight-1) {
-                        h = info_header->biHeight - 1;
+                    if(h > image_info->height-1) {
+                        h = image_info->height - 1;
                     }
                     w = j + l;
                     if(w < 0) {
                         w = 0;
                     }
-                    if(w > info_header->biWidth-1) {
-                        w = info_header->biWidth - 1;
+                    if(w > image_info->width-1) {
+                        w = image_info->width - 1;
                     }
 
                     new_blue  += (*image_data)[h][w].rgbtBlue;
