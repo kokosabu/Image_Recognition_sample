@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include "common.h"
 #include "bitmap.h"
 #include "average_filter.h"
 
@@ -107,6 +108,7 @@ int main(int argc, char *argv[])
     FILE *output;
     BITMAPFILEHEADER file_header;
     BITMAPINFOHEADER info_header;
+    IMAGEINFO image_info;
     RGBTRIPLE **image_data;
     RGBTRIPLE **output_image_data;
     RGBTRIPLE *color_pallet_rgb;
@@ -163,7 +165,7 @@ int main(int argc, char *argv[])
         printf("unsupported file format\n");
         return 0;
     } else if(file_format == BITMAP) {
-        decode_bitmap(input, &file_header, &info_header, &image_data);
+        decode_bitmap(input, &image_info, &image_data);
     } else if(file_format == PNG) {
         uint8_t byte;
         uint32_t size;
@@ -484,23 +486,38 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    file_header.bfType      = ('B' << 8) | 'M';
+    file_header.bfSize      = image_info.fileSize;
+    file_header.bfReserved1 = 0;
+    file_header.bfReserved2 = 0;
+    file_header.bfOffBits   = 14 + 40;
+
     fwrite(&file_header.bfType, 2, 1, output);
     fwrite(&file_header.bfSize, 4, 1, output);
     fwrite(&file_header.bfReserved1, 2, 1, output);
     fwrite(&file_header.bfReserved2, 2, 1, output);
     fwrite(&file_header.bfOffBits, 4, 1, output);
 
+    info_header.biSize          = 40;
+    info_header.biWidth         = image_info.width;
+    info_header.biHeight        = image_info.height;
+    info_header.biPlanes        = 1;
+    info_header.biBitCount      = 24;
+    info_header.biCompression   = 0;
+    info_header.biSizeImage     = image_info.width * image_info.height * 3;
+    info_header.biXPelsPerMeter = 0;
+    info_header.biYPelsPerMeter = 0;
+    info_header.biClrUsed       = 0;
+    info_header.biClrImportant  = 0;
     fwrite(&info_header.biSize, 4, 1, output);
     fwrite(&info_header.biWidth, 4, 1, output);
     fwrite(&info_header.biHeight, 4, 1, output);
     fwrite(&info_header.biPlanes, 2, 1, output);
-    info_header.biBitCount = 24;
     fwrite(&info_header.biBitCount, 2, 1, output);
     fwrite(&info_header.biCompression, 4, 1, output);
     fwrite(&info_header.biSizeImage, 4, 1, output);
     fwrite(&info_header.biXPelsPerMeter, 4, 1, output);
     fwrite(&info_header.biYPelsPerMeter, 4, 1, output);
-    info_header.biClrUsed = 0;
     fwrite(&info_header.biClrUsed, 4, 1, output);
     fwrite(&info_header.biClrImportant, 4, 1, output);
 
