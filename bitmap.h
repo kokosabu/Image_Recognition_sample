@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include "common.h"
 
 typedef struct tagBITMAPFILEHEADER {
   uint16_t bfType;
@@ -39,6 +40,6 @@ typedef struct tagRGBQUAD {
   uint8_t rgbReserved;
 } RGBQUAD;
 
-void decode_bitmap(FILE *input, BITMAPFILEHEADER *file_header, BITMAPINFOHEADER *info_header, RGBTRIPLE ***image_data);
+void decode_bitmap(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data);
 
 #endif
