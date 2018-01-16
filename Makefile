@@ -1,2 +1,2 @@
 all:
-	gcc main.c bitmap.c average_filter.c
+	gcc -Wall main.c bitmap.c average_filter.c gaussian_filter.c

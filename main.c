@@ -6,6 +6,7 @@
 #include "common.h"
 #include "bitmap.h"
 #include "average_filter.h"
+#include "gaussian_filter.h"
 
 enum {
     NONE,
@@ -111,41 +112,39 @@ int main(int argc, char *argv[])
     IMAGEINFO image_info;
     RGBTRIPLE **image_data;
     RGBTRIPLE **output_image_data;
-    RGBTRIPLE *color_pallet_rgb;
     int i;
     int j;
     uint8_t dummy;
-    uint16_t new_blue;
-    uint16_t new_green;
-    uint16_t new_red;
-    double new_blue_double;
-    double new_green_double;
-    double new_red_double;
-    double new_blue_double_d;
-    double new_green_double_d;
-    double new_red_double_d;
-    double new_blue_double_x;
-    double new_blue_double_y;
-    double new_green_double_x;
-    double new_green_double_y;
-    double new_red_double_x;
-    double new_red_double_y;
-    int k;
-    int l;
-    int w;
-    int h;
-    int kernel_size;
-    double sigma;
-    double **filter;
-    double **filter_x;
-    double **filter_y;
-    double filter_sum;
-    double filter_sum2;
-    double sigma_r;
-    double sigma_d;
-    uint8_t data8;
-    uint16_t data16;
-    uint32_t data32;
+    //uint16_t new_blue;
+    //uint16_t new_green;
+    //uint16_t new_red;
+    //double new_blue_double;
+    //double new_green_double;
+    //double new_red_double;
+    //double new_blue_double_d;
+    //double new_green_double_d;
+    //double new_red_double_d;
+    //double new_blue_double_x;
+    //double new_blue_double_y;
+    //double new_green_double_x;
+    //double new_green_double_y;
+    //double new_red_double_x;
+    //double new_red_double_y;
+    //int k;
+    //int l;
+    //int w;
+    //int h;
+    //int kernel_size;
+    //double **filter;
+    //double **filter_x;
+    //double **filter_y;
+    //double filter_sum;
+    //double filter_sum2;
+    //double sigma_r;
+    //double sigma_d;
+    //uint8_t data8;
+    //uint16_t data16;
+    //uint32_t data32;
     int file_format;
     uint8_t *png_image_data;
 
@@ -166,6 +165,7 @@ int main(int argc, char *argv[])
         return 0;
     } else if(file_format == BITMAP) {
         decode_bitmap(input, &image_info, &image_data);
+        printf("%d %d %d\n", image_info.fileSize, image_info.width, image_info.height);
     } else if(file_format == PNG) {
         uint8_t byte;
         uint32_t size;
@@ -247,63 +247,13 @@ int main(int argc, char *argv[])
     }
     fclose(input);
 
-    output_image_data = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE *) * info_header.biHeight);
-    for(i = info_header.biHeight-1; i >= 0; i--) {
-        output_image_data[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * info_header.biWidth);
+    output_image_data = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE *) * image_info.height);
+    for(i = image_info.height-1; i >= 0; i--) {
+        output_image_data[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * image_info.width);
     }
 
-    average_filter(&output_image_data, &image_data, &info_header, 11);
-#if 0
-    sigma = 3.0;
-    kernel_size = 7;
-    filter_sum = 0.0;
-    filter = (double **)malloc(sizeof(double *)*kernel_size);
-    for(k = -(kernel_size-1)/2; k <= (kernel_size-1)/2; k++) {
-        filter[k+(kernel_size-1)/2] = (double *)malloc(sizeof(double)*kernel_size);
-        for(l = -(kernel_size-1)/2; l <= (kernel_size-1)/2; l++) {
-            filter[k+(kernel_size-1)/2][l+(kernel_size-1)/2] = (1.0 / (2.0 * M_PI * sigma * sigma)) * exp(-1.0 * ((k*k)+(l*l)) / (2.0 * sigma * sigma));
-            filter_sum += filter[k+(kernel_size-1)/2][l+(kernel_size-1)/2];
-        }
-    }
-    printf("sum:%f\n", filter_sum);
-    for(k = -(kernel_size-1)/2; k <= (kernel_size-1)/2; k++) {
-        for(l = -(kernel_size-1)/2; l <= (kernel_size-1)/2; l++) {
-            filter[k+(kernel_size-1)/2][l+(kernel_size-1)/2] /= filter_sum;
-        }
-    }
-    for(i = 0; i < info_header.biHeight; i++) {
-        for(j = 0; j < info_header.biWidth; j++) {
-            new_blue_double = 0;
-            new_green_double = 0;
-            new_red_double = 0;
-            for(k = -(kernel_size-1)/2; k <= (kernel_size-1)/2; k++) {
-                for(l = -(kernel_size-1)/2; l <= (kernel_size-1)/2; l++) {
-                    h = i + k;
-                    if(h < 0) {
-                        h = 0;
-                    }
-                    if(h > info_header.biHeight-1) {
-                        h = info_header.biHeight - 1;
-                    }
-                    w = j + l;
-                    if(w < 0) {
-                        w = 0;
-                    }
-                    if(w > info_header.biWidth-1) {
-                        w = info_header.biWidth - 1;
-                    }
-
-                    new_blue_double += image_data[h][w].rgbtBlue * filter[k+(kernel_size-1)/2][l+(kernel_size-1)/2];
-                    new_green_double += image_data[h][w].rgbtGreen * filter[k+(kernel_size-1)/2][l+(kernel_size-1)/2];
-                    new_red_double += image_data[h][w].rgbtRed * filter[k+(kernel_size-1)/2][l+(kernel_size-1)/2];
-                }
-            }
-            output_image_data[i][j].rgbtBlue = (uint16_t)new_blue_double;
-            output_image_data[i][j].rgbtGreen = (uint16_t)new_green_double;
-            output_image_data[i][j].rgbtRed = (uint16_t)new_red_double;
-        }
-    }
-#endif
+    //average_filter(&output_image_data, &image_data, &image_info, 11);
+    gaussian_filter(&output_image_data, &image_data, &image_info, 3.0, 7);
 #if 0
     sigma_d = 25.0;
     sigma_r = 25.0;
@@ -486,7 +436,7 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    file_header.bfType      = ('B' << 8) | 'M';
+    file_header.bfType      = ('M' << 8) | 'B';
     file_header.bfSize      = image_info.fileSize;
     file_header.bfReserved1 = 0;
     file_header.bfReserved2 = 0;
@@ -535,7 +485,7 @@ int main(int argc, char *argv[])
 
     fclose(output);
 
-    for(i = 0; i < info_header.biHeight; i++) {
+    for(i = 0; i < image_info.height; i++) {
         free((void *)image_data[i]);
         free((void *)output_image_data[i]);
     }
