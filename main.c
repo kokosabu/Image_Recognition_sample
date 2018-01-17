@@ -7,6 +7,7 @@
 #include "bitmap.h"
 #include "average_filter.h"
 #include "gaussian_filter.h"
+#include "bilateral_filter.h"
 
 enum {
     NONE,
@@ -118,12 +119,6 @@ int main(int argc, char *argv[])
     //uint16_t new_blue;
     //uint16_t new_green;
     //uint16_t new_red;
-    //double new_blue_double;
-    //double new_green_double;
-    //double new_red_double;
-    //double new_blue_double_d;
-    //double new_green_double_d;
-    //double new_red_double_d;
     //double new_blue_double_x;
     //double new_blue_double_y;
     //double new_green_double_x;
@@ -135,16 +130,8 @@ int main(int argc, char *argv[])
     //int w;
     //int h;
     //int kernel_size;
-    //double **filter;
     //double **filter_x;
     //double **filter_y;
-    //double filter_sum;
-    //double filter_sum2;
-    //double sigma_r;
-    //double sigma_d;
-    //uint8_t data8;
-    //uint16_t data16;
-    //uint32_t data32;
     int file_format;
     uint8_t *png_image_data;
 
@@ -253,63 +240,8 @@ int main(int argc, char *argv[])
     }
 
     //average_filter(&output_image_data, &image_data, &image_info, 11);
-    gaussian_filter(&output_image_data, &image_data, &image_info, 3.0, 7);
-#if 0
-    sigma_d = 25.0;
-    sigma_r = 25.0;
-    kernel_size = 7;
-    filter = (double **)malloc(sizeof(double *)*kernel_size);
-    for(k = -(kernel_size-1)/2; k <= (kernel_size-1)/2; k++) {
-        filter[k+(kernel_size-1)/2] = (double *)malloc(sizeof(double)*kernel_size);
-    }
-    for(i = 0; i < info_header.biHeight; i++) {
-        for(j = 0; j < info_header.biWidth; j++) {
-            new_blue_double = 0;
-            new_green_double = 0;
-            new_red_double = 0;
-            new_blue_double_d = 0;
-            new_green_double_d = 0;
-            new_red_double_d = 0;
-            for(k = -(kernel_size-1)/2; k <= (kernel_size-1)/2; k++) {
-                for(l = -(kernel_size-1)/2; l <= (kernel_size-1)/2; l++) {
-                    h = i + k;
-                    if(h < 0) {
-                        h = 0;
-                    }
-                    if(h > info_header.biHeight-1) {
-                        h = info_header.biHeight - 1;
-                    }
-                    w = j + l;
-                    if(w < 0) {
-                        w = 0;
-                    }
-                    if(w > info_header.biWidth-1) {
-                        w = info_header.biWidth - 1;
-                    }
-
-                    new_blue_double += exp( -1.0 * ((((l)*(l)) + ((k)*(k))) / (2*sigma_d*sigma_d)) -
-                            (pow(image_data[i][j].rgbtBlue-image_data[h][w].rgbtBlue, 2) / (2*sigma_r*sigma_r)) )
-                        * image_data[h][w].rgbtBlue;
-                    new_blue_double_d += exp( -1.0 * ((((l)*(l)) + ((k)*(k))) / (2*sigma_d*sigma_d)) -
-                            (pow(image_data[i][j].rgbtBlue-image_data[h][w].rgbtBlue, 2) / (2*sigma_r*sigma_r)) );
-                    new_green_double += exp( -1.0 * ((((l)*(l)) + ((k)*(k))) / (2*sigma_d*sigma_d)) -
-                            ((image_data[i][j].rgbtGreen-image_data[h][w].rgbtGreen)*(image_data[i][j].rgbtGreen-image_data[h][w].rgbtGreen) / (2*sigma_r*sigma_r)) )
-                        * image_data[h][w].rgbtGreen;
-                    new_green_double_d += exp( -1.0 * ((((l)*(l)) + ((k)*(k))) / (2*sigma_d*sigma_d)) -
-                            ((image_data[i][j].rgbtGreen-image_data[h][w].rgbtGreen)*(image_data[i][j].rgbtGreen-image_data[h][w].rgbtGreen) / (2*sigma_r*sigma_r)) );
-                    new_red_double += exp( -1.0 * ((((l)*(l)) + ((k)*(k))) / (2*sigma_d*sigma_d)) -
-                            ((image_data[i][j].rgbtRed-image_data[h][w].rgbtRed)*(image_data[i][j].rgbtRed-image_data[h][w].rgbtRed) / (2*sigma_r*sigma_r)) )
-                        * image_data[h][w].rgbtRed;
-                    new_red_double_d += exp( -1.0 * ((((l)*(l)) + ((k)*(k))) / (2*sigma_d*sigma_d)) -
-                            ((image_data[i][j].rgbtRed-image_data[h][w].rgbtRed)*(image_data[i][j].rgbtRed-image_data[h][w].rgbtRed) / (2*sigma_r*sigma_r)) );
-                }
-            }
-            output_image_data[i][j].rgbtBlue = (uint16_t)(new_blue_double / new_blue_double_d);
-            output_image_data[i][j].rgbtGreen = (uint16_t)(new_green_double / new_green_double_d);
-            output_image_data[i][j].rgbtRed = (uint16_t)(new_red_double / new_red_double_d);
-        }
-    }
-#endif
+    //gaussian_filter(&output_image_data, &image_data, &image_info, 3.0, 7);
+    bilateral_filter(&output_image_data, &image_data, &image_info, 25.0, 25.0, 7);
 #if 0
     kernel_size = 3;
     filter_x = (double **)malloc(sizeof(double *)*kernel_size);
