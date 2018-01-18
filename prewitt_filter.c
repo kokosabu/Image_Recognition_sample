@@ -11,9 +11,6 @@ void prewitt_filter(RGBTRIPLE ***output_image_data, RGBTRIPLE ***image_data, IMA
     int l;
     int w;
     int h;
-    uint8_t new_blue;
-    uint8_t new_green;
-    uint8_t new_red;
     double **filter_x;
     double **filter_y;
     double new_blue_double_x;
@@ -72,12 +69,16 @@ void prewitt_filter(RGBTRIPLE ***output_image_data, RGBTRIPLE ***image_data, IMA
                     new_red_double_y   += ((*image_data)[h][w].rgbtRed)   * filter_y[k+(kernel_size-1)/2][l+(kernel_size-1)/2];
                 }
             }
-            new_blue  = (uint8_t)sqrt(pow(new_blue_double_x,  2) + pow(new_blue_double_y,  2));
-            new_green = (uint8_t)sqrt(pow(new_green_double_x, 2) + pow(new_green_double_y, 2));
-            new_red   = (uint8_t)sqrt(pow(new_red_double_x,   2) + pow(new_red_double_y,   2));
-            (*output_image_data)[i][j].rgbtBlue = new_blue;
-            (*output_image_data)[i][j].rgbtGreen = new_green;
-            (*output_image_data)[i][j].rgbtRed = new_red;
+            (*output_image_data)[i][j].rgbtBlue  = (uint8_t)sqrt(pow(new_blue_double_x,  2) + pow(new_blue_double_y,  2));
+            (*output_image_data)[i][j].rgbtGreen = (uint8_t)sqrt(pow(new_green_double_x, 2) + pow(new_green_double_y, 2));
+            (*output_image_data)[i][j].rgbtRed   = (uint8_t)sqrt(pow(new_red_double_x,   2) + pow(new_red_double_y,   2));
         }
     }
+
+    for(k = 0; k < kernel_size; k++) {
+        free((void *)filter_x[k]);
+        free((void *)filter_y[k]);
+    }
+    free((void *)filter_x);
+    free((void *)filter_y);
 }
