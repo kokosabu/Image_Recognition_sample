@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <math.h>
 #include <string.h>
 #include "common.h"
 #include "bitmap.h"
@@ -109,14 +108,10 @@ int main(int argc, char *argv[])
 {
     FILE *input;
     FILE *output;
-    BITMAPFILEHEADER file_header;
-    BITMAPINFOHEADER info_header;
     IMAGEINFO image_info;
     RGBTRIPLE **image_data;
     RGBTRIPLE **output_image_data;
     int i;
-    int j;
-    uint8_t dummy;
     //uint16_t new_blue;
     //uint16_t new_green;
     //uint16_t new_red;
@@ -309,54 +304,7 @@ int main(int argc, char *argv[])
     if(output == NULL) {
         return 0;
     }
-
-    file_header.bfType      = ('M' << 8) | 'B';
-    file_header.bfSize      = image_info.fileSize;
-    file_header.bfReserved1 = 0;
-    file_header.bfReserved2 = 0;
-    file_header.bfOffBits   = 14 + 40;
-
-    fwrite(&file_header.bfType, 2, 1, output);
-    fwrite(&file_header.bfSize, 4, 1, output);
-    fwrite(&file_header.bfReserved1, 2, 1, output);
-    fwrite(&file_header.bfReserved2, 2, 1, output);
-    fwrite(&file_header.bfOffBits, 4, 1, output);
-
-    info_header.biSize          = 40;
-    info_header.biWidth         = image_info.width;
-    info_header.biHeight        = image_info.height;
-    info_header.biPlanes        = 1;
-    info_header.biBitCount      = 24;
-    info_header.biCompression   = 0;
-    info_header.biSizeImage     = image_info.width * image_info.height * 3;
-    info_header.biXPelsPerMeter = 0;
-    info_header.biYPelsPerMeter = 0;
-    info_header.biClrUsed       = 0;
-    info_header.biClrImportant  = 0;
-    fwrite(&info_header.biSize, 4, 1, output);
-    fwrite(&info_header.biWidth, 4, 1, output);
-    fwrite(&info_header.biHeight, 4, 1, output);
-    fwrite(&info_header.biPlanes, 2, 1, output);
-    fwrite(&info_header.biBitCount, 2, 1, output);
-    fwrite(&info_header.biCompression, 4, 1, output);
-    fwrite(&info_header.biSizeImage, 4, 1, output);
-    fwrite(&info_header.biXPelsPerMeter, 4, 1, output);
-    fwrite(&info_header.biYPelsPerMeter, 4, 1, output);
-    fwrite(&info_header.biClrUsed, 4, 1, output);
-    fwrite(&info_header.biClrImportant, 4, 1, output);
-
-    fseek(output, file_header.bfOffBits, SEEK_SET);
-
-    for(i = info_header.biHeight-1; i >= 0; i--) {
-        for(j = 0; j < info_header.biWidth; j++) {
-            fwrite(&output_image_data[i][j].rgbtBlue, 1, 1, output);
-            fwrite(&output_image_data[i][j].rgbtGreen, 1, 1, output);
-            fwrite(&output_image_data[i][j].rgbtRed, 1, 1, output);
-        }
-        dummy = 0;
-        fwrite(&dummy, 1, (3*info_header.biWidth)%4, output);
-    }
-
+    encode_bitmap(output, &image_info, &image_data);
     fclose(output);
 
     for(i = 0; i < image_info.height; i++) {

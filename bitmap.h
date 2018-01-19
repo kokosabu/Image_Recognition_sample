@@ -41,5 +41,6 @@ typedef struct tagRGBQUAD {
 } RGBQUAD;
 
 void decode_bitmap(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data);
+void encode_bitmap(FILE *output, IMAGEINFO *image_info, RGBTRIPLE ***image_data);
 
 #endif
