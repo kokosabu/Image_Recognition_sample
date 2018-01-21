@@ -8,6 +8,7 @@
 #include "gaussian_filter.h"
 #include "bilateral_filter.h"
 #include "prewitt_filter.h"
+#include "sobel_filter.h"
 
 enum {
     NONE,
@@ -112,22 +113,6 @@ int main(int argc, char *argv[])
     RGBTRIPLE **image_data;
     RGBTRIPLE **output_image_data;
     int i;
-    //uint16_t new_blue;
-    //uint16_t new_green;
-    //uint16_t new_red;
-    //double new_blue_double_x;
-    //double new_blue_double_y;
-    //double new_green_double_x;
-    //double new_green_double_y;
-    //double new_red_double_x;
-    //double new_red_double_y;
-    //int k;
-    //int l;
-    //int w;
-    //int h;
-    //int kernel_size;
-    //double **filter_x;
-    //double **filter_y;
     int file_format;
     uint8_t *png_image_data;
 
@@ -238,67 +223,8 @@ int main(int argc, char *argv[])
     //average_filter(&output_image_data, &image_data, &image_info, 11);
     //gaussian_filter(&output_image_data, &image_data, &image_info, 3.0, 7);
     //bilateral_filter(&output_image_data, &image_data, &image_info, 25.0, 25.0, 7);
-    prewitt_filter(&output_image_data, &image_data, &image_info, 3);
-#if 0
-    kernel_size = 3;
-    filter_x = (double **)malloc(sizeof(double *)*kernel_size);
-    filter_y = (double **)malloc(sizeof(double *)*kernel_size);
-    for(k = 0; k < kernel_size; k++) {
-        filter_x[k] = (double *)malloc(sizeof(double)*kernel_size);
-        filter_y[k] = (double *)malloc(sizeof(double)*kernel_size);
-    }
-    for(k = -(kernel_size-1)/2; k <= (kernel_size-1)/2; k++) {
-        filter_x[k+(kernel_size-1)/2][0] = -1 * ((kernel_size-abs(k)) - 1);
-        filter_y[0][k+(kernel_size-1)/2] = -1 * ((kernel_size-abs(k)) - 1);
-        for(l = 1; l < kernel_size-1; l++) {
-            filter_x[k+(kernel_size-1)/2][l] = 0;
-            filter_y[l][k+(kernel_size-1)/2] = 0;
-        }
-        filter_x[k+(kernel_size-1)/2][kernel_size-1] = (kernel_size-abs(k)) - 1;
-        filter_y[kernel_size-1][k+(kernel_size-1)/2] = (kernel_size-abs(k)) - 1;
-    }
-    for(i = 0; i < info_header.biHeight; i++) {
-        for(j = 0; j < info_header.biWidth; j++) {
-            new_blue_double_x = 0;
-            new_blue_double_y = 0;
-            new_green_double_x = 0;
-            new_green_double_y = 0;
-            new_red_double_x = 0;
-            new_red_double_y = 0;
-            for(k = -(kernel_size-1)/2; k <= (kernel_size-1)/2; k++) {
-                for(l = -(kernel_size-1)/2; l <= (kernel_size-1)/2; l++) {
-                    h = i + k;
-                    if(h < 0) {
-                        h = 0;
-                    }
-                    if(h > info_header.biHeight-1) {
-                        h = info_header.biHeight - 1;
-                    }
-                    w = j + l;
-                    if(w < 0) {
-                        w = 0;
-                    }
-                    if(w > info_header.biWidth-1) {
-                        w = info_header.biWidth - 1;
-                    }
-
-                    new_blue_double_x  += (image_data[h][w].rgbtBlue)  * filter_x[k+(kernel_size-1)/2][l+(kernel_size-1)/2];
-                    new_blue_double_y  += (image_data[h][w].rgbtBlue)  * filter_y[k+(kernel_size-1)/2][l+(kernel_size-1)/2];
-                    new_green_double_x += (image_data[h][w].rgbtGreen) * filter_x[k+(kernel_size-1)/2][l+(kernel_size-1)/2];
-                    new_green_double_y += (image_data[h][w].rgbtGreen) * filter_y[k+(kernel_size-1)/2][l+(kernel_size-1)/2];
-                    new_red_double_x   += (image_data[h][w].rgbtRed)   * filter_x[k+(kernel_size-1)/2][l+(kernel_size-1)/2];
-                    new_red_double_y   += (image_data[h][w].rgbtRed)   * filter_y[k+(kernel_size-1)/2][l+(kernel_size-1)/2];
-                }
-            }
-            new_blue  = (uint16_t)sqrt(pow(new_blue_double_x,  2) + pow(new_blue_double_y,  2));
-            new_green = (uint16_t)sqrt(pow(new_green_double_x, 2) + pow(new_green_double_y, 2));
-            new_red   = (uint16_t)sqrt(pow(new_red_double_x,   2) + pow(new_red_double_y,   2));
-            output_image_data[i][j].rgbtBlue = new_blue;
-            output_image_data[i][j].rgbtGreen = new_green;
-            output_image_data[i][j].rgbtRed = new_red;
-        }
-    }
-#endif
+    //prewitt_filter(&output_image_data, &image_data, &image_info, 3);
+    sobel_filter(&output_image_data, &image_data, &image_info, 3);
 
     output = fopen("test", "wb");
     if(output == NULL) {
