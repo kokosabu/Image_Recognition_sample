@@ -9,6 +9,7 @@
 #include "bilateral_filter.h"
 #include "prewitt_filter.h"
 #include "sobel_filter.h"
+#include "canny_edge_detector.h"
 
 enum {
     NONE,
@@ -224,7 +225,8 @@ int main(int argc, char *argv[])
     //gaussian_filter(&output_image_data, &image_data, &image_info, 3.0, 7);
     //bilateral_filter(&output_image_data, &image_data, &image_info, 25.0, 25.0, 7);
     //prewitt_filter(&output_image_data, &image_data, &image_info, 3);
-    sobel_filter(&output_image_data, &image_data, &image_info, 3);
+    //sobel_filter(&output_image_data, &image_data, &image_info, 3);
+    canny_edge_detector(&output_image_data, &image_data, &image_info, 0.8, 7, 3);
 
     output = fopen("test", "wb");
     if(output == NULL) {
