@@ -230,7 +230,7 @@ int main(int argc, char *argv[])
     if(output == NULL) {
         return 0;
     }
-    encode_bitmap(output, &image_info, &image_data);
+    encode_bitmap(output, &image_info, &output_image_data);
     fclose(output);
 
     for(i = 0; i < image_info.height; i++) {
