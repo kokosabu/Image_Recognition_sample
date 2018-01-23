@@ -10,6 +10,7 @@
 #include "prewitt_filter.h"
 #include "sobel_filter.h"
 #include "canny_edge_detector.h"
+#include "LoG_filter.h"
 
 enum {
     NONE,
@@ -226,7 +227,8 @@ int main(int argc, char *argv[])
     //bilateral_filter(&output_image_data, &image_data, &image_info, 25.0, 25.0, 7);
     //prewitt_filter(&output_image_data, &image_data, &image_info, 3);
     //sobel_filter(&output_image_data, &image_data, &image_info, 3);
-    canny_edge_detector(&output_image_data, &image_data, &image_info, 0.8, 7, 3);
+    //canny_edge_detector(&output_image_data, &image_data, &image_info, 0.8, 7, 3);
+    LoG_filter(&output_image_data, &image_data, &image_info, 1.4, 9);
 
     output = fopen("test", "wb");
     if(output == NULL) {
