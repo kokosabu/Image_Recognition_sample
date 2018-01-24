@@ -107,6 +107,22 @@ uint32_t read_4bytes(FILE *input)
     return result;
 }
 
+int bit_read(uint8_t byte, int bit_pos, int bit_len)
+{
+    uint8_t pattern[8] = {
+        //0x80, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC, 0xFE, 0xFF
+        0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F, 0xFF
+    };
+
+    //byte <<= bit_pos;
+    //byte &= pattern[bit_len-1];
+    //byte >>= (8 - bit_len);
+    byte >>= bit_pos;
+    byte &= pattern[bit_len-1];
+
+    return byte;
+}
+
 int main(int argc, char *argv[])
 {
     FILE *input;
@@ -148,6 +164,10 @@ int main(int argc, char *argv[])
         uint8_t interlace_type;
         uint32_t crc_32;
         char chunk[5];
+        int bit_index;
+        int byte_index;
+        int block_header;
+
         printf("PNG\n");
 
         for(i = 0; i < 8; i++) {
@@ -210,8 +230,41 @@ int main(int argc, char *argv[])
             return 0;
         }
 
-        printf("%02x\n%02x\n", png_image_data[0], png_image_data[1]);
-        printf("%d : %d : %d\n", (png_image_data[1] & 0xC0)>>6, (png_image_data[1]&0x20)>>5, png_image_data[1]&0x1F);
+        bit_index = 0;
+        byte_index = 0;
+        do {
+            block_header = bit_read(png_image_data[byte_index], 0, 1);
+            printf("%02x\n", block_header);
+            block_header = bit_read(png_image_data[byte_index], 1, 2);
+            printf("%02x\n", block_header);
+        } while(0);
+        /*
+               read block header from input stream.
+               if stored with no compression
+                  skip any remaining bits in current partially
+                     processed byte
+                  read LEN and NLEN (see next section)
+                  copy LEN bytes of data to output
+               otherwise
+                  if compressed with dynamic Huffman codes
+                     read representation of code trees (see
+                        subsection below)
+                  loop (until end of block code recognized)
+                     decode literal/length value from input stream
+                     if value < 256
+                        copy value (literal byte) to output stream
+                     otherwise
+                        if value = end of block (256)
+                           break from loop
+                        otherwise (value = 257..285)
+                           decode distance from input stream
+
+                           move backwards distance bytes in the output
+                           stream, and copy length bytes from this
+                           position to the output stream.
+                  end loop
+            while not last block
+        */
 
         return 0;
     }
