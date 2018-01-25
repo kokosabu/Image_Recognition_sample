@@ -166,7 +166,6 @@ int main(int argc, char *argv[])
         char chunk[5];
         int bit_index;
         int byte_index;
-        int block_header;
         int bfinal;
         int btype;
         uint16_t len;
@@ -245,7 +244,9 @@ int main(int argc, char *argv[])
 
             if(btype == 0x00) {
                 /* skip any remaining bits in current partially processed byte */
+                printf("%02x:%02x:%02x:%02x:%02x:%02x\n", png_image_data[0], png_image_data[1], png_image_data[2], png_image_data[3], png_image_data[4], png_image_data[5]);
                 byte_index++;
+                /* read LEN and NLEN (see next section) */
                 len = (png_image_data[byte_index] << 8) | png_image_data[byte_index+1];
                 byte_index += 2;
                 nlen = (png_image_data[byte_index] << 8) | png_image_data[byte_index+1];
@@ -253,11 +254,23 @@ int main(int argc, char *argv[])
                 printf("%x : %x : %x\n", len, nlen, nlen ^ 0xFFFF);
                 printf("%d : %d : %d\n", len, nlen, nlen ^ 0xFFFF);
                 /* 
+                    00000020  70 00 02 bd 2e 49 44 41  54 78 da ec c0 81 00 00  |p....IDA|Tx......|
+                    00000030  00 00 80 a0 fd a9 17 a9  00 00 00 00 00 00 00 00  |........|........|
+
                     0   1   2   3   4...
                     +---+---+---+---+================================+
                     |  LEN  | NLEN  |... LEN bytes of literal data...|
                     +---+---+---+---+================================+
-                   read LEN and NLEN (see next section)
+                   78        da        ec        c0        81
+                   0111 1000 1101 1010 1110 1100 1100 0000 1000 0001
+
+                   0001 1110 0101 1011 0011 0111 0000 0011 1000 0001
+                   1e        5b        37        03        81
+
+                   1111 0010 1101 1001 1011 1000 0001 1100 0000 1000
+                   f2        d9        b8        1c        08
+                */
+                /*
                    copy LEN bytes of data to output
                 */
             } else {
