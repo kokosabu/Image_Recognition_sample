@@ -167,6 +167,10 @@ int main(int argc, char *argv[])
         int bit_index;
         int byte_index;
         int block_header;
+        int bfinal;
+        int btype;
+        uint16_t len;
+        uint16_t nlen;
 
         printf("PNG\n");
 
@@ -233,38 +237,53 @@ int main(int argc, char *argv[])
         bit_index = 0;
         byte_index = 0;
         do {
-            block_header = bit_read(png_image_data[byte_index], 0, 1);
-            printf("%02x\n", block_header);
-            block_header = bit_read(png_image_data[byte_index], 1, 2);
-            printf("%02x\n", block_header);
-        } while(0);
-        /*
-               read block header from input stream.
-               if stored with no compression
-                  skip any remaining bits in current partially
-                     processed byte
-                  read LEN and NLEN (see next section)
-                  copy LEN bytes of data to output
-               otherwise
-                  if compressed with dynamic Huffman codes
-                     read representation of code trees (see
-                        subsection below)
-                  loop (until end of block code recognized)
-                     decode literal/length value from input stream
-                     if value < 256
-                        copy value (literal byte) to output stream
-                     otherwise
-                        if value = end of block (256)
-                           break from loop
-                        otherwise (value = 257..285)
-                           decode distance from input stream
+            /* read block header from input stream. */
+            bfinal = bit_read(png_image_data[byte_index], 0, 1);
+            printf("%02x\n", bfinal);
+            btype = bit_read(png_image_data[byte_index], 1, 2);
+            printf("%02x\n", btype);
 
-                           move backwards distance bytes in the output
-                           stream, and copy length bytes from this
-                           position to the output stream.
-                  end loop
-            while not last block
-        */
+            if(btype == 0x00) {
+                /* skip any remaining bits in current partially processed byte */
+                byte_index++;
+                len = (png_image_data[byte_index] << 8) | png_image_data[byte_index+1];
+                byte_index += 2;
+                nlen = (png_image_data[byte_index] << 8) | png_image_data[byte_index+1];
+                byte_index += 2;
+                printf("%x : %x : %x\n", len, nlen, nlen ^ 0xFFFF);
+                printf("%d : %d : %d\n", len, nlen, nlen ^ 0xFFFF);
+                /* 
+                    0   1   2   3   4...
+                    +---+---+---+---+================================+
+                    |  LEN  | NLEN  |... LEN bytes of literal data...|
+                    +---+---+---+---+================================+
+                   read LEN and NLEN (see next section)
+                   copy LEN bytes of data to output
+                */
+            } else {
+                /*
+                   if compressed with dynamic Huffman codes
+                   read representation of code trees (see
+                   subsection below)
+                   loop (until end of block code recognized)
+                   decode literal/length value from input stream
+                   if value < 256
+                   copy value (literal byte) to output stream
+                   otherwise
+                   if value = end of block (256)
+                   break from loop
+                   otherwise (value = 257..285)
+                   decode distance from input stream
+
+                   move backwards distance bytes in the output
+                   stream, and copy length bytes from this
+                   position to the output stream.
+                   end loop
+                   while not last block
+                */
+            }
+
+        } while(0);
 
         return 0;
     }
