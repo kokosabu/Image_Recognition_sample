@@ -170,6 +170,7 @@ int main(int argc, char *argv[])
         int btype;
         uint16_t len;
         uint16_t nlen;
+        int flag;
 
         printf("PNG\n");
 
@@ -177,47 +178,52 @@ int main(int argc, char *argv[])
             fread(&byte, 1, 1, input);
         }
 
-        size = read_4bytes(input);
-        fread(&chunk[0], 1, 1, input);
-        fread(&chunk[1], 1, 1, input);
-        fread(&chunk[2], 1, 1, input);
-        fread(&chunk[3], 1, 1, input);
-        chunk[4] = '\0';
-        width = read_4bytes(input);
-        height = read_4bytes(input);
-        fread(&bps, 1, 1, input);
-        fread(&color_type, 1, 1, input);
-        fread(&compress_type, 1, 1, input);
-        fread(&filter_type, 1, 1, input);
-        fread(&interlace_type, 1, 1, input);
-        crc_32 = read_4bytes(input);
+        do {
+            size = read_4bytes(input);
+            fread(&chunk[0], 1, 1, input);
+            fread(&chunk[1], 1, 1, input);
+            fread(&chunk[2], 1, 1, input);
+            fread(&chunk[3], 1, 1, input);
+            chunk[4] = '\0';
 
-        printf("size:%d\n", size);
-        printf("chunk:%s\n", chunk);
-        printf("width:%d\n", width);
-        printf("height:%d\n", height);
-        printf("bps:%d\n", bps);
-        printf("color type:%d\n", color_type);
-        printf("compress type:%d\n", compress_type);
-        printf("filter type:%d\n", filter_type);
-        printf("interlace type:%d\n", interlace_type);
-        printf("crc-32: %xh\n", crc_32);
+            if(strcmp("IHDR", chunk) == 0) {
+                width = read_4bytes(input);
+                height = read_4bytes(input);
+                fread(&bps, 1, 1, input);
+                fread(&color_type, 1, 1, input);
+                fread(&compress_type, 1, 1, input);
+                fread(&filter_type, 1, 1, input);
+                fread(&interlace_type, 1, 1, input);
+                crc_32 = read_4bytes(input);
 
-        size = read_4bytes(input);
-        fread(&chunk[0], 1, 1, input);
-        fread(&chunk[1], 1, 1, input);
-        fread(&chunk[2], 1, 1, input);
-        fread(&chunk[3], 1, 1, input);
-        chunk[4] = '\0';
-        printf("size:%d\n", size);
-        printf("chunk:%s\n", chunk);
-        if(strcmp(chunk, "IDAT") == 0) {
-            png_image_data = (uint8_t *)malloc(sizeof(uint8_t) * size);
-            fread(png_image_data, 1, size, input);
-            crc_32 = read_4bytes(input);
-        } else {
-            return 0;
-        }
+                printf("size:%d\n", size);
+                printf("chunk:%s\n", chunk);
+                printf("width:%d\n", width);
+                printf("height:%d\n", height);
+                printf("bps:%d\n", bps);
+                printf("color type:%d\n", color_type);
+                printf("compress type:%d\n", compress_type);
+                printf("filter type:%d\n", filter_type);
+                printf("interlace type:%d\n", interlace_type);
+                printf("crc-32: %xh\n", crc_32);
+                flag = 0;
+            } else if(strcmp(chunk, "IDAT") == 0) {
+                png_image_data = (uint8_t *)malloc(sizeof(uint8_t) * size);
+                fread(png_image_data, 1, size, input);
+                crc_32 = read_4bytes(input);
+                flag = 1;
+                printf("size:%d\n", size);
+                printf("chunk:%s\n", chunk);
+            } else if(strcmp(chunk, "PLTE") == 0) {
+                printf("size:%d\n", size);
+                printf("chunk:%s\n", chunk);
+                return 0;
+            } else {
+                printf("size:%d\n", size);
+                printf("chunk:%s\n", chunk);
+                return 0;
+            }
+        } while(flag == 0);
 
         size = read_4bytes(input);
         fread(&chunk[0], 1, 1, input);
