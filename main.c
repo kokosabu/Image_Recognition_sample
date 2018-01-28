@@ -171,6 +171,7 @@ int main(int argc, char *argv[])
         uint16_t len;
         uint16_t nlen;
         int flag;
+        RGBTRIPLE *color_palette;
 
         printf("PNG\n");
 
@@ -211,33 +212,36 @@ int main(int argc, char *argv[])
                 png_image_data = (uint8_t *)malloc(sizeof(uint8_t) * size);
                 fread(png_image_data, 1, size, input);
                 crc_32 = read_4bytes(input);
-                flag = 1;
                 printf("size:%d\n", size);
                 printf("chunk:%s\n", chunk);
+                printf("crc-32: %xh\n", crc_32);
             } else if(strcmp(chunk, "PLTE") == 0) {
+                color_palette = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * size);
+
+                for(i = 0; i < size/3; i++) {
+                    fread(&(color_palette[i].rgbtRed),   1, 1, input);
+                    fread(&(color_palette[i].rgbtGreen), 1, 1, input);
+                    fread(&(color_palette[i].rgbtBlue),  1, 1, input);
+                }
+                crc_32 = read_4bytes(input);
+
                 printf("size:%d\n", size);
                 printf("chunk:%s\n", chunk);
-                return 0;
+                for(i = 0; i < size/3; i++) {
+                    printf("[%d] : %d %d %d\n", i+1, color_palette[i].rgbtRed, color_palette[i].rgbtGreen, color_palette[i].rgbtBlue);
+                }
+                printf("crc-32: %xh\n", crc_32);
+            } else if(strcmp(chunk, "IEND") == 0) {
+                crc_32 = read_4bytes(input);
+                printf("size:%d\n", size);
+                printf("chunk:%s\n", chunk);
+                flag = 1;
             } else {
                 printf("size:%d\n", size);
                 printf("chunk:%s\n", chunk);
                 return 0;
             }
         } while(flag == 0);
-
-        size = read_4bytes(input);
-        fread(&chunk[0], 1, 1, input);
-        fread(&chunk[1], 1, 1, input);
-        fread(&chunk[2], 1, 1, input);
-        fread(&chunk[3], 1, 1, input);
-        chunk[4] = '\0';
-        printf("size:%d\n", size);
-        printf("chunk:%s\n", chunk);
-        if(strcmp(chunk, "IEND") == 0) {
-            crc_32 = read_4bytes(input);
-        } else {
-            return 0;
-        }
 
         bit_index = 0;
         byte_index = 0;
