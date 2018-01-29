@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "common.h"
 #include "bitmap.h"
 #include "average_filter.h"
@@ -172,6 +173,13 @@ int main(int argc, char *argv[])
         uint16_t nlen;
         int flag;
         RGBTRIPLE *color_palette;
+        uint8_t cmf;
+        uint8_t cm;
+        uint8_t cinfo;
+        uint32_t window_size;
+        int flg;
+        uint8_t fdict;
+        uint32_t dictid;
 
         printf("PNG\n");
 
@@ -246,12 +254,46 @@ int main(int argc, char *argv[])
         bit_index = 0;
         byte_index = 0;
         do {
-            /* read block header from input stream. */
-            bfinal = bit_read(png_image_data[byte_index], 0, 1);
-            printf("%02x\n", bfinal);
-            btype = bit_read(png_image_data[byte_index], 1, 2);
-            printf("%02x\n", btype);
+            cmf = png_image_data[byte_index];
+            byte_index += 1;
+            printf("%02xh\n", cmf);
+            cm = cmf & 0x0F;
+            cinfo = (cmf & 0xF0) >> 4;
+            printf("%02xh, %02xh\n", cm, cinfo);
 
+            if(cm != 8) {
+                printf("not deflate\n");
+                return 0;
+            }
+            if(cinfo > 7) {
+                printf("CINFO above 7 are not allowed in this version of the specification\n");
+                return 0;
+            }
+            window_size = pow(2, cinfo + 8);
+
+            flg = png_image_data[byte_index];
+            byte_index += 1;
+            fdict = (flg & 0x10) >> 5;
+            printf("fdict %d\n", fdict);
+
+            if(fdict == 1) {
+                dictid = png_image_data[byte_index];
+                byte_index += 1;
+                dictid = dictid << 8 | png_image_data[byte_index];
+                byte_index += 1;
+                dictid = dictid << 8 | png_image_data[byte_index];
+                byte_index += 1;
+                dictid = dictid << 8 | png_image_data[byte_index];
+                byte_index += 1;
+            }
+
+            /* read block header from input stream. */
+            bfinal = bit_read(png_image_data[byte_index], bit_index, 1);
+            bit_index += 1;
+            btype = bit_read(png_image_data[byte_index], bit_index, 2);
+
+            printf("%02x %02x\n", bfinal, btype);
+#if 0
             if(btype == 0x00) {
                 /* skip any remaining bits in current partially processed byte */
                 printf("%02x:%02x:%02x:%02x:%02x:%02x\n", png_image_data[0], png_image_data[1], png_image_data[2], png_image_data[3], png_image_data[4], png_image_data[5]);
@@ -306,6 +348,7 @@ int main(int argc, char *argv[])
                 */
             }
 
+#endif
         } while(0);
 
         return 0;
