@@ -293,7 +293,7 @@ int main(int argc, char *argv[])
             btype = bit_read(png_image_data[byte_index], bit_index, 2);
 
             printf("%02x %02x\n", bfinal, btype);
-#if 0
+
             if(btype == 0x00) {
                 /* skip any remaining bits in current partially processed byte */
                 printf("%02x:%02x:%02x:%02x:%02x:%02x\n", png_image_data[0], png_image_data[1], png_image_data[2], png_image_data[3], png_image_data[4], png_image_data[5]);
@@ -328,8 +328,14 @@ int main(int argc, char *argv[])
             } else {
                 /*
                    if compressed with dynamic Huffman codes
-                   read representation of code trees (see
-                   subsection below)
+                */
+                if(btype == 0x02) {
+                    /*
+                       read representation of code trees (see
+                       subsection below)
+                    */
+                }
+                /*
                    loop (until end of block code recognized)
                    decode literal/length value from input stream
                    if value < 256
@@ -348,8 +354,8 @@ int main(int argc, char *argv[])
                 */
             }
 
-#endif
-        } while(0);
+            bfinal = 1;
+        } while(bfinal == 0);
 
         return 0;
     }
