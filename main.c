@@ -180,6 +180,7 @@ int main(int argc, char *argv[])
         int flg;
         uint8_t fdict;
         uint32_t dictid;
+        int value;
 
         printf("PNG\n");
 
@@ -351,27 +352,35 @@ int main(int argc, char *argv[])
                 /* 00000  */
                 /* 0000000 */
 
-                /*    0000000   ( 0x 00   0d ) - 0010111   ( 0x 17  23d ) */
-                /* -> 100000000                    000*/
-                /*    00110000  ( 0x 30  48d ) - 10111111  ( 0x BF 191d ) */ /* -> 00000000 ( 0x00     ) - 10001111 ( 0x8F      ) */
-                /*    11000000  ( 0x C0 192d ) - 11000111  ( 0x C7 151d ) */
-                /*    110010000 ( 0x190 352d ) - 111111111 ( 0x1FF 511d ) */
+                /*    0000000   ( 0x 00   0d ) - 0010111   ( 0x 17  23d ) */ /* -> 100000000 ( 0x100 256d ) - 100010111 ( 0x117 279d ) */
+                /*    00110000  ( 0x 30  48d ) - 10111111  ( 0x BF 191d ) */ /* -> 00000000  ( 0x00    0d ) - 10001111  ( 0x 8F 143d ) */
+                /*    11000000  ( 0x C0 192d ) - 11000111  ( 0x C7 151d ) */ /* -> 100011000 ( 0x118 280d ) - 100011111 ( 0x11F 287d ) */
+                /*    110010000 ( 0x190 352d ) - 111111111 ( 0x1FF 511d ) */ /* -> 10010000  ( 0x 90 144d ) - 11111111  ( 0x FF 255d ) */
 
 
                 /*
                    loop (until end of block code recognized)
                    decode literal/length value from input stream
-                   if value < 256
-                   copy value (literal byte) to output stream
-                   otherwise
-                   if value = end of block (256)
-                   break from loop
-                   otherwise (value = 257..285)
-                   decode distance from input stream
+                */
 
-                   move backwards distance bytes in the output
-                   stream, and copy length bytes from this
-                   position to the output stream.
+                /* if value < 256 */
+                if(value < 256) {
+                   /* copy value (literal byte) to output stream */
+                }
+                /* otherwise */
+                else {
+                    /* if value = end of block (256) */
+                    if(value == 256) {
+                        /* break from loop */
+                        break;
+                    }
+                    /* otherwise (value = 257..285) */
+                    else {
+                        /* decode distance from input stream */
+                        /* move backwards distance bytes in the output stream, and copy length bytes from this position to the output stream. */
+                    }
+                }
+                /*
                    end loop
                    while not last block
                 */
