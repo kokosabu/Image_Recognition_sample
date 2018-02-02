@@ -124,6 +124,25 @@ int bit_read(uint8_t byte, int bit_pos, int bit_len)
     return byte;
 }
 
+#if 0
+void bit_write(uint8_t *stream, uint8_t byte, int bit_pos, int bit_len)
+{
+    uint8_t pattern[8] = {
+        //0x80, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC, 0xFE, 0xFF
+        0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F, 0xFF
+    };
+
+    //byte <<= bit_pos;
+    //byte &= pattern[bit_len-1];
+    //byte >>= (8 - bit_len);
+    *stream |= 
+    byte >>= bit_pos;
+    byte &= pattern[bit_len-1];
+
+    return byte;
+}
+#endif
+
 int main(int argc, char *argv[])
 {
     FILE *input;
@@ -134,6 +153,7 @@ int main(int argc, char *argv[])
     int i;
     int file_format;
     uint8_t *png_image_data;
+    uint8_t *output_stream;
 
     if(argc <= 1) {
         printf("filename\n");
@@ -167,6 +187,7 @@ int main(int argc, char *argv[])
         char chunk[5];
         int bit_index;
         int byte_index;
+        int write_byte_index;
         int bfinal;
         int btype;
         uint16_t len;
@@ -181,6 +202,7 @@ int main(int argc, char *argv[])
         uint8_t fdict;
         uint32_t dictid;
         int value;
+        int hlit;
 
         printf("PNG\n");
 
@@ -216,6 +238,9 @@ int main(int argc, char *argv[])
                 printf("filter type:%d\n", filter_type);
                 printf("interlace type:%d\n", interlace_type);
                 printf("crc-32: %xh\n", crc_32);
+
+                output_stream = (uint8_t *)malloc(sizeof(uint8_t) * width * height * 3);
+
                 flag = 0;
             } else if(strcmp(chunk, "IDAT") == 0) {
                 png_image_data = (uint8_t *)malloc(sizeof(uint8_t) * size);
@@ -254,6 +279,7 @@ int main(int argc, char *argv[])
 
         bit_index = 0;
         byte_index = 0;
+        write_byte_index = 0;
         do {
             cmf = png_image_data[byte_index];
             byte_index += 1;
@@ -292,6 +318,7 @@ int main(int argc, char *argv[])
             bfinal = bit_read(png_image_data[byte_index], bit_index, 1);
             bit_index += 1;
             btype = bit_read(png_image_data[byte_index], bit_index, 2);
+            bit_index += 2;
 
             printf("%02x %02x\n", bfinal, btype);
 
@@ -299,6 +326,7 @@ int main(int argc, char *argv[])
                 /* skip any remaining bits in current partially processed byte */
                 printf("%02x:%02x:%02x:%02x:%02x:%02x\n", png_image_data[0], png_image_data[1], png_image_data[2], png_image_data[3], png_image_data[4], png_image_data[5]);
                 byte_index++;
+
                 /* read LEN and NLEN (see next section) */
                 len = (png_image_data[byte_index] << 8) | png_image_data[byte_index+1];
                 byte_index += 2;
@@ -306,42 +334,27 @@ int main(int argc, char *argv[])
                 byte_index += 2;
                 printf("%x : %x : %x\n", len, nlen, nlen ^ 0xFFFF);
                 printf("%d : %d : %d\n", len, nlen, nlen ^ 0xFFFF);
-                /* 
-                    00000020  70 00 02 bd 2e 49 44 41  54 78 da ec c0 81 00 00  |p....IDA|Tx......|
-                    00000030  00 00 80 a0 fd a9 17 a9  00 00 00 00 00 00 00 00  |........|........|
 
-                    0   1   2   3   4...
-                    +---+---+---+---+================================+
-                    |  LEN  | NLEN  |... LEN bytes of literal data...|
-                    +---+---+---+---+================================+
-                   78        da        ec        c0        81
-                   0111 1000 1101 1010 1110 1100 1100 0000 1000 0001
-
-                   0001 1110 0101 1011 0011 0111 0000 0011 1000 0001
-                   1e        5b        37        03        81
-
-                   1111 0010 1101 1001 1011 1000 0001 1100 0000 1000
-                   f2        d9        b8        1c        08
-                */
                 /*
                    copy LEN bytes of data to output
                 */
+                for(i = 0; i < len; i++) {
+                    output_stream[write_byte_index] = png_image_data[byte_index];
+                    write_byte_index += 1;
+                    byte_index += 1;
+                }
             } else {
-                /*
-                   if compressed with dynamic Huffman codes
-                */
+                /* if compressed with dynamic Huffman codes */
                 if(btype == 0x02) {
                     /*
                        read representation of code trees (see
                        subsection below)
                     */
+                    hlit = bit_read(png_image_data[byte_index], bit_index, 5);
+                    printf("%d\n", hlit);
                 }
-                /*
-                 * 4B 4C 04 02 00 */
-
-                /*
-                 * 0100 1011 : 0100 1100 : 0000 0100 : 0000 0010 : 0000 0000 */
-                
+                /* 4B 4C 04 02 00 */
+                /* 0100 1011 : 0100 1100 : 0000 0100 : 0000 0010 : 0000 0000 */
                 /* 1101 0010 : 0011 0010 : 0010 0000 : 0100 0000 : 0000 0000 */
 
                 /* 1 */
@@ -357,36 +370,34 @@ int main(int argc, char *argv[])
                 /*    11000000  ( 0x C0 192d ) - 11000111  ( 0x C7 151d ) */ /* -> 100011000 ( 0x118 280d ) - 100011111 ( 0x11F 287d ) */
                 /*    110010000 ( 0x190 352d ) - 111111111 ( 0x1FF 511d ) */ /* -> 10010000  ( 0x 90 144d ) - 11111111  ( 0x FF 255d ) */
 
+                /* loop (until end of block code recognized) */
+                do {
+                    /* decode literal/length value from input stream */
 
-                /*
-                   loop (until end of block code recognized)
-                   decode literal/length value from input stream
-                */
-
-                /* if value < 256 */
-                if(value < 256) {
-                   /* copy value (literal byte) to output stream */
-                }
-                /* otherwise */
-                else {
-                    /* if value = end of block (256) */
-                    if(value == 256) {
-                        /* break from loop */
-                        break;
+                    /* if value < 256 */
+                    if(value < 256) {
+                        /* copy value (literal byte) to output stream */
                     }
-                    /* otherwise (value = 257..285) */
+                    /* otherwise */
                     else {
-                        /* decode distance from input stream */
-                        /* move backwards distance bytes in the output stream, and copy length bytes from this position to the output stream. */
+                        /* if value = end of block (256) */
+                        if(value == 256) {
+                            /* break from loop */
+                            break;
+                        }
+                        /* otherwise (value = 257..285) */
+                        else {
+                            /* decode distance from input stream */
+                            /* move backwards distance bytes in the output stream, and copy length bytes from this position to the output stream. */
+                        }
                     }
-                }
-                /*
-                   end loop
-                   while not last block
-                */
+
+                    /* end loop */
+                } while(0);
             }
 
             bfinal = 1;
+            /* while not last block */
         } while(bfinal == 0);
 
         return 0;
