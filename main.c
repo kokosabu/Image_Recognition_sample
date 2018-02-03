@@ -203,6 +203,7 @@ int main(int argc, char *argv[])
         uint32_t dictid;
         int value;
         int hlit;
+        int hdist;
 
         printf("PNG\n");
 
@@ -352,6 +353,18 @@ int main(int argc, char *argv[])
                     */
                     hlit = bit_read(png_image_data[byte_index], bit_index, 5);
                     printf("%d\n", hlit);
+                    bit_index += 5;
+                    if(bit_index >= 8) {
+                        bit_index %= 8;
+                        byte_index += 1;
+                    }
+                    hdist = bit_read(png_image_data[byte_index], bit_index, 5);
+                    printf("%d\n", hdist);
+                    bit_index += 5;
+                    if(bit_index >= 8) {
+                        bit_index %= 8;
+                        byte_index += 1;
+                    }
                 }
                 /* 4B 4C 04 02 00 */
                 /* 0100 1011 : 0100 1100 : 0000 0100 : 0000 0010 : 0000 0000 */
