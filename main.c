@@ -108,18 +108,28 @@ uint32_t read_4bytes(FILE *input)
     return result;
 }
 
-int bit_read(uint8_t byte, int bit_pos, int bit_len)
+int bit_read(uint8_t *input_stream, int byte_pos, int bit_pos, int bit_len)
 {
     uint8_t pattern[8] = {
-        //0x80, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC, 0xFE, 0xFF
         0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F, 0xFF
     };
+    uint8_t byte;
+    uint8_t next_byte;
 
-    //byte <<= bit_pos;
-    //byte &= pattern[bit_len-1];
-    //byte >>= (8 - bit_len);
-    byte >>= bit_pos;
-    byte &= pattern[bit_len-1];
+    byte      = input_stream[byte_pos];
+    next_byte = input_stream[byte_pos+1];
+
+    if((8-bit_pos) >= bit_len) {
+        byte >>= bit_pos;
+        byte &= pattern[bit_len-1];
+    } else {
+        byte >>= bit_pos;
+        byte &= pattern[(8-bit_len)-1];
+        next_byte &= pattern[bit_pos - (8-bit_len) - 1];
+        byte = byte | (next_byte << (8-bit_len-1));
+        printf("next_byte : %d, bit_pos : %d, bit_len : %d\n", next_byte, bit_pos, bit_len);
+        printf("byte : %d\n", byte);
+    }
 
     return byte;
 }
@@ -204,6 +214,11 @@ int main(int argc, char *argv[])
         int value;
         int hlit;
         int hdist;
+        int hclen;
+        int hclens[19];
+        int hclens_index_table[19] = {
+            16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
+        };
 
         printf("PNG\n");
 
@@ -315,10 +330,119 @@ int main(int argc, char *argv[])
                 byte_index += 1;
             }
 
+#if 1
+            /* aaaaa */
+            byte_index = 0;
+            bit_index = 0;
+            png_image_data[0] = 0xED;
+            png_image_data[1] = 0xBD;
+            png_image_data[2] = 0x07;
+            png_image_data[3] = 0x60;
+            png_image_data[4] = 0x1C;
+            png_image_data[5] = 0x49;
+            png_image_data[6] = 0x96;
+            png_image_data[7] = 0x25;
+            png_image_data[8] = 0x26;
+            png_image_data[9] = 0x2F;
+            png_image_data[10] = 0x6D;
+            png_image_data[11] = 0xCA;
+            png_image_data[12] = 0x7B;
+            png_image_data[13] = 0x7F;
+            png_image_data[14] = 0x4A;
+            png_image_data[15] = 0xF5;
+            png_image_data[16] = 0x4A;            
+            png_image_data[17] = 0xD7;            
+            png_image_data[18] = 0xE0;            
+            png_image_data[19] = 0x74;            
+            png_image_data[20] = 0xA1;            
+            png_image_data[21] = 0x08;            
+            png_image_data[22] = 0x80;            
+            png_image_data[23] = 0x60;            
+            png_image_data[24] = 0x13;            
+            png_image_data[25] = 0x24;            
+            png_image_data[26] = 0xD8; 
+            png_image_data[27] = 0x90;
+            png_image_data[28] = 0x40;            
+            png_image_data[29] = 0x10;            
+            png_image_data[30] = 0xEC;            
+            png_image_data[31] = 0xC1;
+            png_image_data[32] = 0x88;            
+            png_image_data[33] = 0xCD;            
+            png_image_data[34] = 0xE6;            
+            png_image_data[35] = 0x92;            
+            png_image_data[36] = 0xEC;            
+            png_image_data[37] = 0x1D;            
+            png_image_data[38] = 0x69;            
+            png_image_data[39] = 0x47;            
+            png_image_data[40] = 0x23;            
+            png_image_data[41] = 0x29;            
+            png_image_data[42] = 0xAB; 
+            png_image_data[43] = 0x2A;          
+            png_image_data[44] = 0x81;            
+            png_image_data[45] = 0xCA;            
+            png_image_data[46] = 0x65;            
+            png_image_data[47] = 0x56;
+            png_image_data[48] = 0x65;            
+            png_image_data[49] = 0x5D;            
+            png_image_data[50] = 0x66;            
+            png_image_data[51] = 0x16;            
+            png_image_data[52] = 0x40;            
+            png_image_data[53] = 0xCC;            
+            png_image_data[54] = 0xED;            
+            png_image_data[55] = 0x9D;            
+            png_image_data[56] = 0xBC;            
+            png_image_data[57] = 0xF7;            
+            png_image_data[58] = 0xDE; 
+            png_image_data[59] = 0x7B;          
+            png_image_data[60] = 0xEF;            
+            png_image_data[61] = 0xBD;            
+            png_image_data[62] = 0xF7;            
+            png_image_data[63] = 0xDE;
+            png_image_data[64] = 0x7B;            
+            png_image_data[65] = 0xEF;            
+            png_image_data[66] = 0xBD;            
+            png_image_data[67] = 0xF7;            
+            png_image_data[68] = 0xBA;            
+            png_image_data[69] = 0x3B;            
+            png_image_data[70] = 0x9D;            
+            png_image_data[71] = 0x4E;            
+            png_image_data[72] = 0x27;            
+            png_image_data[73] = 0xF7;            
+            png_image_data[74] = 0xDF; 
+            png_image_data[75] = 0xFF;          
+            png_image_data[76] = 0x3F;            
+            png_image_data[77] = 0x5C;            
+            png_image_data[78] = 0x66;            
+            png_image_data[79] = 0x64;
+            png_image_data[80] = 0x01;            
+            png_image_data[81] = 0x6C;            
+            png_image_data[82] = 0xF6;            
+            png_image_data[83] = 0xCE;            
+            png_image_data[84] = 0x4A;            
+            png_image_data[85] = 0xDA;            
+            png_image_data[86] = 0xC9;            
+            png_image_data[87] = 0x9E;
+            png_image_data[88] = 0x21;            
+            png_image_data[89] = 0x80;            
+            png_image_data[90] = 0xAA; 
+            png_image_data[91] = 0xC8;          
+            png_image_data[92] = 0x1F;            
+            png_image_data[93] = 0x3F;            
+            png_image_data[94] = 0x7E;            
+            png_image_data[95] = 0x7C;
+            png_image_data[96] = 0x1F;            
+            png_image_data[97] = 0x3F;            
+            png_image_data[98] = 0x22;            
+            png_image_data[99] = 0x32;            
+            png_image_data[100] = 0x3C;            
+            png_image_data[101] = 0xFF;            
+            png_image_data[102] = 0x0F;
+#endif
+
             /* read block header from input stream. */
-            bfinal = bit_read(png_image_data[byte_index], bit_index, 1);
+            bfinal = bit_read(png_image_data, byte_index, bit_index, 1);
             bit_index += 1;
-            btype = bit_read(png_image_data[byte_index], bit_index, 2);
+            btype = bit_read(png_image_data, byte_index, bit_index, 2);
             bit_index += 2;
 
             printf("%02x %02x\n", bfinal, btype);
@@ -351,19 +475,41 @@ int main(int argc, char *argv[])
                        read representation of code trees (see
                        subsection below)
                     */
-                    hlit = bit_read(png_image_data[byte_index], bit_index, 5);
+                    hlit = bit_read(png_image_data, byte_index, bit_index, 5);
                     printf("%d\n", hlit);
                     bit_index += 5;
                     if(bit_index >= 8) {
                         bit_index %= 8;
                         byte_index += 1;
                     }
-                    hdist = bit_read(png_image_data[byte_index], bit_index, 5);
+                    hdist = bit_read(png_image_data, byte_index, bit_index, 5);
                     printf("%d\n", hdist);
                     bit_index += 5;
                     if(bit_index >= 8) {
                         bit_index %= 8;
                         byte_index += 1;
+                    }
+                    hclen = bit_read(png_image_data, byte_index, bit_index, 4);
+                    printf("%d\n", hclen);
+                    bit_index += 4;
+                    if(bit_index >= 8) {
+                        bit_index %= 8;
+                        byte_index += 1;
+                    }
+                    for(i = 0; i < 19; i++) {
+                        hclens[i] = 0;
+                    }
+                    for(i = 0; i < (hclen+4); i++) {
+                        hclens[hclens_index_table[i]] = bit_read(png_image_data, byte_index, bit_index, 3);
+                        bit_index += 3;
+                        if(bit_index >= 8) {
+                            bit_index %= 8;
+                            byte_index += 1;
+                        }
+                    }
+
+                    for(i = 0; i < 19; i++) {
+                        printf("hclens[%2d] : %d\n", i, hclens[i]);
                     }
                 }
                 /* 4B 4C 04 02 00 */
