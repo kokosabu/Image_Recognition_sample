@@ -123,12 +123,18 @@ int bit_read(uint8_t *input_stream, int byte_pos, int bit_pos, int bit_len)
         byte >>= bit_pos;
         byte &= pattern[bit_len-1];
     } else {
+        printf("byte : %2x,  next_byte : %2x\n", byte, next_byte);
         byte >>= bit_pos;
+        printf("byte : %2x,  next_byte : %2x\n", byte, next_byte);
         byte &= pattern[(8-bit_len)-1];
+        printf("byte : %2x,  next_byte : %2x\n", byte, next_byte);
         next_byte &= pattern[bit_pos - (8-bit_len) - 1];
-        byte = byte | (next_byte << (8-bit_len-1));
+        printf("byte : %2x,  next_byte : %2x\n", byte, next_byte);
+        //byte = byte | (next_byte << (8-bit_len-1));
+        byte = byte | (next_byte << (bit_pos - (8-bit_len)));
         printf("next_byte : %d, bit_pos : %d, bit_len : %d\n", next_byte, bit_pos, bit_len);
-        printf("byte : %d\n", byte);
+        printf("%d : %d\n", (8-bit_len-1), bit_pos - (8-bit_len) - 1);
+        printf("byte2 : %d\n", byte);
     }
 
     return byte;
