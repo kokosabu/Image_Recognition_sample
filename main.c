@@ -123,18 +123,10 @@ int bit_read(uint8_t *input_stream, int byte_pos, int bit_pos, int bit_len)
         byte >>= bit_pos;
         byte &= pattern[bit_len-1];
     } else {
-        printf("byte : %2x,  next_byte : %2x\n", byte, next_byte);
         byte >>= bit_pos;
-        printf("byte : %2x,  next_byte : %2x\n", byte, next_byte);
         byte &= pattern[(8-bit_len)-1];
-        printf("byte : %2x,  next_byte : %2x\n", byte, next_byte);
         next_byte &= pattern[bit_pos - (8-bit_len) - 1];
-        printf("byte : %2x,  next_byte : %2x\n", byte, next_byte);
-        //byte = byte | (next_byte << (8-bit_len-1));
-        byte = byte | (next_byte << (bit_pos - (8-bit_len)));
-        printf("next_byte : %d, bit_pos : %d, bit_len : %d\n", next_byte, bit_pos, bit_len);
-        printf("%d : %d\n", (8-bit_len-1), bit_pos - (8-bit_len) - 1);
-        printf("byte2 : %d\n", byte);
+        byte = byte | ( next_byte << (8-bit_pos) );
     }
 
     return byte;
@@ -222,6 +214,11 @@ int main(int argc, char *argv[])
         int hdist;
         int hclen;
         int hclens[19];
+        int clen[19];
+        int bl_count[8];
+        int next_code[19];
+        int code;
+        int bits;
         int hclens_index_table[19] = {
             16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
         };
@@ -507,15 +504,46 @@ int main(int argc, char *argv[])
                     }
                     for(i = 0; i < (hclen+4); i++) {
                         hclens[hclens_index_table[i]] = bit_read(png_image_data, byte_index, bit_index, 3);
+                        printf("hclens[%d] = %d\n", hclens_index_table[i], hclens[hclens_index_table[i]]);
                         bit_index += 3;
                         if(bit_index >= 8) {
                             bit_index %= 8;
                             byte_index += 1;
                         }
                     }
-
+#if 1
+                    hclens[0] = 3;
+                    hclens[1] = 3;
+                    hclens[2] = 3;
+                    hclens[3] = 3;
+                    hclens[4] = 3;
+                    hclens[5] = 2;
+                    hclens[6] = 4;
+                    hclens[7] = 4;
+                    hclen = 4;
+#endif
                     for(i = 0; i < 19; i++) {
-                        printf("hclens[%2d] : %d\n", i, hclens[i]);
+                        clen[i] = 0;
+                    }
+                    for(i = 0; i < 8; i++) {
+                        bl_count[i] = 0;
+                    }
+                    for(i = 0; i < (hclen+4); i++) {
+                        bl_count[hclens[i]] += 1;
+                    }
+                    for(i = 0; i < 8; i++) {
+                        printf("[%d] : %d\n", i, bl_count[i]);
+                    }
+
+                    code = 0;
+                    bl_count[0] = 0;
+                    for (bits = 1; bits <= 8; bits++) {
+                        code = (code + bl_count[bits-1]) << 1;
+                        next_code[bits] = code;
+                    }
+
+                    for(i = 0; i < 8; i++) {
+                        printf("[%d] : %d\n", i, next_code[i]);
                     }
                 }
                 /* 4B 4C 04 02 00 */
