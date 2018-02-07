@@ -19,6 +19,11 @@ enum {
     PNG,
 }; 
 
+struct tree {
+    int len;
+    int code;
+};
+
 int check_file_format(FILE *input)
 {
     uint8_t read_byte;
@@ -219,6 +224,12 @@ int main(int argc, char *argv[])
         int next_code[19];
         int code;
         int bits;
+        int max_bits;
+        struct tree tree[19];
+        int lit;
+        int dist;
+        uint8_t *id;
+        int id_index;
         int hclens_index_table[19] = {
             16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
         };
@@ -511,7 +522,7 @@ int main(int argc, char *argv[])
                             byte_index += 1;
                         }
                     }
-#if 1
+#if 0
                     hclens[0] = 3;
                     hclens[1] = 3;
                     hclens[2] = 3;
@@ -524,6 +535,7 @@ int main(int argc, char *argv[])
 #endif
                     for(i = 0; i < 19; i++) {
                         clen[i] = 0;
+                        tree[i].len = hclens[i];
                     }
                     for(i = 0; i < 8; i++) {
                         bl_count[i] = 0;
@@ -531,20 +543,41 @@ int main(int argc, char *argv[])
                     for(i = 0; i < (hclen+4); i++) {
                         bl_count[hclens[i]] += 1;
                     }
+                    max_bits = 0;
                     for(i = 0; i < 8; i++) {
                         printf("[%d] : %d\n", i, bl_count[i]);
+                        if(0 < bl_count[i]) {
+                            max_bits = i+1;
+                        }
                     }
+
+                    printf("max_bits : %d\n", max_bits);
 
                     code = 0;
                     bl_count[0] = 0;
-                    for (bits = 1; bits <= 8; bits++) {
+                    for (bits = 1; bits <= max_bits; bits++) {
                         code = (code + bl_count[bits-1]) << 1;
                         next_code[bits] = code;
                     }
 
-                    for(i = 0; i < 8; i++) {
+                    for(i = 0; i < max_bits; i++) {
                         printf("[%d] : %d\n", i, next_code[i]);
                     }
+
+                    for (i = 0; i <= (hclen+4); i++) {
+                        len = tree[i].len;
+                        if (len != 0) {
+                            tree[i].code = next_code[len];
+                            next_code[len]++;
+
+                            printf("%d : %d : %d\n", i, tree[i].len, tree[i].code);
+                        }
+                    }
+
+                    lit = hlit + 257;
+                    dist = hdist + 1;
+                    id = (uint8_t *)malloc(sizeof(uint8_t) * (lit+dist));
+                    id_index = 0;
                 }
                 /* 4B 4C 04 02 00 */
                 /* 0100 1011 : 0100 1100 : 0000 0100 : 0000 0010 : 0000 0000 */
