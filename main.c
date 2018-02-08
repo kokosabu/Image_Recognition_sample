@@ -137,6 +137,36 @@ int bit_read(uint8_t *input_stream, int byte_pos, int bit_pos, int bit_len)
     return byte;
 }
 
+int huffman_bit_read(uint8_t *input_stream, int byte_pos, int bit_pos, int bit_len)
+{
+    uint8_t pattern[8] = {
+        0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80
+    };
+    uint8_t byte;
+
+    byte = input_stream[byte_pos];
+    byte &= pattern[bit_pos];
+    byte >>= bit_pos;
+
+    return byte;
+}
+
+/*
+clen[ 8] = 000
+clen[ 9] = 001
+clen[14] = 010
+clen[16] = 011
+clen[ 5] = 1000
+clen[ 6] = 1001
+clen[ 7] = 1010
+clen[10] = 1011
+clen[11] = 1100
+clen[12] = 1101
+clen[13] = 1110
+clen[ 3] = 11110
+clen[ 4] = 11111
+*/
+
 #if 0
 void bit_write(uint8_t *stream, uint8_t byte, int bit_pos, int bit_len)
 {
@@ -230,6 +260,7 @@ int main(int argc, char *argv[])
         int dist;
         uint8_t *id;
         int id_index;
+        int table[512];
         int hclens_index_table[19] = {
             16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
         };
@@ -564,6 +595,10 @@ int main(int argc, char *argv[])
                         printf("[%d] : %d\n", i, next_code[i]);
                     }
 
+                    for(i = 0; i < sizeof(table); i++) {
+                        table[i] = -1;
+                    }
+
                     for (i = 0; i <= (hclen+4); i++) {
                         len = tree[i].len;
                         if (len != 0) {
@@ -578,6 +613,13 @@ int main(int argc, char *argv[])
                     dist = hdist + 1;
                     id = (uint8_t *)malloc(sizeof(uint8_t) * (lit+dist));
                     id_index = 0;
+
+                    do {
+                        code = 0;
+                        do {
+                            //code <<= 1 | huffman_bit_read(
+                        } while(table[code] == -1);
+                    } while(1);
                 }
                 /* 4B 4C 04 02 00 */
                 /* 0100 1011 : 0100 1100 : 0000 0100 : 0000 0010 : 0000 0000 */
