@@ -605,9 +605,8 @@ int main(int argc, char *argv[])
                     //for(i = 0; i < (hclen+4); i++) {
                     for(i = 0; i < 19; i++) {
                         bl_count[hclens[i]] += 1;
-                        //printf("debug blcount[hclens[i]] = %d, hclens[i] = %d, i = %d\n", bl_count[hclens[i]], hclens[i], i);
+                        printf("debug blcount[hclens[i]] = %d, hclens[i] = %d, i = %d\n", bl_count[hclens[i]], hclens[i], i);
                     }
-                    //bl_count[0]-=1;
                     max_bits = 0;
                     for(i = 0; i < 8; i++) {
                         printf("[%d] : %d\n", i, bl_count[i]);
@@ -624,12 +623,14 @@ int main(int argc, char *argv[])
 
                     printf("max_bits : %d\n", max_bits);
 
+#if 0
                     code = 0;
                     bl_count[0] = 0;
                     for (bits = 1; bits <= max_bits; bits++) {
                         code = (code + bl_count[bits-1]) << 1;
                         next_code[bits] = code;
                     }
+#endif
 
                     for(i = 0; i < max_bits; i++) {
                         printf("code[%d] : %d\n", i, next_code[i]);
@@ -640,7 +641,8 @@ int main(int argc, char *argv[])
                     }
 
                     min_len = 255;
-                    for (i = 0; i < (hclen+4); i++) {
+                    //for (i = 0; i < (hclen+4); i++) {
+                    for (i = 0; i < 19; i++) {
                         len = tree[i].len;
                         if (len != 0) {
                             tree[i].code = next_code[len];
@@ -679,13 +681,12 @@ int main(int argc, char *argv[])
 #if 1
                         code = 0;
                         code_len = 0;
-                            printf("id_index = %d\n", id_index);
-                            printf("%02x %02x\n", png_image_data[byte_index], png_image_data[byte_index+1]);
                         do {
                             code <<= 1;
                             code |= huffman_bit_read(png_image_data, byte_index, bit_index, 1);
-                            //printf("code=%d, code_len=%d\n", code, code_len);
-                            //printf("%02x %02x\n", png_image_data[byte_index], png_image_data[byte_index+1]);
+                            printf("code=%d, code_len=%d\n", code, code_len);
+                            printf("byte_index=%d, bit_index=%d\n", byte_index, bit_index);
+                            printf("%02x %02x\n", png_image_data[byte_index], png_image_data[byte_index+1]);
                             code_len += 1;
                             bit_index += 1;
                             if(bit_index >= 8) {
@@ -699,6 +700,11 @@ int main(int argc, char *argv[])
                                 }
                             }
                             //printf("id_index = %d\n", id_index);
+                            
+                            printf("%d, %d\n", code_len, code);
+                            if(code_len >= 8) {
+                                return 0;
+                            }
 
                         } while(i == (hclen+4));
                             printf("id_index = %d\n", id_index);
