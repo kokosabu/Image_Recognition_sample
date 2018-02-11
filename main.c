@@ -129,7 +129,7 @@ int bit_read(uint8_t *input_stream, int byte_pos, int bit_pos, int bit_len)
         byte &= pattern[bit_len-1];
     } else {
         byte >>= bit_pos;
-        byte &= pattern[(8-bit_len)-1];
+        byte &= pattern[(8-bit_pos)-1];
         next_byte &= pattern[bit_pos - (8-bit_len) - 1];
         byte = byte | ( next_byte << (8-bit_pos) );
     }
@@ -141,7 +141,7 @@ int huffman_bit_read(uint8_t *input_stream, int byte_pos, int bit_pos, int bit_l
 {
     uint8_t pattern[8] = {
         0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80
-        //0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01
+            //0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01
     };
     uint8_t byte;
 
@@ -157,20 +157,20 @@ int huffman_bit_read(uint8_t *input_stream, int byte_pos, int bit_pos, int bit_l
 }
 
 /*
-clen[ 8] = 000
-clen[ 9] = 001
-clen[14] = 010
-clen[16] = 011
-clen[ 5] = 1000
-clen[ 6] = 1001
-clen[ 7] = 1010
-clen[10] = 1011
-clen[11] = 1100
-clen[12] = 1101
-clen[13] = 1110
-clen[ 3] = 11110
-clen[ 4] = 11111
-*/
+   clen[ 8] = 000
+   clen[ 9] = 001
+   clen[14] = 010
+   clen[16] = 011
+   clen[ 5] = 1000
+   clen[ 6] = 1001
+   clen[ 7] = 1010
+   clen[10] = 1011
+   clen[11] = 1100
+   clen[12] = 1101
+   clen[13] = 1110
+   clen[ 3] = 11110
+   clen[ 4] = 11111
+   */
 
 #if 0
 void bit_write(uint8_t *stream, uint8_t byte, int bit_pos, int bit_len)
@@ -184,7 +184,7 @@ void bit_write(uint8_t *stream, uint8_t byte, int bit_pos, int bit_len)
     //byte &= pattern[bit_len-1];
     //byte >>= (8 - bit_len);
     *stream |= 
-    byte >>= bit_pos;
+        byte >>= bit_pos;
     byte &= pattern[bit_len-1];
 
     return byte;
@@ -290,7 +290,7 @@ int main(int argc, char *argv[])
             4, 4, 4, 4, 5, 5, 5, 5, 0
         };
         int len_block[29] = {
-             3,  4,  5,   6,   7,   8,   9,  10,  11, 13,
+            3,  4,  5,   6,   7,   8,   9,  10,  11, 13,
             15, 17, 19,  23,  27,  31,  35,  43,  51, 59,
             67, 83, 99, 115, 131, 163, 195, 227, 258
         };
@@ -534,7 +534,7 @@ int main(int argc, char *argv[])
 
             if(btype == 0x00) {
                 /* skip any remaining bits in current partially processed byte */
-                printf("%02x:%02x:%02x:%02x:%02x:%02x\n", png_image_data[0], png_image_data[1], png_image_data[2], png_image_data[3], png_image_data[4], png_image_data[5]);
+                //printf("%02x:%02x:%02x:%02x:%02x:%02x\n", png_image_data[0], png_image_data[1], png_image_data[2], png_image_data[3], png_image_data[4], png_image_data[5]);
                 byte_index++;
 
                 /* read LEN and NLEN (see next section) */
@@ -542,12 +542,12 @@ int main(int argc, char *argv[])
                 byte_index += 2;
                 nlen = (png_image_data[byte_index] << 8) | png_image_data[byte_index+1];
                 byte_index += 2;
-                printf("%x : %x : %x\n", len, nlen, nlen ^ 0xFFFF);
-                printf("%d : %d : %d\n", len, nlen, nlen ^ 0xFFFF);
+                //printf("%x : %x : %x\n", len, nlen, nlen ^ 0xFFFF);
+                //printf("%d : %d : %d\n", len, nlen, nlen ^ 0xFFFF);
 
                 /*
                    copy LEN bytes of data to output
-                */
+                   */
                 for(i = 0; i < len; i++) {
                     output_stream[write_byte_index] = png_image_data[byte_index];
                     write_byte_index += 1;
@@ -559,23 +559,23 @@ int main(int argc, char *argv[])
                     /*
                        read representation of code trees (see
                        subsection below)
-                    */
+                       */
                     hlit = bit_read(png_image_data, byte_index, bit_index, 5);
-                    printf("%d\n", hlit);
+                    printf("hlit = %d\n", hlit);
                     bit_index += 5;
                     if(bit_index >= 8) {
                         bit_index %= 8;
                         byte_index += 1;
                     }
                     hdist = bit_read(png_image_data, byte_index, bit_index, 5);
-                    printf("%d\n", hdist);
+                    printf("hdist = %d\n", hdist);
                     bit_index += 5;
                     if(bit_index >= 8) {
                         bit_index %= 8;
                         byte_index += 1;
                     }
                     hclen = bit_read(png_image_data, byte_index, bit_index, 4);
-                    printf("%d\n", hclen);
+                    printf("hclen = %d\n", hclen);
                     bit_index += 4;
                     if(bit_index >= 8) {
                         bit_index %= 8;
@@ -602,14 +602,13 @@ int main(int argc, char *argv[])
                     for(i = 0; i < 8; i++) {
                         bl_count[i] = 0;
                     }
-                    //for(i = 0; i < (hclen+4); i++) {
                     for(i = 0; i < 19; i++) {
                         bl_count[hclens[i]] += 1;
-                        printf("debug blcount[hclens[i]] = %d, hclens[i] = %d, i = %d\n", bl_count[hclens[i]], hclens[i], i);
+                        //printf("debug blcount[hclens[i]] = %d, hclens[i] = %d, i = %d\n", bl_count[hclens[i]], hclens[i], i);
                     }
                     max_bits = 0;
                     for(i = 0; i < 8; i++) {
-                        printf("[%d] : %d\n", i, bl_count[i]);
+                        //printf("[%d] : %d\n", i, bl_count[i]);
                         if(0 < bl_count[i]) {
                             max_bits = i+1;
                         }
@@ -621,7 +620,7 @@ int main(int argc, char *argv[])
                         next_code[bits] = code;
                     }
 
-                    printf("max_bits : %d\n", max_bits);
+                    //printf("max_bits : %d\n", max_bits);
 
 #if 0
                     code = 0;
@@ -641,7 +640,6 @@ int main(int argc, char *argv[])
                     }
 
                     min_len = 255;
-                    //for (i = 0; i < (hclen+4); i++) {
                     for (i = 0; i < 19; i++) {
                         len = tree[i].len;
                         if (len != 0) {
@@ -660,356 +658,305 @@ int main(int argc, char *argv[])
                     dist = hdist + 1;
                     id = (uint8_t *)malloc(sizeof(uint8_t) * (lit+dist));
                     id_index = 0;
-                    /*
-                     code[0] : 0
-                     code[1] : 0
-                     code[2] : 0
-                     code[3] : 4
-                     code[4] : 12
-                     code[5] : 30
-                      0 : 3 :  4
-                      1 : 5 : 30
-                      3 : 5 : 31
-                      4 : 3 :  5
-                      5 : 2 :  0
-                      6 : 2 :  1
-                     16 : 4 : 12
-                     17 : 4 : 13
-                    */
 
                     do {
-#if 1
                         code = 0;
                         code_len = 0;
                         do {
                             code <<= 1;
                             code |= huffman_bit_read(png_image_data, byte_index, bit_index, 1);
-                            printf("code=%d, code_len=%d\n", code, code_len);
-                            printf("byte_index=%d, bit_index=%d\n", byte_index, bit_index);
-                            printf("%02x %02x\n", png_image_data[byte_index], png_image_data[byte_index+1]);
+                            //printf("code=%d, code_len=%d, ", code, code_len);
+                            //printf("byte_index=%d, bit_index=%d\n", byte_index, bit_index);
                             code_len += 1;
                             bit_index += 1;
                             if(bit_index >= 8) {
                                 bit_index %= 8;
                                 byte_index += 1;
                             }
-                            for(i = 0; i < (hclen+4); i++) {
+                            for(i = 0; i < 19; i++) {
                                 //printf("%d %d %d\n", i, tree[i].len, tree[i].code);
                                 if(tree[i].len == code_len && tree[i].code == code) {
                                     break;
                                 }
                             }
                             //printf("id_index = %d\n", id_index);
-                            
-                            printf("%d, %d\n", code_len, code);
+
                             if(code_len >= 8) {
                                 return 0;
                             }
 
-                        } while(i == (hclen+4));
-                            printf("id_index = %d\n", id_index);
-#else
-                            code = 0;
-                            for(i = 0; i < 3; i++) {
-                                code <<= 1;
-                                code |= huffman_bit_read(png_image_data, byte_index, bit_index, 1);
-                                bit_index += 1;
-                                if(bit_index >= 8) {
-                                    bit_index %= 8;
-                                    byte_index += 1;
-                                }
-                            }
-                            while(table[code] == -1) {
-                                code <<= 1;
-                                code |= huffman_bit_read(png_image_data, byte_index, bit_index, 1);
-                                bit_index += 1;
-                                if(bit_index >= 8) {
-                                    bit_index %= 8;
-                                    byte_index += 1;
-                                }
-                            }
-#endif
-                            printf("i = %d, ", i);
-                            printf("code = %d, ", code);
-                            printf("table[code] = %d\n", table[code]);
+                        } while(i == 19);
+                        printf("id_index = %d\n", id_index);
+                        printf("i = %d, ", i);
+                        printf("code = %d, ", code);
+                        printf("code_len = %d, ", code_len);
+                        printf("table[code] = %d\n", table[code]);
 
-                            if(table[code] >= 0 && table[code] <= 15) {
-                                id[id_index] = table[code];
-                                id_index += 1;
-                            } else if(table[code] == 16) {
-                                repeat = bit_read(png_image_data, byte_index, bit_index, 2);
-                                bit_index += 2;
-                                if(bit_index >= 8) {
-                                    bit_index %= 8;
-                                    byte_index += 1;
-                                }
-                                last_id = id[id_index-1];
-                                for(i = 0; i < (repeat + 3); i ++) {
-                                    id[id_index] = last_id;
-                                    id_index += 1;
-
-                                    printf("i = %d, repeat = %d\n", i, repeat);
-                                }
-                            } else if(table[code] == 17) {
-                                repeat = bit_read(png_image_data, byte_index, bit_index, 3);
-                                bit_index += 3;
-                                if(bit_index >= 8) {
-                                    bit_index %= 8;
-                                    byte_index += 1;
-                                }
-                                last_id = tree[i].code;
-                                for(i = 0; i < (repeat + 3); i ++) {
-                                    id[id_index] = last_id;
-                                    id_index += 1;
-                                }
-                                //return 0;
-                            } else if(table[code] == 18) {
-                                repeat = bit_read(png_image_data, byte_index, bit_index, 7);
-                                bit_index += 7;
-                                if(bit_index >= 8) {
-                                    bit_index %= 8;
-                                    byte_index += 1;
-                                }
-                                last_id = tree[i].code;
-                                for(i = 0; i < (repeat + 11); i ++) {
-                                    id[id_index] = last_id;
-                                    id_index += 1;
-                                }
-                                //return 0;
-                            }
-
-                            //printf("id_index = %d\nlit = %d, dist = %d\n", id_index, lit, dist);
-                            printf("id_index = %d\n", id_index);
-
-                        } while(id_index != (lit+dist));
-
-                        printf("lit = %d, dist = %d\n", lit, dist);
-
-                        // lit
-                        for(i = 0; i < lit; i++) {
-                            liten[i] = 0;
-                            tree[i].len = id[i];
-                        }
-                        for(i = 0; i < 286; i++) {
-                            bl_count[i] = 0;
-                        }
-                        for(i = 0; i < lit; i++) {
-                            bl_count[id[i]] += 1;
-                        }
-                        max_bits = 0;
-                        for(i = 0; i < 286; i++) {
-                            if(0 < bl_count[i]) {
-                                max_bits = i+1;
-                            }
-                        }
-
-                        code = 0;
-                        bl_count[0] = 0;
-                        for (bits = 1; bits <= max_bits; bits++) {
-                            code = (code + bl_count[bits-1]) << 1;
-                            next_code[bits] = code;
-                        }
-                        for(i = 0; i < max_bits; i++) {
-                            printf("code[%d] : %d\n", i, next_code[i]);
-                        }
-                        for(i = 0; i < (sizeof(lit_table)/sizeof(int)); i++) {
-                            lit_table[i] = -1;
-                        }
-                        printf("maxbit %d\n", max_bits);
-                        min_len = 255;
-                        for (i = 0; i < lit; i++) {
-                            len = tree[i].len;
-                            if (len != 0) {
-                                tree[i].code = next_code[len];
-                                next_code[len]++;
-                                //printf("len=%d, %d\n", len, tree[i].code);
-                                //lit_table[tree[i].code] = i;
-
-                                //printf("%d : %d : %d\n", i, tree[i].len, tree[i].code);
-
-                                if(len < min_len) {
-                                    min_len = len;
-                                }
-                            }
-                        }
-
-                        //dist
-                        for(i = 0; i < dist; i++) {
-                            disten[i] = 0;
-                            dtree[i].len = id[i + lit];
-                            //printf("[%d] : %d\n", i, id[i+lit]);
-                        }
-                        for(i = 0; i < 32; i++) {
-                            bl_count[i] = 0;
-                        }
-                        for(i = 0; i < dist; i++) {
-                            bl_count[id[i+lit]] += 1;
-                        }
-                        max_bits = 0;
-                        for(i = 0; i < 32; i++) {
-                            if(0 < bl_count[i]) {
-                                max_bits = i+1;
-                            }
-                        }
-                        code = 0;
-                        bl_count[0] = 0;
-                        for (bits = 1; bits <= max_bits; bits++) {
-                            code = (code + bl_count[bits-1]) << 1;
-                            next_code[bits] = code;
-                        }
-                        for(i = 0; i < (sizeof(dist_table)/sizeof(int)); i++) {
-                            dist_table[i] = -1;
-                        }
-                        min_dlen = 255;
-                        for (i = 0; i < dist; i++) {
-                            len = dtree[i].len;
-                            if (len != 0) {
-                                dtree[i].code = next_code[len];
-                                next_code[len]++;
-                                //dist_table[dtree[i].code] = i;
-
-                                printf("%d : %d : %d\n", i, dtree[i].len, dtree[i].code);
-
-                                if(len < min_dlen) {
-                                    min_dlen = len;
-                                }
-                            }
-                        }
-                    } // 0x02
-
-                    /* 4B 4C 04 02 00 */
-                    /* 0100 1011 : 0100 1100 : 0000 0100 : 0000 0010 : 0000 0000 */
-                    /* 1101 0010 : 0011 0010 : 0010 0000 : 0100 0000 : 0000 0000 */
-
-                    /* 1 */
-                    /* 10 */
-                    /* 10010001 */
-                    /* 10010001 */
-                    /* 00000010 */
-                    /* 00000  */
-                    /* 0000000 */
-
-#if 0
-                    code = huffman_bit_read(png_image_data, byte_index, bit_index, 1);
-                    code_len = 1;
-                    printf("code = %d, code_len = %d\n", code, code_len);
-                    bit_index += 1;
-                    if(bit_index >= 8) {
-                        bit_index %= 8;
-                        byte_index += 1;
-                    }
-                    for(i = 0; i < lit; i++) {
-                        if(tree[i].len == code_len && tree[i].code == code) {
-                            break;
-                        }
-                    }
-                    printf("lit[%d]  = %x(%d)\n", i, tree[i].code , tree[i].len);
-#endif
-                    /*    0000000   ( 0x 00   0d ) - 0010111   ( 0x 17  23d ) */ /* -> 100000000 ( 0x100 256d ) - 100010111 ( 0x117 279d ) */
-                    /*    00110000  ( 0x 30  48d ) - 10111111  ( 0x BF 191d ) */ /* -> 00000000  ( 0x00    0d ) - 10001111  ( 0x 8F 143d ) */
-                    /*    11000000  ( 0x C0 192d ) - 11000111  ( 0x C7 151d ) */ /* -> 100011000 ( 0x118 280d ) - 100011111 ( 0x11F 287d ) */
-                    /*    110010000 ( 0x190 352d ) - 111111111 ( 0x1FF 511d ) */ /* -> 10010000  ( 0x 90 144d ) - 11111111  ( 0x FF 255d ) */
-
-                    /* loop (until end of block code recognized) */
-                    do {
-                        /* decode literal/length value from input stream */
-                        code = 0;
-                        code_len = 0;
-                        do {
-                            code <<= 1;
-                            code |= huffman_bit_read(png_image_data, byte_index, bit_index, 1);
-                            code_len += 1;
-                            bit_index += 1;
+                        if(table[code] >= 0 && table[code] <= 15) {
+                            id[id_index] = table[code];
+                            id_index += 1;
+                        } else if(table[code] == 16) {
+                            repeat = bit_read(png_image_data, byte_index, bit_index, 2);
+                            bit_index += 2;
                             if(bit_index >= 8) {
                                 bit_index %= 8;
                                 byte_index += 1;
                             }
-                            for(i = 0; i < lit; i++) {
-                                if(tree[i].len == code_len && tree[i].code == code) {
+                            last_id = id[id_index-1];
+                            for(i = 0; i < (repeat + 3); i ++) {
+                                id[id_index] = last_id;
+                                id_index += 1;
+                            }
+                        } else if(table[code] == 17) {
+                            repeat = bit_read(png_image_data, byte_index, bit_index, 3);
+                            bit_index += 3;
+                            if(bit_index >= 8) {
+                                bit_index %= 8;
+                                byte_index += 1;
+                            }
+                            printf("repeat = %d\n", repeat + 3);
+                            //last_id = table[0];
+                            //last_id = tree[0].code;
+                            last_id = 0;
+                            for(i = 0; i < (repeat + 3); i ++) {
+                                id[id_index] = last_id;
+                                id_index += 1;
+                                if(id_index >= (lit+dist)) {
                                     break;
                                 }
                             }
-                            //printf("code = %d, code_len = %d\n", code, code_len);
-                            //printf("lit[%d]  = %x(%d)\n", i, tree[i].code , tree[i].len);
-                        } while(i == lit);
-                        printf("code = %d, code_len = %d, byte_index=%d\n", code, code_len, byte_index);
-                        printf("lit[%d]  = %x(%d)\n", i, tree[i].code , tree[i].len);
-                        value = i;
-
-                        /* if value < 256 */
-                        if(value < 256) {
-                            /* copy value (literal byte) to output stream */
-                            output_stream[write_byte_index] = value;
-                            write_byte_index += 1;
-                            //byte_index += 1;
+                        } else if(table[code] == 18) {
+                            repeat = bit_read(png_image_data, byte_index, bit_index, 7);
+                            bit_index += 7;
+                            if(bit_index >= 8) {
+                                bit_index %= 8;
+                                byte_index += 1;
+                            }
+                            printf("repeat = %d\n", repeat + 11);
+                            //last_id = table[0];
+                            //last_id = tree[0].code;
+                            last_id = 0;
+                            for(i = 0; i < (repeat + 11); i ++) {
+                                id[id_index] = last_id;
+                                id_index += 1;
+                                if(id_index >= (lit+dist)) {
+                                    break;
+                                }
+                            }
                         }
-                        /* otherwise */
-                        else {
-                            /* if value = end of block (256) */
-                            if(value == 256) {
-                                /* break from loop */
+
+                        //printf("id_index = %d\nlit = %d, dist = %d\n", id_index, lit, dist);
+                        //printf("id_index = %d\n", id_index);
+
+                    } while(id_index != (lit+dist));
+
+                    printf("lit = %d, dist = %d\n", lit, dist);
+
+                    // lit
+                    for(i = 0; i < lit; i++) {
+                        liten[i] = 0;
+                        tree[i].len = id[i];
+                    }
+                    for(i = 0; i < 286; i++) {
+                        bl_count[i] = 0;
+                    }
+                    for(i = 0; i < lit; i++) {
+                        bl_count[id[i]] += 1;
+                        //printf("debug blcount[id[i]] = %d, id[i] = %d, i = %d\n", bl_count[id[i]], id[i], i);
+                    }
+                    max_bits = 0;
+                    for(i = 0; i < 286; i++) {
+                        if(0 < bl_count[i]) {
+                            max_bits = i+1;
+                        }
+                    }
+
+                    code = 0;
+                    bl_count[0] = 0;
+                    for (bits = 1; bits <= max_bits; bits++) {
+                        code = (code + bl_count[bits-1]) << 1;
+                        next_code[bits] = code;
+                    }
+                    for(i = 0; i < max_bits; i++) {
+                        printf("code[%d] : %d\n", i, next_code[i]);
+                    }
+                    for(i = 0; i < (sizeof(lit_table)/sizeof(int)); i++) {
+                        lit_table[i] = -1;
+                    }
+                    printf("maxbit %d\n", max_bits);
+                    min_len = 255;
+                    for (i = 0; i < lit; i++) {
+                        len = tree[i].len;
+                        if (len != 0) {
+                            tree[i].code = next_code[len];
+                            next_code[len]++;
+                            //printf("len=%d, %d\n", len, tree[i].code);
+                            //lit_table[tree[i].code] = i;
+
+                            printf("%d : %d : %d\n", i, tree[i].len, tree[i].code);
+
+                            if(len < min_len) {
+                                min_len = len;
+                            }
+                        }
+                    }
+
+                    //dist
+                    for(i = 0; i < dist; i++) {
+                        disten[i] = 0;
+                        dtree[i].len = id[i + lit];
+                        printf("dist  [%d] : %d\n", i, id[i+lit]);
+                    }
+                    for(i = 0; i < 32; i++) {
+                        bl_count[i] = 0;
+                    }
+                    for(i = 0; i < dist; i++) {
+                        bl_count[id[i+lit]] += 1;
+                    }
+                    max_bits = 0;
+                    for(i = 0; i < 32; i++) {
+                        if(0 < bl_count[i]) {
+                            max_bits = i+1;
+                        }
+                    }
+                    code = 0;
+                    bl_count[0] = 0;
+                    for (bits = 1; bits <= max_bits; bits++) {
+                        code = (code + bl_count[bits-1]) << 1;
+                        next_code[bits] = code;
+                    }
+                    for(i = 0; i < (sizeof(dist_table)/sizeof(int)); i++) {
+                        dist_table[i] = -1;
+                    }
+                    min_dlen = 255;
+                    for (i = 0; i < dist; i++) {
+                        len = dtree[i].len;
+                        if (len != 0) {
+                            dtree[i].code = next_code[len];
+                            next_code[len]++;
+                            //dist_table[dtree[i].code] = i;
+
+                            printf("%d : %d : %d\n", i, dtree[i].len, dtree[i].code);
+
+                            if(len < min_dlen) {
+                                min_dlen = len;
+                            }
+                        }
+                    }
+                } // 0x02
+
+                /* loop (until end of block code recognized) */
+                do {
+                    /* decode literal/length value from input stream */
+                    code = 0;
+                    code_len = 0;
+                    do {
+                        code <<= 1;
+                        code |= huffman_bit_read(png_image_data, byte_index, bit_index, 1);
+                        code_len += 1;
+                        bit_index += 1;
+                        if(bit_index >= 8) {
+                            bit_index %= 8;
+                            byte_index += 1;
+                        }
+                        for(i = 0; i < lit; i++) {
+                            if(tree[i].len == code_len && tree[i].code == code) {
                                 break;
                             }
-                            /* otherwise (value = 257..285) */
-                            else {
-                                len_bit = len_block_bit[value - 257];
-                                len_bit_value = 0;
-                                if(len_bit != 0) {
-                                    len_bit_value = bit_read(png_image_data, byte_index, bit_index, len_bit);
-                                    bit_index += len_bit;
-                                    if(bit_index >= 8) {
-                                        bit_index %= 8;
-                                        byte_index += 1;
-                                    }
-                                }
-                                /* decode distance from input stream */
-                                code = 0;
-                                code_len = 0;
-                                do {
-                                    code <<= 1;
-                                    code |= huffman_bit_read(png_image_data, byte_index, bit_index, 1);
-                                    code_len += 1;
-                                    bit_index += 1;
-                                    if(bit_index >= 8) {
-                                        bit_index %= 8;
-                                        byte_index += 1;
-                                    }
-                                    for(i = 0; i < lit; i++) {
-                                        if(dtree[i].len == code_len && dtree[i].code == code) {
-                                            break;
-                                        }
-                                    }
-                                    //printf("code = %d, code_len = %d\n", code, code_len);
-                                    //printf("lit[%d]  = %x(%d)\n", i, tree[i].code , tree[i].len);
-                                } while(i == lit);
-                                dist = i;
-                                printf("dist = %d\n", dist);
-                                dist_bit = len_block_bit[dist];
-                                dist_bit_value = 0;
-                                if(dist_bit != 0) {
-                                    dist_bit_value = bit_read(png_image_data, byte_index, bit_index, dist_bit);
-                                    bit_index += dist_bit;
-                                    if(bit_index >= 8) {
-                                        byte_index += (bit_index / 8);
-                                        bit_index %= 8;
-                                    }
-                                }
+                        }
+                        //printf("code = %d, code_len = %d\n", code, code_len);
+                        //printf("lit[%d]  = %x(%d)\n", i, tree[i].code , tree[i].len);
+                    } while(i == lit);
+                    printf("code = %d, code_len = %d, byte_index=%d, bit_index = %d\n", code, code_len, byte_index, bit_index);
+                    printf("lit[%d]  = %x(%d)\n", i, tree[i].code , tree[i].len);
+                    // 0, 2, 4
+                    value = i;
 
-                                len  = len_block[value-257];
-                                len += len_bit_value;
-                                dist = dist_block[dist];
-                                dist += dist_bit_value;
-                                /* move backwards distance bytes in the output stream, and copy length bytes from this position to the output stream. */
-                                //write_origin = write_byte_index - 
-                                for(i = 0; i < len; i++) {
-                                    output_stream[write_byte_index] = output_stream[write_byte_index-dist];
-                                    write_byte_index += 1;
+                    /* if value < 256 */
+                    if(value < 256) {
+                        /* copy value (literal byte) to output stream */
+                        output_stream[write_byte_index] = value;
+                        write_byte_index += 1;
+                        //byte_index += 1;
+                    }
+                    /* otherwise */
+                    else {
+                        /* if value = end of block (256) */
+                        if(value == 256) {
+                            /* break from loop */
+                            break;
+                        }
+                        /* otherwise (value = 257..285) */
+                        else {
+                            len_bit = len_block_bit[value - 257];
+                            len_bit_value = 0;
+                            if(len_bit != 0) {
+                                len_bit_value = bit_read(png_image_data, byte_index, bit_index, len_bit);
+                                printf("len_bit = %d\n", len_bit);
+                                bit_index += len_bit;
+                                if(bit_index >= 8) {
+                                    byte_index += (bit_index / 8);
+                                    bit_index %= 8;
                                 }
                             }
-                        }
+                            /* decode distance from input stream */
+                            code = 0;
+                            code_len = 0;
+                            do {
+                                code <<= 1;
+                                code |= huffman_bit_read(png_image_data, byte_index, bit_index, 1);
+                                code_len += 1;
+                                bit_index += 1;
+                                if(bit_index >= 8) {
+                                    bit_index %= 8;
+                                    byte_index += 1;
+                                }
+                                //for(i = 0; i < lit; i++) {
+                                for(i = 0; i < 32; i++) {
+                                    if(dtree[i].len == code_len && dtree[i].code == code) {
+                                        break;
+                                    }
+                                }
+                                //printf("code = %d, code_len = %d\n", code, code_len);
+                                //printf("lit[%d]  = %x(%d)\n", i, tree[i].code , tree[i].len);
+                            //} while(i == lit);
+                            } while(i == 32);
+                            dist = i;
+                            dist_bit = len_block_bit[dist];
+                            dist_bit_value = 0;
+                            if(dist_bit != 0) {
+                                dist_bit_value = bit_read(png_image_data, byte_index, bit_index, dist_bit);
+                                printf("dist_bit = %d\n", dist_bit);
+                                bit_index += dist_bit;
+                                if(bit_index >= 8) {
+                                    byte_index += (bit_index / 8);
+                                    bit_index %= 8;
+                                }
+                            }
 
-                        /* end loop */
-                    } while(1);
+                            len  = len_block[value-257];
+                            len += len_bit_value;
+                            dist = dist_block[dist];
+                            dist += dist_bit_value;
+                            printf("dist = %d\n", dist);
+                            /* move backwards distance bytes in the output stream, and copy length bytes from this position to the output stream. */
+                            //write_origin = write_byte_index - 
+                            for(i = 0; i < len; i++) {
+                                output_stream[write_byte_index] = output_stream[write_byte_index-dist];
+                                write_byte_index += 1;
+                            }
+                        }
+                    }
+
+#if 1
+                    if(byte_index >= 130) {
+                    //if(byte_index >= 60) {
+                        return 0;
+                    }
+#endif
+
+                    /* end loop */
+                } while(1);
                 }
 
                 for(i = 0; i < write_byte_index; i++) {
