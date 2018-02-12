@@ -586,7 +586,7 @@ int main(int argc, char *argv[])
                     }
                     for(i = 0; i < (hclen+4); i++) {
                         hclens[hclens_index_table[i]] = bit_read(png_image_data, byte_index, bit_index, 3);
-                        printf("hclens[%d] = %d\n", hclens_index_table[i], hclens[hclens_index_table[i]]);
+                        //printf("hclens[%d] = %d\n", hclens_index_table[i], hclens[hclens_index_table[i]]);
                         bit_index += 3;
                         if(bit_index >= 8) {
                             bit_index %= 8;
@@ -632,7 +632,7 @@ int main(int argc, char *argv[])
 #endif
 
                     for(i = 0; i < max_bits; i++) {
-                        printf("code[%d] : %d\n", i, next_code[i]);
+                        //printf("code[%d] : %d\n", i, next_code[i]);
                     }
 
                     for(i = 0; i < (sizeof(table)/sizeof(int)); i++) {
@@ -647,7 +647,7 @@ int main(int argc, char *argv[])
                             next_code[len]++;
                             table[tree[i].code] = i;
 
-                            printf("%d : %d : %d\n", i, tree[i].len, tree[i].code);
+                            //printf("%d : %d : %d\n", i, tree[i].len, tree[i].code);
                             if(len < min_len) {
                                 min_len = len;
                             }
@@ -686,11 +686,11 @@ int main(int argc, char *argv[])
                             }
 
                         } while(i == 19);
-                        printf("id_index = %d\n", id_index);
-                        printf("i = %d, ", i);
-                        printf("code = %d, ", code);
-                        printf("code_len = %d, ", code_len);
-                        printf("table[code] = %d\n", table[code]);
+                        //printf("id_index = %d\n", id_index);
+                        //printf("i = %d, ", i);
+                        //printf("code = %d, ", code);
+                        //printf("code_len = %d, ", code_len);
+                        //printf("table[code] = %d\n", table[code]);
 
                         if(table[code] >= 0 && table[code] <= 15) {
                             id[id_index] = table[code];
@@ -714,7 +714,7 @@ int main(int argc, char *argv[])
                                 bit_index %= 8;
                                 byte_index += 1;
                             }
-                            printf("repeat = %d\n", repeat + 3);
+                            //printf("repeat = %d\n", repeat + 3);
                             //last_id = table[0];
                             //last_id = tree[0].code;
                             last_id = 0;
@@ -732,7 +732,7 @@ int main(int argc, char *argv[])
                                 bit_index %= 8;
                                 byte_index += 1;
                             }
-                            printf("repeat = %d\n", repeat + 11);
+                            //printf("repeat = %d\n", repeat + 11);
                             //last_id = table[0];
                             //last_id = tree[0].code;
                             last_id = 0;
@@ -750,7 +750,7 @@ int main(int argc, char *argv[])
 
                     } while(id_index != (lit+dist));
 
-                    printf("lit = %d, dist = %d\n", lit, dist);
+                    //printf("lit = %d, dist = %d\n", lit, dist);
 
                     // lit
                     for(i = 0; i < lit; i++) {
@@ -778,12 +778,12 @@ int main(int argc, char *argv[])
                         next_code[bits] = code;
                     }
                     for(i = 0; i < max_bits; i++) {
-                        printf("code[%d] : %d\n", i, next_code[i]);
+                        //printf("code[%d] : %d\n", i, next_code[i]);
                     }
                     for(i = 0; i < (sizeof(lit_table)/sizeof(int)); i++) {
                         lit_table[i] = -1;
                     }
-                    printf("maxbit %d\n", max_bits);
+                    //printf("maxbit %d\n", max_bits);
                     min_len = 255;
                     for (i = 0; i < lit; i++) {
                         len = tree[i].len;
@@ -793,7 +793,7 @@ int main(int argc, char *argv[])
                             //printf("len=%d, %d\n", len, tree[i].code);
                             //lit_table[tree[i].code] = i;
 
-                            printf("%d : %d : %d\n", i, tree[i].len, tree[i].code);
+                            //printf("%d : %d : %d\n", i, tree[i].len, tree[i].code);
 
                             if(len < min_len) {
                                 min_len = len;
@@ -805,7 +805,7 @@ int main(int argc, char *argv[])
                     for(i = 0; i < dist; i++) {
                         disten[i] = 0;
                         dtree[i].len = id[i + lit];
-                        printf("dist  [%d] : %d\n", i, id[i+lit]);
+                        //printf("dist  [%d] : %d\n", i, id[i+lit]);
                     }
                     for(i = 0; i < 32; i++) {
                         bl_count[i] = 0;
@@ -836,7 +836,7 @@ int main(int argc, char *argv[])
                             next_code[len]++;
                             //dist_table[dtree[i].code] = i;
 
-                            printf("%d : %d : %d\n", i, dtree[i].len, dtree[i].code);
+                            //printf("%d : %d : %d\n", i, dtree[i].len, dtree[i].code);
 
                             if(len < min_dlen) {
                                 min_dlen = len;
@@ -867,8 +867,8 @@ int main(int argc, char *argv[])
                         //printf("code = %d, code_len = %d\n", code, code_len);
                         //printf("lit[%d]  = %x(%d)\n", i, tree[i].code , tree[i].len);
                     } while(i == lit);
-                    printf("code = %d, code_len = %d, byte_index=%d, bit_index = %d\n", code, code_len, byte_index, bit_index);
-                    printf("lit[%d]  = %x(%d)\n", i, tree[i].code , tree[i].len);
+                    //printf("code = %d, code_len = %d, byte_index=%d, bit_index = %d\n", code, code_len, byte_index, bit_index);
+                    //printf("lit[%d]  = %x(%d)\n", i, tree[i].code , tree[i].len);
                     // 0, 2, 4
                     value = i;
 
@@ -892,7 +892,7 @@ int main(int argc, char *argv[])
                             len_bit_value = 0;
                             if(len_bit != 0) {
                                 len_bit_value = bit_read(png_image_data, byte_index, bit_index, len_bit);
-                                printf("len_bit = %d\n", len_bit);
+                                //printf("len_bit = %d\n", len_bit);
                                 bit_index += len_bit;
                                 if(bit_index >= 8) {
                                     byte_index += (bit_index / 8);
@@ -922,12 +922,12 @@ int main(int argc, char *argv[])
                             //} while(i == lit);
                             } while(i == 32);
                             dist = i;
-                            printf("dist = %d\n", dist);
+                            //printf("dist = %d\n", dist);
                             dist_bit = dist_block_bit[dist];
                             dist_bit_value = 0;
                             if(dist_bit != 0) {
                                 dist_bit_value = bit_read(png_image_data, byte_index, bit_index, dist_bit);
-                                printf("dist_bit = %d\n", dist_bit);
+                                //printf("dist_bit = %d\n", dist_bit);
                                 bit_index += dist_bit;
                                 if(bit_index >= 8) {
                                     byte_index += (bit_index / 8);
@@ -939,7 +939,7 @@ int main(int argc, char *argv[])
                             len += len_bit_value;
                             dist = dist_block[dist];
                             dist += dist_bit_value;
-                            printf("dist = %d\n", dist);
+                            //printf("dist = %d\n", dist);
                             /* move backwards distance bytes in the output stream, and copy length bytes from this position to the output stream. */
                             //write_origin = write_byte_index - 
                             for(i = 0; i < len; i++) {
@@ -953,28 +953,46 @@ int main(int argc, char *argv[])
                 } while(1);
                 }
 
+#if 0
                 for(i = 0; i < write_byte_index; i++) {
                     printf("[%d] %x\n", i, output_stream[i]);
                 }
+#endif
 
                 /* while not last block */
                 } while(bfinal == 0);
 
+                printf("write_byte : %d\n", write_byte_index);
                 write_byte_index = 0;
                 image_data = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE *) * height);
                 for(i = 0; i < height; i++) {
                     image_data[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * width);
-                    for(int j = 0; j < width; j++) {
-                        image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue;
-                        image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen;
-                        image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed;
-                        write_byte_index++;
+                    if(output_stream[write_byte_index] == 0) {
+                        printf("[%d] %d\n", i, output_stream[write_byte_index]);
+                        write_byte_index += 1;
+                        for(int j = 0; j < width; j++) {
+                            image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue;
+                            image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen;
+                            image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed;
+                            printf("[%d][%d] : %03d,%03d,%03d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
+                            write_byte_index++;
+                        }
+                    } else if(output_stream[write_byte_index] >= 1) {
+                        printf("[%d] %d\n", i, output_stream[write_byte_index]);
+                        write_byte_index += 1;
+                        for(int j = 0; j < width; j++) {
+                            image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue;
+                            image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen;
+                            image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed;
+                            printf("[%d][%d] : %03d,%03d,%03d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
+                            write_byte_index++;
+                        }
                     }
                     //printf("[%d] : %d %d %d\n", i+1, color_palette[i].rgbtRed, color_palette[i].rgbtGreen, color_palette[i].rgbtBlue);
                 }
                 image_info.height = height;
                 image_info.width = width;
-                image_info.fileSize = height*width*3 + 120;
+                image_info.fileSize = height*width*3 + 54;
             }
             fclose(input);
 
@@ -991,6 +1009,12 @@ int main(int argc, char *argv[])
             //sobel_filter(&output_image_data, &image_data, &image_info, 3);
             //canny_edge_detector(&output_image_data, &image_data, &image_info, 0.8, 7, 3);
             //LoG_filter(&output_image_data, &image_data, &image_info, 1.4, 9);
+           
+            for(i = 0; i < image_info.height; i++) {
+                for(int j = 0; j < image_info.width; j++) {
+                    output_image_data[i][j] = image_data[i][j];
+                }
+            }
 
             output = fopen("test", "wb");
             if(output == NULL) {
