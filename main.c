@@ -922,7 +922,8 @@ int main(int argc, char *argv[])
                             //} while(i == lit);
                             } while(i == 32);
                             dist = i;
-                            dist_bit = len_block_bit[dist];
+                            printf("dist = %d\n", dist);
+                            dist_bit = dist_block_bit[dist];
                             dist_bit_value = 0;
                             if(dist_bit != 0) {
                                 dist_bit_value = bit_read(png_image_data, byte_index, bit_index, dist_bit);
@@ -948,13 +949,6 @@ int main(int argc, char *argv[])
                         }
                     }
 
-#if 1
-                    if(byte_index >= 130) {
-                    //if(byte_index >= 60) {
-                        return 0;
-                    }
-#endif
-
                     /* end loop */
                 } while(1);
                 }
@@ -963,13 +957,27 @@ int main(int argc, char *argv[])
                     printf("[%d] %x\n", i, output_stream[i]);
                 }
 
-                //bfinal = 1;
                 /* while not last block */
                 } while(bfinal == 0);
 
-                return 0;
+                write_byte_index = 0;
+                image_data = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE *) * height);
+                for(i = 0; i < height; i++) {
+                    image_data[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * width);
+                    for(int j = 0; j < width; j++) {
+                        image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue;
+                        image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen;
+                        image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed;
+                        write_byte_index++;
+                    }
+                    //printf("[%d] : %d %d %d\n", i+1, color_palette[i].rgbtRed, color_palette[i].rgbtGreen, color_palette[i].rgbtBlue);
+                }
+                image_info.height = height;
+                image_info.width = width;
+                image_info.fileSize = height*width*3 + 120;
             }
             fclose(input);
+
 
             output_image_data = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE *) * image_info.height);
             for(i = image_info.height-1; i >= 0; i--) {
@@ -982,7 +990,7 @@ int main(int argc, char *argv[])
             //prewitt_filter(&output_image_data, &image_data, &image_info, 3);
             //sobel_filter(&output_image_data, &image_data, &image_info, 3);
             //canny_edge_detector(&output_image_data, &image_data, &image_info, 0.8, 7, 3);
-            LoG_filter(&output_image_data, &image_data, &image_info, 1.4, 9);
+            //LoG_filter(&output_image_data, &image_data, &image_info, 1.4, 9);
 
             output = fopen("test", "wb");
             if(output == NULL) {
