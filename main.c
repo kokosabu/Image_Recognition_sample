@@ -236,7 +236,6 @@ int main(int argc, char *argv[])
         int bit_index;
         int byte_index;
         int write_byte_index;
-        int write_byte_original;
         int bfinal;
         int btype;
         uint16_t len;
@@ -281,6 +280,9 @@ int main(int argc, char *argv[])
         int len_bit_value;
         int dist_bit;
         int dist_bit_value;
+        uint8_t old_red;
+        uint8_t old_green;
+        uint8_t old_blue;
         int hclens_index_table[19] = {
             16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
         };
@@ -340,7 +342,7 @@ int main(int argc, char *argv[])
                 printf("interlace type:%d\n", interlace_type);
                 printf("crc-32: %xh\n", crc_32);
 
-                output_stream = (uint8_t *)malloc(sizeof(uint8_t) * width * height * 3);
+                output_stream = (uint8_t *)malloc(sizeof(uint8_t) * (width+1) * height);
 
                 flag = 0;
             } else if(strcmp(chunk, "IDAT") == 0) {
@@ -974,17 +976,23 @@ int main(int argc, char *argv[])
                             image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue;
                             image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen;
                             image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed;
-                            printf("[%d][%d] : %03d,%03d,%03d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
+                            //printf("[%d][%d] : %3d,%3d,%3d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
                             write_byte_index++;
                         }
-                    } else if(output_stream[write_byte_index] >= 1) {
+                    } else if(output_stream[write_byte_index] == 1) {
                         printf("[%d] %d\n", i, output_stream[write_byte_index]);
                         write_byte_index += 1;
+                        old_blue = 0;
+                        old_green = 0;
+                        old_red = 0;
                         for(int j = 0; j < width; j++) {
-                            image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue;
-                            image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen;
-                            image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed;
-                            printf("[%d][%d] : %03d,%03d,%03d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
+                            image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue   + old_blue;
+                            image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen + old_green;;
+                            image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed     + old_red;
+                            old_blue  = image_data[i][j].rgbtBlue;
+                            old_green = image_data[i][j].rgbtGreen;
+                            old_red   = image_data[i][j].rgbtRed;
+                            //printf("[%d][%d] : %3d,%3d,%3d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
                             write_byte_index++;
                         }
                     }
