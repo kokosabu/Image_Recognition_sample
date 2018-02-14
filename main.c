@@ -969,8 +969,8 @@ int main(int argc, char *argv[])
                 image_data = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE *) * height);
                 for(i = 0; i < height; i++) {
                     image_data[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * width);
+                    printf("[%d] %d\n", i, output_stream[write_byte_index]);
                     if(output_stream[write_byte_index] == 0) {
-                        printf("[%d] %d\n", i, output_stream[write_byte_index]);
                         write_byte_index += 1;
                         for(int j = 0; j < width; j++) {
                             image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue;
@@ -980,7 +980,6 @@ int main(int argc, char *argv[])
                             write_byte_index++;
                         }
                     } else if(output_stream[write_byte_index] == 1) {
-                        printf("[%d] %d\n", i, output_stream[write_byte_index]);
                         write_byte_index += 1;
                         old_blue = 0;
                         old_green = 0;
@@ -989,6 +988,48 @@ int main(int argc, char *argv[])
                             image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue   + old_blue;
                             image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen + old_green;;
                             image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed     + old_red;
+                            old_blue  = image_data[i][j].rgbtBlue;
+                            old_green = image_data[i][j].rgbtGreen;
+                            old_red   = image_data[i][j].rgbtRed;
+                            //printf("[%d][%d] : %3d,%3d,%3d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
+                            write_byte_index++;
+                        }
+                    } else if(output_stream[write_byte_index] == 2) {
+                        write_byte_index += 1;
+                        for(int j = 0; j < width; j++) {
+                            if(i == 0) {
+                                old_blue = 0;
+                                old_green = 0;
+                                old_red = 0;
+                            } else {
+                                old_blue  = image_data[i-1][j].rgbtBlue;
+                                old_green = image_data[i-1][j].rgbtGreen;
+                                old_red   = image_data[i-1][j].rgbtRed;
+                            }
+                            image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue   + old_blue;
+                            image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen + old_green;;
+                            image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed     + old_red;
+                            //printf("[%d][%d] : %3d,%3d,%3d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
+                            write_byte_index++;
+                        }
+                    } else if(output_stream[write_byte_index] == 2) {
+                        write_byte_index += 1;
+                        old_blue = 0;
+                        old_green = 0;
+                        old_red = 0;
+                        for(int j = 0; j < width; j++) {
+                            if(i == 0) {
+                                old_blue += 0;
+                                old_green += 0;
+                                old_red += 0;
+                            } else {
+                                old_blue  += image_data[i-1][j].rgbtBlue;
+                                old_green += image_data[i-1][j].rgbtGreen;
+                                old_red   += image_data[i-1][j].rgbtRed;
+                            }
+                            image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue   + old_blue/2;
+                            image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen + old_green/2;
+                            image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed     + old_red/2;
                             old_blue  = image_data[i][j].rgbtBlue;
                             old_green = image_data[i][j].rgbtGreen;
                             old_red   = image_data[i][j].rgbtRed;
