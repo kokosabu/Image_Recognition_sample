@@ -156,41 +156,6 @@ int huffman_bit_read(uint8_t *input_stream, int byte_pos, int bit_pos, int bit_l
     return byte;
 }
 
-/*
-   clen[ 8] = 000
-   clen[ 9] = 001
-   clen[14] = 010
-   clen[16] = 011
-   clen[ 5] = 1000
-   clen[ 6] = 1001
-   clen[ 7] = 1010
-   clen[10] = 1011
-   clen[11] = 1100
-   clen[12] = 1101
-   clen[13] = 1110
-   clen[ 3] = 11110
-   clen[ 4] = 11111
-   */
-
-#if 0
-void bit_write(uint8_t *stream, uint8_t byte, int bit_pos, int bit_len)
-{
-    uint8_t pattern[8] = {
-        //0x80, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC, 0xFE, 0xFF
-        0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F, 0xFF
-    };
-
-    //byte <<= bit_pos;
-    //byte &= pattern[bit_len-1];
-    //byte >>= (8 - bit_len);
-    *stream |= 
-        byte >>= bit_pos;
-    byte &= pattern[bit_len-1];
-
-    return byte;
-}
-#endif
-
 int main(int argc, char *argv[])
 {
     FILE *input;
@@ -232,6 +197,24 @@ int main(int argc, char *argv[])
         uint8_t filter_type;
         uint8_t interlace_type;
         uint32_t crc_32;
+        uint32_t gamma;
+        uint8_t rendering_intent;
+        uint32_t white_point_x;
+        uint32_t white_point_y;
+        uint32_t red_x;
+        uint32_t red_y;
+        uint32_t green_x;
+        uint32_t green_y;
+        uint32_t blue_x;
+        uint32_t blue_y;
+        uint32_t x_axis;
+        uint32_t y_axis;
+        uint8_t unit;
+        uint32_t VirtualImageWidth;
+        uint32_t VirtualImageHeight;
+        uint32_t VirtualPageUnits;
+        char keyword[80];
+        char *text;
         char chunk[5];
         int bit_index;
         int byte_index;
@@ -283,6 +266,7 @@ int main(int argc, char *argv[])
         uint8_t old_red;
         uint8_t old_green;
         uint8_t old_blue;
+        int k;
         int hclens_index_table[19] = {
             16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
         };
@@ -373,6 +357,76 @@ int main(int argc, char *argv[])
                 printf("size:%d\n", size);
                 printf("chunk:%s\n", chunk);
                 flag = 1;
+            } else if(strcmp(chunk, "gAMA") == 0) {
+                gamma = read_4bytes(input);
+                crc_32 = read_4bytes(input);
+                printf("size:%d\n", size);
+                printf("chunk:%s\n", chunk);
+                printf("gamma:%f(%d)\n", gamma/100000.0, gamma);
+            } else if(strcmp(chunk, "sRGB") == 0) {
+                fread(&rendering_intent, 1, 1, input);
+                crc_32 = read_4bytes(input);
+                printf("size:%d\n", size);
+                printf("chunk:%s\n", chunk);
+                printf("Rendering intent:%d\n", rendering_intent);
+            } else if(strcmp(chunk, "cHRM") == 0) {
+                white_point_x = read_4bytes(input);
+                white_point_y = read_4bytes(input);
+                red_x         = read_4bytes(input);
+                red_y         = read_4bytes(input);
+                green_x       = read_4bytes(input);
+                green_y       = read_4bytes(input);
+                blue_x        = read_4bytes(input);
+                blue_y        = read_4bytes(input);
+                crc_32 = read_4bytes(input);
+                printf("size:%d\n", size);
+                printf("chunk:%s\n", chunk);
+                printf("white point x:%d\n", white_point_x);
+                printf("white point y:%d\n", white_point_y);
+                printf("red x:%d\n", red_x);
+                printf("red y:%d\n", red_y);
+                printf("green x:%d\n", green_x);
+                printf("green y:%d\n", green_y);
+                printf("blue x:%d\n", blue_x);
+                printf("blue y:%d\n", blue_y);
+            } else if(strcmp(chunk, "pHYs") == 0) {
+                x_axis = read_4bytes(input);
+                y_axis = read_4bytes(input);
+                fread(&unit, 1, 1, input);
+                crc_32 = read_4bytes(input);
+                printf("size:%d\n", size);
+                printf("chunk:%s\n", chunk);
+                printf("x axis:%d\n", x_axis);
+                printf("y axis:%d\n", y_axis);
+                printf("unit:%d\n", unit);
+            } else if(strcmp(chunk, "vpAg") == 0) {
+                VirtualImageWidth = read_4bytes(input);
+                VirtualImageHeight = read_4bytes(input);
+                //VirtualPageUnits = read_4bytes(input);
+                fread(&VirtualPageUnits, 1, 1, input);
+                crc_32 = read_4bytes(input);
+                printf("size:%d\n", size);
+                printf("chunk:%s\n", chunk);
+                printf("VirtualImageWidth:%d\n", VirtualImageWidth);
+                printf("VirtualImageHeight:%d\n", VirtualImageHeight);
+                printf("VirtualPageUnits:%d\n", VirtualPageUnits);
+            } else if(strcmp(chunk, "tEXt") == 0) {
+                k = 0;
+                do {
+                    fread(&keyword[k], 1, 1, input);
+                    k++;
+                } while(keyword[k-1] != '\0');
+                text = (char *)malloc(sizeof(char) * (size-k+1));
+                while(k < size) {
+                    fread(&text[k], 1, 1, input);
+                    k++;
+                }
+                text[k] = '\0';
+                crc_32 = read_4bytes(input);
+                printf("size:%d\n", size);
+                printf("chunk:%s\n", chunk);
+                printf("keyword: %s\n", keyword);
+                printf("Text:%s\n", text);
             } else {
                 printf("size:%d\n", size);
                 printf("chunk:%s\n", chunk);
@@ -1012,7 +1066,7 @@ int main(int argc, char *argv[])
                             //printf("[%d][%d] : %3d,%3d,%3d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
                             write_byte_index++;
                         }
-                    } else if(output_stream[write_byte_index] == 2) {
+                    } else if(output_stream[write_byte_index] == 3) {
                         write_byte_index += 1;
                         old_blue = 0;
                         old_green = 0;
@@ -1036,6 +1090,7 @@ int main(int argc, char *argv[])
                             //printf("[%d][%d] : %3d,%3d,%3d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
                             write_byte_index++;
                         }
+                    } else {
                     }
                     //printf("[%d] : %d %d %d\n", i+1, color_palette[i].rgbtRed, color_palette[i].rgbtGreen, color_palette[i].rgbtBlue);
                 }
