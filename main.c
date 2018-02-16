@@ -189,6 +189,7 @@ int main(int argc, char *argv[])
     } else if(file_format == PNG) {
         uint8_t byte;
         uint32_t size;
+        uint32_t palette_size;
         uint32_t width;
         uint32_t height;
         uint8_t bps;
@@ -219,6 +220,11 @@ int main(int argc, char *argv[])
         int bit_index;
         int byte_index;
         int write_byte_index;
+        uint8_t *alpha_index;
+        uint16_t alpha_gray;
+        uint16_t alpha_red;
+        uint16_t alpha_green;
+        uint16_t alpha_blue;
         int bfinal;
         int btype;
         uint16_t len;
@@ -338,6 +344,7 @@ int main(int argc, char *argv[])
                 printf("crc-32: %xh\n", crc_32);
             } else if(strcmp(chunk, "PLTE") == 0) {
                 color_palette = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * size);
+                palette_size = size;
 
                 for(i = 0; i < size/3; i++) {
                     fread(&(color_palette[i].rgbtRed),   1, 1, input);
@@ -427,6 +434,24 @@ int main(int argc, char *argv[])
                 printf("chunk:%s\n", chunk);
                 printf("keyword: %s\n", keyword);
                 printf("Text:%s\n", text);
+            } else if(strcmp(chunk, "tRNS") == 0) {
+                printf("size:%d\n", size);
+                printf("chunk:%s\n", chunk);
+
+                if(color_type == 3) {
+                    alpha_index = (uint8_t *)malloc(sizeof(uint8_t) * palette_size);
+                    for(k = 0; k < palette_size; k++) {
+                        fread(&alpha_index[k], 1, 1, input);
+                    }
+                } else if(color_type == 0) {
+                    alpha_gray = read_2bytes(input);
+                } else if(color_type == 2) {
+                    alpha_red = read_2bytes(input);
+                    alpha_green = read_2bytes(input);
+                    alpha_blue = read_2bytes(input);
+                }
+
+                crc_32 = read_4bytes(input);
             } else {
                 printf("size:%d\n", size);
                 printf("chunk:%s\n", chunk);
