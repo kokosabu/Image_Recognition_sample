@@ -166,6 +166,7 @@ int main(int argc, char *argv[])
     int i;
     int file_format;
     uint8_t *png_image_data;
+    uint8_t *tmp;
     uint8_t *output_stream;
 
     if(argc <= 1) {
@@ -296,12 +297,15 @@ int main(int argc, char *argv[])
             33, 49, 65, 97, 129, 193, 257, 385, 513, 769,
             1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577
         };
+        uint32_t idat_size;
 
         printf("PNG\n");
 
         for(i = 0; i < 8; i++) {
             fread(&byte, 1, 1, input);
         }
+
+        idat_size = 0;
 
         do {
             size = read_4bytes(input);
@@ -336,8 +340,15 @@ int main(int argc, char *argv[])
 
                 flag = 0;
             } else if(strcmp(chunk, "IDAT") == 0) {
-                png_image_data = (uint8_t *)malloc(sizeof(uint8_t) * size);
-                fread(png_image_data, 1, size, input);
+                idat_size += size;
+                if(size == idat_size) {
+                    png_image_data = (uint8_t *)malloc(sizeof(uint8_t) * size);
+                    fread(png_image_data+idat_size-size, 1, size, input);
+                } else {
+                    tmp = (uint8_t *)realloc(png_image_data, sizeof(uint8_t) * idat_size);
+                    png_image_data = tmp;
+                    fread(png_image_data+idat_size-size, 1, size, input);
+                }
                 crc_32 = read_4bytes(input);
                 printf("size:%d\n", size);
                 printf("chunk:%s\n", chunk);
