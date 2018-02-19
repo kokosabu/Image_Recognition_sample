@@ -143,7 +143,7 @@ int bit_read(uint8_t *input_stream, int *byte_pos, int *bit_pos, int bit_len)
     return byte;
 }
 
-int huffman_bit_read(uint8_t *input_stream, int byte_pos, int bit_pos, int bit_len)
+int huffman_bit_read(uint8_t *input_stream, int *byte_pos, int *bit_pos, int bit_len)
 {
     uint8_t pattern[8] = {
         0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80
@@ -151,13 +151,15 @@ int huffman_bit_read(uint8_t *input_stream, int byte_pos, int bit_pos, int bit_l
     };
     uint8_t byte;
 
-    byte = input_stream[byte_pos];
-    byte &= pattern[bit_pos];
-    //byte &= pattern[7 - bit_pos];
-    //byte >>= (7 - bit_pos);
-    byte >>= bit_pos;
+    byte = input_stream[*byte_pos];
+    byte &= pattern[*bit_pos];
+    byte >>= *bit_pos;
 
-    //printf("pos: %d, bit: %d\n", bit_pos, byte);
+    *bit_pos += bit_len;
+    if(*bit_pos >= 8) {
+        *byte_pos += (*bit_pos) / 8;
+        *bit_pos %= 8;
+    }
 
     return byte;
 }
@@ -543,10 +545,7 @@ int main(int argc, char *argv[])
             } else {
                 /* if compressed with dynamic Huffman codes */
                 if(btype == 0x02) {
-                    /*
-                       read representation of code trees (see
-                       subsection below)
-                       */
+                    /* read representation of code trees (see subsection below) */
                     hlit = bit_read(png_image_data, &byte_index, &bit_index, 5);
                     printf("hlit = %d\n", hlit);
                     hdist = bit_read(png_image_data, &byte_index, &bit_index, 5);
@@ -589,19 +588,6 @@ int main(int argc, char *argv[])
 
                     //printf("max_bits : %d\n", max_bits);
 
-#if 0
-                    code = 0;
-                    bl_count[0] = 0;
-                    for (bits = 1; bits <= max_bits; bits++) {
-                        code = (code + bl_count[bits-1]) << 1;
-                        next_code[bits] = code;
-                    }
-#endif
-
-                    for(i = 0; i < max_bits; i++) {
-                        //printf("code[%d] : %d\n", i, next_code[i]);
-                    }
-
                     for(i = 0; i < (sizeof(table)/sizeof(int)); i++) {
                         table[i] = -1;
                     }
@@ -631,15 +617,10 @@ int main(int argc, char *argv[])
                         code_len = 0;
                         do {
                             code <<= 1;
-                            code |= huffman_bit_read(png_image_data, byte_index, bit_index, 1);
+                            code |= huffman_bit_read(png_image_data, &byte_index, &bit_index, 1);
+                            code_len += 1;
                             //printf("code=%d, code_len=%d, ", code, code_len);
                             //printf("byte_index=%d, bit_index=%d\n", byte_index, bit_index);
-                            code_len += 1;
-                            bit_index += 1;
-                            if(bit_index >= 8) {
-                                bit_index %= 8;
-                                byte_index += 1;
-                            }
                             for(i = 0; i < 19; i++) {
                                 //printf("%d %d %d\n", i, tree[i].len, tree[i].code);
                                 if(tree[i].len == code_len && tree[i].code == code) {
@@ -684,7 +665,6 @@ int main(int argc, char *argv[])
                             }
                         } else if(table[code] == 18) {
                             repeat = bit_read(png_image_data, &byte_index, &bit_index, 7);
-                            bit_index += 7;
                             //printf("repeat = %d\n", repeat + 11);
                             //last_id = table[0];
                             //last_id = tree[0].code;
@@ -805,13 +785,8 @@ int main(int argc, char *argv[])
                     code_len = 0;
                     do {
                         code <<= 1;
-                        code |= huffman_bit_read(png_image_data, byte_index, bit_index, 1);
+                        code |= huffman_bit_read(png_image_data, &byte_index, &bit_index, 1);
                         code_len += 1;
-                        bit_index += 1;
-                        if(bit_index >= 8) {
-                            bit_index %= 8;
-                            byte_index += 1;
-                        }
                         for(i = 0; i < lit; i++) {
                             if(tree[i].len == code_len && tree[i].code == code) {
                                 break;
@@ -850,13 +825,8 @@ int main(int argc, char *argv[])
                             code_len = 0;
                             do {
                                 code <<= 1;
-                                code |= huffman_bit_read(png_image_data, byte_index, bit_index, 1);
+                                code |= huffman_bit_read(png_image_data, &byte_index, &bit_index, 1);
                                 code_len += 1;
-                                bit_index += 1;
-                                if(bit_index >= 8) {
-                                    bit_index %= 8;
-                                    byte_index += 1;
-                                }
                                 //for(i = 0; i < lit; i++) {
                                 for(i = 0; i < 32; i++) {
                                     if(dtree[i].len == code_len && dtree[i].code == code) {
@@ -878,6 +848,7 @@ int main(int argc, char *argv[])
 
                             len  = len_block[value-257];
                             len += len_bit_value;
+                                    printf("dist = %d\n", dist);
                             dist = dist_block[dist];
                             dist += dist_bit_value;
                             //printf("dist = %d\n", dist);
@@ -895,7 +866,7 @@ int main(int argc, char *argv[])
 
 #if 0
             for(i = 0; i < write_byte_index; i++) {
-                printf("[%d] %x\n", i, output_stream[i]);
+                printf("[%d][%d](%d) %x\n", i/(width+1), i%(width+1), i, output_stream[i]);
             }
 #endif
 
