@@ -113,7 +113,7 @@ uint32_t read_4bytes(FILE *input)
     return result;
 }
 
-int bit_read(uint8_t *input_stream, int byte_pos, int bit_pos, int bit_len)
+int bit_read(uint8_t *input_stream, int *byte_pos, int *bit_pos, int bit_len)
 {
     uint8_t pattern[8] = {
         0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F, 0xFF
@@ -121,17 +121,23 @@ int bit_read(uint8_t *input_stream, int byte_pos, int bit_pos, int bit_len)
     uint8_t byte;
     uint8_t next_byte;
 
-    byte      = input_stream[byte_pos];
-    next_byte = input_stream[byte_pos+1];
+    byte      = input_stream[*byte_pos];
+    next_byte = input_stream[(*byte_pos)+1];
 
-    if((8-bit_pos) >= bit_len) {
-        byte >>= bit_pos;
+    if((8-(*bit_pos)) >= bit_len) {
+        byte >>= *bit_pos;
         byte &= pattern[bit_len-1];
     } else {
-        byte >>= bit_pos;
-        byte &= pattern[(8-bit_pos)-1];
-        next_byte &= pattern[bit_pos - (8-bit_len) - 1];
-        byte = byte | ( next_byte << (8-bit_pos) );
+        byte >>= *bit_pos;
+        byte &= pattern[(8-(*bit_pos))-1];
+        next_byte &= pattern[(*bit_pos) - (8-bit_len) - 1];
+        byte = byte | ( next_byte << (8-(*bit_pos)) );
+    }
+
+    *bit_pos += bit_len;
+    if(*bit_pos >= 8) {
+        *byte_pos += (*bit_pos) / 8;
+        *bit_pos %= 8;
     }
 
     return byte;
@@ -507,120 +513,9 @@ int main(int argc, char *argv[])
                 byte_index += 1;
             }
 
-#if 0
-            /* aaaaa */
-            byte_index = 0;
-            bit_index = 0;
-            png_image_data[0] = 0xED;
-            png_image_data[1] = 0xBD;
-            png_image_data[2] = 0x07;
-            png_image_data[3] = 0x60;
-            png_image_data[4] = 0x1C;
-            png_image_data[5] = 0x49;
-            png_image_data[6] = 0x96;
-            png_image_data[7] = 0x25;
-            png_image_data[8] = 0x26;
-            png_image_data[9] = 0x2F;
-            png_image_data[10] = 0x6D;
-            png_image_data[11] = 0xCA;
-            png_image_data[12] = 0x7B;
-            png_image_data[13] = 0x7F;
-            png_image_data[14] = 0x4A;
-            png_image_data[15] = 0xF5;
-            png_image_data[16] = 0x4A;            
-            png_image_data[17] = 0xD7;            
-            png_image_data[18] = 0xE0;            
-            png_image_data[19] = 0x74;            
-            png_image_data[20] = 0xA1;            
-            png_image_data[21] = 0x08;            
-            png_image_data[22] = 0x80;            
-            png_image_data[23] = 0x60;            
-            png_image_data[24] = 0x13;            
-            png_image_data[25] = 0x24;            
-            png_image_data[26] = 0xD8; 
-            png_image_data[27] = 0x90;
-            png_image_data[28] = 0x40;            
-            png_image_data[29] = 0x10;            
-            png_image_data[30] = 0xEC;            
-            png_image_data[31] = 0xC1;
-            png_image_data[32] = 0x88;            
-            png_image_data[33] = 0xCD;            
-            png_image_data[34] = 0xE6;            
-            png_image_data[35] = 0x92;            
-            png_image_data[36] = 0xEC;            
-            png_image_data[37] = 0x1D;            
-            png_image_data[38] = 0x69;            
-            png_image_data[39] = 0x47;            
-            png_image_data[40] = 0x23;            
-            png_image_data[41] = 0x29;            
-            png_image_data[42] = 0xAB; 
-            png_image_data[43] = 0x2A;          
-            png_image_data[44] = 0x81;            
-            png_image_data[45] = 0xCA;            
-            png_image_data[46] = 0x65;            
-            png_image_data[47] = 0x56;
-            png_image_data[48] = 0x65;            
-            png_image_data[49] = 0x5D;            
-            png_image_data[50] = 0x66;            
-            png_image_data[51] = 0x16;            
-            png_image_data[52] = 0x40;            
-            png_image_data[53] = 0xCC;            
-            png_image_data[54] = 0xED;            
-            png_image_data[55] = 0x9D;            
-            png_image_data[56] = 0xBC;            
-            png_image_data[57] = 0xF7;            
-            png_image_data[58] = 0xDE; 
-            png_image_data[59] = 0x7B;          
-            png_image_data[60] = 0xEF;            
-            png_image_data[61] = 0xBD;            
-            png_image_data[62] = 0xF7;            
-            png_image_data[63] = 0xDE;
-            png_image_data[64] = 0x7B;            
-            png_image_data[65] = 0xEF;            
-            png_image_data[66] = 0xBD;            
-            png_image_data[67] = 0xF7;            
-            png_image_data[68] = 0xBA;            
-            png_image_data[69] = 0x3B;            
-            png_image_data[70] = 0x9D;            
-            png_image_data[71] = 0x4E;            
-            png_image_data[72] = 0x27;            
-            png_image_data[73] = 0xF7;            
-            png_image_data[74] = 0xDF; 
-            png_image_data[75] = 0xFF;          
-            png_image_data[76] = 0x3F;            
-            png_image_data[77] = 0x5C;            
-            png_image_data[78] = 0x66;            
-            png_image_data[79] = 0x64;
-            png_image_data[80] = 0x01;            
-            png_image_data[81] = 0x6C;            
-            png_image_data[82] = 0xF6;            
-            png_image_data[83] = 0xCE;            
-            png_image_data[84] = 0x4A;            
-            png_image_data[85] = 0xDA;            
-            png_image_data[86] = 0xC9;            
-            png_image_data[87] = 0x9E;
-            png_image_data[88] = 0x21;            
-            png_image_data[89] = 0x80;            
-            png_image_data[90] = 0xAA; 
-            png_image_data[91] = 0xC8;          
-            png_image_data[92] = 0x1F;            
-            png_image_data[93] = 0x3F;            
-            png_image_data[94] = 0x7E;            
-            png_image_data[95] = 0x7C;
-            png_image_data[96] = 0x1F;            
-            png_image_data[97] = 0x3F;            
-            png_image_data[98] = 0x22;            
-            png_image_data[99] = 0x32;            
-            png_image_data[100] = 0x3C;            
-            png_image_data[101] = 0xFF;            
-            png_image_data[102] = 0x0F;
-#endif
-
             /* read block header from input stream. */
-            bfinal = bit_read(png_image_data, byte_index, bit_index, 1);
-            bit_index += 1;
-            btype = bit_read(png_image_data, byte_index, bit_index, 2);
-            bit_index += 2;
+            bfinal = bit_read(png_image_data, &byte_index, &bit_index, 1);
+            btype = bit_read(png_image_data, &byte_index, &bit_index, 2);
 
             printf("%02x %02x\n", bfinal, btype);
 
@@ -652,38 +547,18 @@ int main(int argc, char *argv[])
                        read representation of code trees (see
                        subsection below)
                        */
-                    hlit = bit_read(png_image_data, byte_index, bit_index, 5);
+                    hlit = bit_read(png_image_data, &byte_index, &bit_index, 5);
                     printf("hlit = %d\n", hlit);
-                    bit_index += 5;
-                    if(bit_index >= 8) {
-                        bit_index %= 8;
-                        byte_index += 1;
-                    }
-                    hdist = bit_read(png_image_data, byte_index, bit_index, 5);
+                    hdist = bit_read(png_image_data, &byte_index, &bit_index, 5);
                     printf("hdist = %d\n", hdist);
-                    bit_index += 5;
-                    if(bit_index >= 8) {
-                        bit_index %= 8;
-                        byte_index += 1;
-                    }
-                    hclen = bit_read(png_image_data, byte_index, bit_index, 4);
+                    hclen = bit_read(png_image_data, &byte_index, &bit_index, 4);
                     printf("hclen = %d\n", hclen);
-                    bit_index += 4;
-                    if(bit_index >= 8) {
-                        bit_index %= 8;
-                        byte_index += 1;
-                    }
                     for(i = 0; i < 19; i++) {
                         hclens[i] = 0;
                     }
                     for(i = 0; i < (hclen+4); i++) {
-                        hclens[hclens_index_table[i]] = bit_read(png_image_data, byte_index, bit_index, 3);
+                        hclens[hclens_index_table[i]] = bit_read(png_image_data, &byte_index, &bit_index, 3);
                         //printf("hclens[%d] = %d\n", hclens_index_table[i], hclens[hclens_index_table[i]]);
-                        bit_index += 3;
-                        if(bit_index >= 8) {
-                            bit_index %= 8;
-                            byte_index += 1;
-                        }
                     }
 
                     //clen
@@ -788,24 +663,14 @@ int main(int argc, char *argv[])
                             id[id_index] = table[code];
                             id_index += 1;
                         } else if(table[code] == 16) {
-                            repeat = bit_read(png_image_data, byte_index, bit_index, 2);
-                            bit_index += 2;
-                            if(bit_index >= 8) {
-                                bit_index %= 8;
-                                byte_index += 1;
-                            }
+                            repeat = bit_read(png_image_data, &byte_index, &bit_index, 2);
                             last_id = id[id_index-1];
                             for(i = 0; i < (repeat + 3); i ++) {
                                 id[id_index] = last_id;
                                 id_index += 1;
                             }
                         } else if(table[code] == 17) {
-                            repeat = bit_read(png_image_data, byte_index, bit_index, 3);
-                            bit_index += 3;
-                            if(bit_index >= 8) {
-                                bit_index %= 8;
-                                byte_index += 1;
-                            }
+                            repeat = bit_read(png_image_data, &byte_index, &bit_index, 3);
                             //printf("repeat = %d\n", repeat + 3);
                             //last_id = table[0];
                             //last_id = tree[0].code;
@@ -818,12 +683,8 @@ int main(int argc, char *argv[])
                                 }
                             }
                         } else if(table[code] == 18) {
-                            repeat = bit_read(png_image_data, byte_index, bit_index, 7);
+                            repeat = bit_read(png_image_data, &byte_index, &bit_index, 7);
                             bit_index += 7;
-                            if(bit_index >= 8) {
-                                bit_index %= 8;
-                                byte_index += 1;
-                            }
                             //printf("repeat = %d\n", repeat + 11);
                             //last_id = table[0];
                             //last_id = tree[0].code;
@@ -961,7 +822,6 @@ int main(int argc, char *argv[])
                     } while(i == lit);
                     //printf("code = %d, code_len = %d, byte_index=%d, bit_index = %d\n", code, code_len, byte_index, bit_index);
                     //printf("lit[%d]  = %x(%d)\n", i, tree[i].code , tree[i].len);
-                    // 0, 2, 4
                     value = i;
 
                     /* if value < 256 */
@@ -969,7 +829,6 @@ int main(int argc, char *argv[])
                         /* copy value (literal byte) to output stream */
                         output_stream[write_byte_index] = value;
                         write_byte_index += 1;
-                        //byte_index += 1;
                     }
                     /* otherwise */
                     else {
@@ -983,13 +842,8 @@ int main(int argc, char *argv[])
                             len_bit = len_block_bit[value - 257];
                             len_bit_value = 0;
                             if(len_bit != 0) {
-                                len_bit_value = bit_read(png_image_data, byte_index, bit_index, len_bit);
+                                len_bit_value = bit_read(png_image_data, &byte_index, &bit_index, len_bit);
                                 //printf("len_bit = %d\n", len_bit);
-                                bit_index += len_bit;
-                                if(bit_index >= 8) {
-                                    byte_index += (bit_index / 8);
-                                    bit_index %= 8;
-                                }
                             }
                             /* decode distance from input stream */
                             code = 0;
@@ -1011,20 +865,15 @@ int main(int argc, char *argv[])
                                 }
                                 //printf("code = %d, code_len = %d\n", code, code_len);
                                 //printf("lit[%d]  = %x(%d)\n", i, tree[i].code , tree[i].len);
-                            //} while(i == lit);
+                                //} while(i == lit);
                             } while(i == 32);
                             dist = i;
                             //printf("dist = %d\n", dist);
                             dist_bit = dist_block_bit[dist];
                             dist_bit_value = 0;
                             if(dist_bit != 0) {
-                                dist_bit_value = bit_read(png_image_data, byte_index, bit_index, dist_bit);
+                                dist_bit_value = bit_read(png_image_data, &byte_index, &bit_index, dist_bit);
                                 //printf("dist_bit = %d\n", dist_bit);
-                                bit_index += dist_bit;
-                                if(bit_index >= 8) {
-                                    byte_index += (bit_index / 8);
-                                    bit_index %= 8;
-                                }
                             }
 
                             len  = len_block[value-257];
@@ -1033,7 +882,6 @@ int main(int argc, char *argv[])
                             dist += dist_bit_value;
                             //printf("dist = %d\n", dist);
                             /* move backwards distance bytes in the output stream, and copy length bytes from this position to the output stream. */
-                            //write_origin = write_byte_index - 
                             for(i = 0; i < len; i++) {
                                 output_stream[write_byte_index] = output_stream[write_byte_index-dist];
                                 write_byte_index += 1;
@@ -1043,132 +891,132 @@ int main(int argc, char *argv[])
 
                     /* end loop */
                 } while(1);
-                }
+            }
 
 #if 0
-                for(i = 0; i < write_byte_index; i++) {
-                    printf("[%d] %x\n", i, output_stream[i]);
-                }
+            for(i = 0; i < write_byte_index; i++) {
+                printf("[%d] %x\n", i, output_stream[i]);
+            }
 #endif
 
-                /* while not last block */
-                } while(bfinal == 0);
+            /* while not last block */
+        } while(bfinal == 0);
 
-                printf("write_byte : %d\n", write_byte_index);
-                write_byte_index = 0;
-                image_data = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE *) * height);
-                for(i = 0; i < height; i++) {
-                    image_data[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * width);
-                    printf("[%d] %d\n", i, output_stream[write_byte_index]);
-                    if(output_stream[write_byte_index] == 0) {
-                        write_byte_index += 1;
-                        for(int j = 0; j < width; j++) {
-                            image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue;
-                            image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen;
-                            image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed;
-                            //printf("[%d][%d] : %3d,%3d,%3d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
-                            write_byte_index++;
-                        }
-                    } else if(output_stream[write_byte_index] == 1) {
-                        write_byte_index += 1;
+        printf("write_byte : %d\n", write_byte_index);
+        write_byte_index = 0;
+        image_data = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE *) * height);
+        for(i = 0; i < height; i++) {
+            image_data[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * width);
+            printf("[%d] %d\n", i, output_stream[write_byte_index]);
+            if(output_stream[write_byte_index] == 0) {
+                write_byte_index += 1;
+                for(int j = 0; j < width; j++) {
+                    image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue;
+                    image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen;
+                    image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed;
+                    //printf("[%d][%d] : %3d,%3d,%3d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
+                    write_byte_index++;
+                }
+            } else if(output_stream[write_byte_index] == 1) {
+                write_byte_index += 1;
+                old_blue = 0;
+                old_green = 0;
+                old_red = 0;
+                for(int j = 0; j < width; j++) {
+                    image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue   + old_blue;
+                    image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen + old_green;;
+                    image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed     + old_red;
+                    old_blue  = image_data[i][j].rgbtBlue;
+                    old_green = image_data[i][j].rgbtGreen;
+                    old_red   = image_data[i][j].rgbtRed;
+                    //printf("[%d][%d] : %3d,%3d,%3d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
+                    write_byte_index++;
+                }
+            } else if(output_stream[write_byte_index] == 2) {
+                write_byte_index += 1;
+                for(int j = 0; j < width; j++) {
+                    if(i == 0) {
                         old_blue = 0;
                         old_green = 0;
                         old_red = 0;
-                        for(int j = 0; j < width; j++) {
-                            image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue   + old_blue;
-                            image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen + old_green;;
-                            image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed     + old_red;
-                            old_blue  = image_data[i][j].rgbtBlue;
-                            old_green = image_data[i][j].rgbtGreen;
-                            old_red   = image_data[i][j].rgbtRed;
-                            //printf("[%d][%d] : %3d,%3d,%3d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
-                            write_byte_index++;
-                        }
-                    } else if(output_stream[write_byte_index] == 2) {
-                        write_byte_index += 1;
-                        for(int j = 0; j < width; j++) {
-                            if(i == 0) {
-                                old_blue = 0;
-                                old_green = 0;
-                                old_red = 0;
-                            } else {
-                                old_blue  = image_data[i-1][j].rgbtBlue;
-                                old_green = image_data[i-1][j].rgbtGreen;
-                                old_red   = image_data[i-1][j].rgbtRed;
-                            }
-                            image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue   + old_blue;
-                            image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen + old_green;;
-                            image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed     + old_red;
-                            //printf("[%d][%d] : %3d,%3d,%3d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
-                            write_byte_index++;
-                        }
-                    } else if(output_stream[write_byte_index] == 3) {
-                        write_byte_index += 1;
-                        old_blue = 0;
-                        old_green = 0;
-                        old_red = 0;
-                        for(int j = 0; j < width; j++) {
-                            if(i == 0) {
-                                old_blue += 0;
-                                old_green += 0;
-                                old_red += 0;
-                            } else {
-                                old_blue  += image_data[i-1][j].rgbtBlue;
-                                old_green += image_data[i-1][j].rgbtGreen;
-                                old_red   += image_data[i-1][j].rgbtRed;
-                            }
-                            image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue   + old_blue/2;
-                            image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen + old_green/2;
-                            image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed     + old_red/2;
-                            old_blue  = image_data[i][j].rgbtBlue;
-                            old_green = image_data[i][j].rgbtGreen;
-                            old_red   = image_data[i][j].rgbtRed;
-                            //printf("[%d][%d] : %3d,%3d,%3d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
-                            write_byte_index++;
-                        }
                     } else {
+                        old_blue  = image_data[i-1][j].rgbtBlue;
+                        old_green = image_data[i-1][j].rgbtGreen;
+                        old_red   = image_data[i-1][j].rgbtRed;
                     }
-                    //printf("[%d] : %d %d %d\n", i+1, color_palette[i].rgbtRed, color_palette[i].rgbtGreen, color_palette[i].rgbtBlue);
+                    image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue   + old_blue;
+                    image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen + old_green;;
+                    image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed     + old_red;
+                    //printf("[%d][%d] : %3d,%3d,%3d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
+                    write_byte_index++;
                 }
-                image_info.height = height;
-                image_info.width = width;
-                image_info.fileSize = height*width*3 + 54;
-            }
-            fclose(input);
-
-
-            output_image_data = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE *) * image_info.height);
-            for(i = image_info.height-1; i >= 0; i--) {
-                output_image_data[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * image_info.width);
-            }
-
-            //average_filter(&output_image_data, &image_data, &image_info, 11);
-            //gaussian_filter(&output_image_data, &image_data, &image_info, 3.0, 7);
-            //bilateral_filter(&output_image_data, &image_data, &image_info, 25.0, 25.0, 7);
-            //prewitt_filter(&output_image_data, &image_data, &image_info, 3);
-            //sobel_filter(&output_image_data, &image_data, &image_info, 3);
-            //canny_edge_detector(&output_image_data, &image_data, &image_info, 0.8, 7, 3);
-            //LoG_filter(&output_image_data, &image_data, &image_info, 1.4, 9);
-           
-            for(i = 0; i < image_info.height; i++) {
-                for(int j = 0; j < image_info.width; j++) {
-                    output_image_data[i][j] = image_data[i][j];
+            } else if(output_stream[write_byte_index] == 3) {
+                write_byte_index += 1;
+                old_blue = 0;
+                old_green = 0;
+                old_red = 0;
+                for(int j = 0; j < width; j++) {
+                    if(i == 0) {
+                        old_blue += 0;
+                        old_green += 0;
+                        old_red += 0;
+                    } else {
+                        old_blue  += image_data[i-1][j].rgbtBlue;
+                        old_green += image_data[i-1][j].rgbtGreen;
+                        old_red   += image_data[i-1][j].rgbtRed;
+                    }
+                    image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue   + old_blue/2;
+                    image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen + old_green/2;
+                    image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed     + old_red/2;
+                    old_blue  = image_data[i][j].rgbtBlue;
+                    old_green = image_data[i][j].rgbtGreen;
+                    old_red   = image_data[i][j].rgbtRed;
+                    //printf("[%d][%d] : %3d,%3d,%3d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
+                    write_byte_index++;
                 }
+            } else {
             }
-
-            output = fopen("test", "wb");
-            if(output == NULL) {
-                return 0;
-            }
-            encode_bitmap(output, &image_info, &output_image_data);
-            fclose(output);
-
-            for(i = 0; i < image_info.height; i++) {
-                free((void *)image_data[i]);
-                free((void *)output_image_data[i]);
-            }
-            free((void *)image_data);
-            free((void *)output_image_data);
-
-            return 0;
+            //printf("[%d] : %d %d %d\n", i+1, color_palette[i].rgbtRed, color_palette[i].rgbtGreen, color_palette[i].rgbtBlue);
         }
+        image_info.height = height;
+        image_info.width = width;
+        image_info.fileSize = height*width*3 + 54;
+    }
+    fclose(input);
+
+
+    output_image_data = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE *) * image_info.height);
+    for(i = image_info.height-1; i >= 0; i--) {
+        output_image_data[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * image_info.width);
+    }
+
+    //average_filter(&output_image_data, &image_data, &image_info, 11);
+    //gaussian_filter(&output_image_data, &image_data, &image_info, 3.0, 7);
+    //bilateral_filter(&output_image_data, &image_data, &image_info, 25.0, 25.0, 7);
+    //prewitt_filter(&output_image_data, &image_data, &image_info, 3);
+    //sobel_filter(&output_image_data, &image_data, &image_info, 3);
+    //canny_edge_detector(&output_image_data, &image_data, &image_info, 0.8, 7, 3);
+    //LoG_filter(&output_image_data, &image_data, &image_info, 1.4, 9);
+
+    for(i = 0; i < image_info.height; i++) {
+        for(int j = 0; j < image_info.width; j++) {
+            output_image_data[i][j] = image_data[i][j];
+        }
+    }
+
+    output = fopen("test", "wb");
+    if(output == NULL) {
+        return 0;
+    }
+    encode_bitmap(output, &image_info, &output_image_data);
+    fclose(output);
+
+    for(i = 0; i < image_info.height; i++) {
+        free((void *)image_data[i]);
+        free((void *)output_image_data[i]);
+    }
+    free((void *)image_data);
+    free((void *)output_image_data);
+
+    return 0;
+}
