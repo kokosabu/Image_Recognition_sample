@@ -1,9 +1,11 @@
 #include "png.h"
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 {
+    uint8_t *output_stream;
     int i;
     uint8_t *png_image_data;
     uint8_t *tmp;
@@ -282,7 +284,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
         } else {
             printf("size:%d\n", size);
             printf("chunk:%s\n", chunk);
-            return 0;
+            exit(0);
         }
     } while(flag == 0);
 
@@ -299,11 +301,11 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 
         if(cm != 8) {
             printf("not deflate\n");
-            return 0;
+            exit(0);
         }
         if(cinfo > 7) {
             printf("CINFO above 7 are not allowed in this version of the specification\n");
-            return 0;
+            exit(0);
         }
         window_size = pow(2, cinfo + 8);
 
@@ -433,7 +435,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                         //printf("id_index = %d\n", id_index);
 
                         if(code_len >= 8) {
-                            return 0;
+                            exit(0);
                         }
 
                     } while(i == 19);
@@ -664,17 +666,16 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 
     printf("write_byte : %d\n", write_byte_index);
     write_byte_index = 0;
-    image_data = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE *) * height);
+    (*image_data) = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE *) * height);
     for(i = 0; i < height; i++) {
-        image_data[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * width);
+        (*image_data)[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * width);
         printf("[%d] %d\n", i, output_stream[write_byte_index]);
         if(output_stream[write_byte_index] == 0) {
             write_byte_index += 1;
             for(int j = 0; j < width; j++) {
-                image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue;
-                image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen;
-                image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed;
-                //printf("[%d][%d] : %3d,%3d,%3d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
+                (*image_data)[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue;
+                (*image_data)[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen;
+                (*image_data)[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed;
                 write_byte_index++;
             }
         } else if(output_stream[write_byte_index] == 1) {
@@ -683,13 +684,12 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             old_green = 0;
             old_red = 0;
             for(int j = 0; j < width; j++) {
-                image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue   + old_blue;
-                image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen + old_green;;
-                image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed     + old_red;
-                old_blue  = image_data[i][j].rgbtBlue;
-                old_green = image_data[i][j].rgbtGreen;
-                old_red   = image_data[i][j].rgbtRed;
-                //printf("[%d][%d] : %3d,%3d,%3d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
+                (*image_data)[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue   + old_blue;
+                (*image_data)[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen + old_green;;
+                (*image_data)[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed     + old_red;
+                old_blue  = (*image_data)[i][j].rgbtBlue;
+                old_green = (*image_data)[i][j].rgbtGreen;
+                old_red   = (*image_data)[i][j].rgbtRed;
                 write_byte_index++;
             }
         } else if(output_stream[write_byte_index] == 2) {
@@ -700,13 +700,13 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                     old_green = 0;
                     old_red = 0;
                 } else {
-                    old_blue  = image_data[i-1][j].rgbtBlue;
-                    old_green = image_data[i-1][j].rgbtGreen;
-                    old_red   = image_data[i-1][j].rgbtRed;
+                    old_blue  = (*image_data)[i-1][j].rgbtBlue;
+                    old_green = (*image_data)[i-1][j].rgbtGreen;
+                    old_red   = (*image_data)[i-1][j].rgbtRed;
                 }
-                image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue   + old_blue;
-                image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen + old_green;;
-                image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed     + old_red;
+                (*image_data)[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue   + old_blue;
+                (*image_data)[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen + old_green;;
+                (*image_data)[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed     + old_red;
                 //printf("[%d][%d] : %3d,%3d,%3d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
                 write_byte_index++;
             }
@@ -721,23 +721,23 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                     old_green += 0;
                     old_red += 0;
                 } else {
-                    old_blue  += image_data[i-1][j].rgbtBlue;
-                    old_green += image_data[i-1][j].rgbtGreen;
-                    old_red   += image_data[i-1][j].rgbtRed;
+                    old_blue  += (*image_data)[i-1][j].rgbtBlue;
+                    old_green += (*image_data)[i-1][j].rgbtGreen;
+                    old_red   += (*image_data)[i-1][j].rgbtRed;
                 }
-                image_data[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue   + old_blue/2;
-                image_data[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen + old_green/2;
-                image_data[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed     + old_red/2;
-                old_blue  = image_data[i][j].rgbtBlue;
-                old_green = image_data[i][j].rgbtGreen;
-                old_red   = image_data[i][j].rgbtRed;
+                (*image_data)[i][j].rgbtBlue = color_palette[output_stream[write_byte_index]].rgbtBlue   + old_blue/2;
+                (*image_data)[i][j].rgbtGreen = color_palette[output_stream[write_byte_index]].rgbtGreen + old_green/2;
+                (*image_data)[i][j].rgbtRed = color_palette[output_stream[write_byte_index]].rgbtRed     + old_red/2;
+                old_blue  = (*image_data)[i][j].rgbtBlue;
+                old_green = (*image_data)[i][j].rgbtGreen;
+                old_red   = (*image_data)[i][j].rgbtRed;
                 //printf("[%d][%d] : %3d,%3d,%3d\n", i, j, image_data[i][j].rgbtRed, image_data[i][j].rgbtGreen, image_data[i][j].rgbtBlue);
                 write_byte_index++;
             }
         } else if(output_stream[write_byte_index] == 4) {
         } else {
             printf("undefined filter type\n");
-            return 0;
+            exit(0);
         }
         //printf("[%d] : %d %d %d\n", i+1, color_palette[i].rgbtRed, color_palette[i].rgbtGreen, color_palette[i].rgbtBlue);
     }
