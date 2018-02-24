@@ -3,6 +3,33 @@
 #include <stdlib.h>
 #include <math.h>
 
+enum {
+    END_OF_BLOCK = 256
+};
+
+unsigned int decode_huffman(uint8_t *png_image_data, int *byte_index, int *bit_index, struct tree *huffman_tree, int len)
+{
+    unsigned int code;
+    unsigned int code_len;
+    unsigned int i;
+
+    /* decode literal/length value from input stream */
+    code = 0;
+    code_len = 0;
+    do {
+        code <<= 1;
+        code |= huffman_bit_read(png_image_data, byte_index, bit_index, 1);
+        code_len += 1;
+        for(i = 0; i < len; i++) {
+            if(huffman_tree[i].len == code_len && huffman_tree[i].code == code) {
+                break;
+            }
+        }
+    } while(i == len);
+
+    return i;
+};
+
 void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 {
     uint8_t *output_stream;
@@ -418,6 +445,8 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                 id_index = 0;
 
                 do {
+                    //i = decode_huffman(png_image_data, &byte_index, &bit_index, &(tree[0]), 19);
+#if 1
                     code = 0;
                     code_len = 0;
                     do {
@@ -439,6 +468,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                         }
 
                     } while(i == 19);
+#endif
                     //printf("id_index = %d\n", id_index);
                     //printf("i = %d, ", i);
                     //printf("code = %d, ", code);
@@ -575,24 +605,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 
             /* loop (until end of block code recognized) */
             do {
-                /* decode literal/length value from input stream */
-                code = 0;
-                code_len = 0;
-                do {
-                    code <<= 1;
-                    code |= huffman_bit_read(png_image_data, &byte_index, &bit_index, 1);
-                    code_len += 1;
-                    for(i = 0; i < lit; i++) {
-                        if(tree[i].len == code_len && tree[i].code == code) {
-                            break;
-                        }
-                    }
-                    //printf("code = %d, code_len = %d\n", code, code_len);
-                    //printf("lit[%d]  = %x(%d)\n", i, tree[i].code , tree[i].len);
-                } while(i == lit);
-                //printf("code = %d, code_len = %d, byte_index=%d, bit_index = %d\n", code, code_len, byte_index, bit_index);
-                //printf("lit[%d]  = %x(%d)\n", i, tree[i].code , tree[i].len);
-                value = i;
+                value = decode_huffman(png_image_data, &byte_index, &bit_index, &(tree[0]), lit);
 
                 /* if value < 256 */
                 if(value < 256) {
@@ -600,64 +613,58 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                     output_stream[write_byte_index] = value;
                     write_byte_index += 1;
                 }
-                /* otherwise */
-                else {
-                    /* if value = end of block (256) */
-                    if(value == 256) {
-                        /* break from loop */
-                        break;
+                else if(value == END_OF_BLOCK) {
+                    break;
+                } else {/* (value = 257..285) */
+                    len_bit = len_block_bit[value - 257];
+                    len_bit_value = 0;
+                    if(len_bit != 0) {
+                        len_bit_value = bit_read(png_image_data, &byte_index, &bit_index, len_bit);
+                        //printf("len_bit = %d\n", len_bit);
                     }
-                    /* otherwise (value = 257..285) */
-                    else {
-                        len_bit = len_block_bit[value - 257];
-                        len_bit_value = 0;
-                        if(len_bit != 0) {
-                            len_bit_value = bit_read(png_image_data, &byte_index, &bit_index, len_bit);
-                            //printf("len_bit = %d\n", len_bit);
-                        }
-                        /* decode distance from input stream */
-                        code = 0;
-                        code_len = 0;
-                        do {
-                            code <<= 1;
-                            code |= huffman_bit_read(png_image_data, &byte_index, &bit_index, 1);
-                            code_len += 1;
-                            //for(i = 0; i < lit; i++) {
-                            for(i = 0; i < 32; i++) {
-                                if(dtree[i].len == code_len && dtree[i].code == code) {
-                                    break;
-                                }
+                    /* decode distance from input stream */
+                    dist = decode_huffman(png_image_data, &byte_index, &bit_index, &(dtree[0]), 32);
+#if 0
+                    code = 0;
+                    code_len = 0;
+                    do {
+                        code <<= 1;
+                        code |= huffman_bit_read(png_image_data, &byte_index, &bit_index, 1);
+                        code_len += 1;
+                        //for(i = 0; i < lit; i++) {
+                        for(i = 0; i < 32; i++) {
+                            if(dtree[i].len == code_len && dtree[i].code == code) {
+                                break;
                             }
-                            //printf("code = %d, code_len = %d\n", code, code_len);
-                            //printf("lit[%d]  = %x(%d)\n", i, tree[i].code , tree[i].len);
-                            //} while(i == lit);
-                        } while(i == 32);
-                        dist = i;
-                        //printf("dist = %d\n", dist);
-                        dist_bit = dist_block_bit[dist];
-                        dist_bit_value = 0;
-                        if(dist_bit != 0) {
-                            dist_bit_value = bit_read(png_image_data, &byte_index, &bit_index, dist_bit);
-                            //printf("dist_bit = %d\n", dist_bit);
                         }
+                        //printf("code = %d, code_len = %d\n", code, code_len);
+                        //printf("lit[%d]  = %x(%d)\n", i, tree[i].code , tree[i].len);
+                        //} while(i == lit);
+                    } while(i == 32);
+                    dist = i;
+#endif
+                    //printf("dist = %d\n", dist);
+                    dist_bit = dist_block_bit[dist];
+                    dist_bit_value = 0;
+                    if(dist_bit != 0) {
+                        dist_bit_value = bit_read(png_image_data, &byte_index, &bit_index, dist_bit);
+                        //printf("dist_bit = %d\n", dist_bit);
+                    }
 
-                        len  = len_block[value-257];
-                        len += len_bit_value;
-                        printf("dist = %d\n", dist);
-                        dist = dist_block[dist];
-                        printf("dist(block) = %d\n", dist);
-                        dist += dist_bit_value;
-                        printf("dist(block+dist_bit) = %d\n", dist);
-                        printf("write_byte:%d (%d)(%d)\n", write_byte_index, write_byte_index/(width+1), write_byte_index%(width+1));
-                        /* move backwards distance bytes in the output stream, and copy length bytes from this position to the output stream. */
-                        for(i = 0; i < len; i++) {
-                            output_stream[write_byte_index] = output_stream[write_byte_index-dist];
-                            write_byte_index += 1;
-                        }
+                    len  = len_block[value-257];
+                    len += len_bit_value;
+                    printf("dist = %d\n", dist);
+                    dist = dist_block[dist];
+                    printf("dist(block) = %d\n", dist);
+                    dist += dist_bit_value;
+                    printf("dist(block+dist_bit) = %d\n", dist);
+                    printf("write_byte:%d (%d)(%d)\n", write_byte_index, write_byte_index/(width+1), write_byte_index%(width+1));
+                    /* move backwards distance bytes in the output stream, and copy length bytes from this position to the output stream. */
+                    for(i = 0; i < len; i++) {
+                        output_stream[write_byte_index] = output_stream[write_byte_index-dist];
+                        write_byte_index += 1;
                     }
                 }
-
-                /* end loop */
             } while(1);
         }
 
