@@ -142,7 +142,8 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     int dist;
     //int disten[32];
     struct tree dtree[32];
-    uint8_t *id;
+    //uint8_t *id;
+    int *id;
     int id_index;
     int table[512];
     int repeat;
@@ -480,7 +481,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 
                 lit = hlit + 257;
                 dist = hdist + 1;
-                id = (uint8_t *)malloc(sizeof(uint8_t) * (lit+dist));
+                id = (int *)malloc(sizeof(int) * (lit+dist));
                 id_index = 0;
 
                 do {
@@ -558,6 +559,8 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                 //printf("lit = %d, dist = %d\n", lit, dist);
 
                 // lit
+                calc_next_code(tree, id, next_code, 286, lit);
+#if 0
                 for(i = 0; i < lit; i++) {
                     //liten[i] = 0;
                     tree[i].len = id[i];
@@ -575,16 +578,13 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                         max_bits = i+1;
                     }
                 }
-
                 code = 0;
                 bl_count[0] = 0;
                 for (bits = 1; bits <= max_bits; bits++) {
                     code = (code + bl_count[bits-1]) << 1;
                     next_code[bits] = code;
                 }
-                for(i = 0; i < max_bits; i++) {
-                    //printf("code[%d] : %d\n", i, next_code[i]);
-                }
+#endif
                 //printf("maxbit %d\n", max_bits);
                 min_len = 255;
                 for (i = 0; i < lit; i++) {
@@ -603,6 +603,8 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                 }
 
                 //dist
+                //calc_next_code(dtree, id, next_code, 32, dist);
+#if 1
                 for(i = 0; i < dist; i++) {
                     //disten[i] = 0;
                     dtree[i].len = id[i + lit];
@@ -626,6 +628,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                     code = (code + bl_count[bits-1]) << 1;
                     next_code[bits] = code;
                 }
+#endif
                 min_dlen = 255;
                 for (i = 0; i < dist; i++) {
                     len = dtree[i].len;
