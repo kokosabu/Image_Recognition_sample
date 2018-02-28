@@ -7,6 +7,214 @@ enum {
     END_OF_BLOCK = 256
 };
 
+uint32_t width;
+uint32_t height;
+
+void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+{
+    uint32_t idat_size;
+    uint8_t flag;
+    uint32_t size;
+    char chunk[5];
+    uint8_t bps;
+    uint8_t color_type;
+    uint8_t compress_type;
+    uint8_t filter_type;
+    uint8_t interlace_type;
+    uint32_t crc_32;
+    uint8_t *tmp;
+    int i;
+    int k;
+    uint32_t palette_size;
+    uint32_t gamma;
+    uint8_t rendering_intent;
+    uint32_t white_point_x;
+    uint32_t white_point_y;
+    uint32_t red_x;
+    uint32_t red_y;
+    uint32_t green_x;
+    uint32_t green_y;
+    uint32_t blue_x;
+    uint32_t blue_y;
+    uint32_t x_axis;
+    uint32_t y_axis;
+    uint8_t unit;
+    uint32_t VirtualImageWidth;
+    uint32_t VirtualImageHeight;
+    uint32_t VirtualPageUnits;
+    char keyword[80];
+    char *text;
+    uint8_t *alpha_index;
+    uint16_t alpha_gray;
+    uint16_t alpha_red;
+    uint16_t alpha_green;
+    uint16_t alpha_blue;
+
+    idat_size = 0;
+    flag = 0;
+    do {
+        size = read_4bytes(input);
+        fread(&chunk[0], 1, 1, input);
+        fread(&chunk[1], 1, 1, input);
+        fread(&chunk[2], 1, 1, input);
+        fread(&chunk[3], 1, 1, input);
+        chunk[4] = '\0';
+
+        if(strcmp("IHDR", chunk) == 0) {
+            width = read_4bytes(input);
+            height = read_4bytes(input);
+            fread(&bps, 1, 1, input);
+            fread(&color_type, 1, 1, input);
+            fread(&compress_type, 1, 1, input);
+            fread(&filter_type, 1, 1, input);
+            fread(&interlace_type, 1, 1, input);
+            crc_32 = read_4bytes(input);
+
+            printf("size:%d\n", size);
+            printf("chunk:%s\n", chunk);
+            printf("width:%d\n", width);
+            printf("height:%d\n", height);
+            printf("bps:%d\n", bps);
+            printf("color type:%d\n", color_type);
+            printf("compress type:%d\n", compress_type);
+            printf("filter type:%d\n", filter_type);
+            printf("interlace type:%d\n", interlace_type);
+            printf("crc-32: %xh\n", crc_32);
+
+            *output_stream = (uint8_t *)malloc(sizeof(uint8_t) * (width+1) * height);
+
+        } else if(strcmp(chunk, "IDAT") == 0) {
+            idat_size += size;
+            if(size == idat_size) {
+                *png_image_data = (uint8_t *)malloc(sizeof(uint8_t) * size);
+                fread((*png_image_data)+idat_size-size, 1, size, input);
+            } else {
+                tmp = (uint8_t *)realloc(*png_image_data, sizeof(uint8_t) * idat_size);
+                *png_image_data = tmp;
+                fread((*png_image_data)+idat_size-size, 1, size, input);
+            }
+            crc_32 = read_4bytes(input);
+            printf("size:%d\n", size);
+            printf("chunk:%s\n", chunk);
+            printf("crc-32: %xh\n", crc_32);
+        } else if(strcmp(chunk, "PLTE") == 0) {
+            *color_palette = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * size);
+            palette_size = size;
+
+            for(i = 0; i < size/3; i++) {
+                fread(&((*color_palette)[i].rgbtRed),   1, 1, input);
+                fread(&((*color_palette)[i].rgbtGreen), 1, 1, input);
+                fread(&((*color_palette)[i].rgbtBlue),  1, 1, input);
+            }
+            crc_32 = read_4bytes(input);
+
+            printf("size:%d\n", size);
+            printf("chunk:%s\n", chunk);
+            for(i = 0; i < size/3; i++) {
+                printf("[%d] : %d %d %d\n", i+1, (*color_palette)[i].rgbtRed, (*color_palette)[i].rgbtGreen, (*color_palette)[i].rgbtBlue);
+            }
+            printf("crc-32: %xh\n", crc_32);
+        } else if(strcmp(chunk, "IEND") == 0) {
+            crc_32 = read_4bytes(input);
+            printf("size:%d\n", size);
+            printf("chunk:%s\n", chunk);
+            flag = 1;
+        } else if(strcmp(chunk, "gAMA") == 0) {
+            gamma = read_4bytes(input);
+            crc_32 = read_4bytes(input);
+            printf("size:%d\n", size);
+            printf("chunk:%s\n", chunk);
+            printf("gamma:%f(%d)\n", gamma/100000.0, gamma);
+        } else if(strcmp(chunk, "sRGB") == 0) {
+            fread(&rendering_intent, 1, 1, input);
+            crc_32 = read_4bytes(input);
+            printf("size:%d\n", size);
+            printf("chunk:%s\n", chunk);
+            printf("Rendering intent:%d\n", rendering_intent);
+        } else if(strcmp(chunk, "cHRM") == 0) {
+            white_point_x = read_4bytes(input);
+            white_point_y = read_4bytes(input);
+            red_x         = read_4bytes(input);
+            red_y         = read_4bytes(input);
+            green_x       = read_4bytes(input);
+            green_y       = read_4bytes(input);
+            blue_x        = read_4bytes(input);
+            blue_y        = read_4bytes(input);
+            crc_32 = read_4bytes(input);
+            printf("size:%d\n", size);
+            printf("chunk:%s\n", chunk);
+            printf("white point x:%d\n", white_point_x);
+            printf("white point y:%d\n", white_point_y);
+            printf("red x:%d\n", red_x);
+            printf("red y:%d\n", red_y);
+            printf("green x:%d\n", green_x);
+            printf("green y:%d\n", green_y);
+            printf("blue x:%d\n", blue_x);
+            printf("blue y:%d\n", blue_y);
+        } else if(strcmp(chunk, "pHYs") == 0) {
+            x_axis = read_4bytes(input);
+            y_axis = read_4bytes(input);
+            fread(&unit, 1, 1, input);
+            crc_32 = read_4bytes(input);
+            printf("size:%d\n", size);
+            printf("chunk:%s\n", chunk);
+            printf("x axis:%d\n", x_axis);
+            printf("y axis:%d\n", y_axis);
+            printf("unit:%d\n", unit);
+        } else if(strcmp(chunk, "vpAg") == 0) {
+            VirtualImageWidth = read_4bytes(input);
+            VirtualImageHeight = read_4bytes(input);
+            //VirtualPageUnits = read_4bytes(input);
+            fread(&VirtualPageUnits, 1, 1, input);
+            crc_32 = read_4bytes(input);
+            printf("size:%d\n", size);
+            printf("chunk:%s\n", chunk);
+            printf("VirtualImageWidth:%d\n", VirtualImageWidth);
+            printf("VirtualImageHeight:%d\n", VirtualImageHeight);
+            printf("VirtualPageUnits:%d\n", VirtualPageUnits);
+        } else if(strcmp(chunk, "tEXt") == 0) {
+            k = 0;
+            do {
+                fread(&keyword[k], 1, 1, input);
+                k++;
+            } while(keyword[k-1] != '\0');
+            text = (char *)malloc(sizeof(char) * (size-k+1));
+            while(k < size) {
+                fread(&text[k], 1, 1, input);
+                k++;
+            }
+            text[k] = '\0';
+            crc_32 = read_4bytes(input);
+            printf("size:%d\n", size);
+            printf("chunk:%s\n", chunk);
+            printf("keyword: %s\n", keyword);
+            printf("Text:%s\n", text);
+        } else if(strcmp(chunk, "tRNS") == 0) {
+            printf("size:%d\n", size);
+            printf("chunk:%s\n", chunk);
+
+            if(color_type == 3) {
+                alpha_index = (uint8_t *)malloc(sizeof(uint8_t) * palette_size);
+                for(k = 0; k < palette_size; k++) {
+                    fread(&alpha_index[k], 1, 1, input);
+                }
+            } else if(color_type == 0) {
+                alpha_gray = read_2bytes(input);
+            } else if(color_type == 2) {
+                alpha_red = read_2bytes(input);
+                alpha_green = read_2bytes(input);
+                alpha_blue = read_2bytes(input);
+            }
+
+            crc_32 = read_4bytes(input);
+        } else {
+            printf("size:%d\n", size);
+            printf("chunk:%s\n", chunk);
+            exit(0);
+        }
+    } while(flag == 0);
+}
+
 unsigned int decode_huffman(uint8_t *png_image_data, int *byte_index, int *bit_index, struct tree *huffman_tree, int len)
 {
     unsigned int code;
@@ -162,50 +370,14 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     uint8_t *output_stream;
     int i;
     uint8_t *png_image_data;
-    uint8_t *tmp;
     uint8_t byte;
-    uint32_t size;
-    uint32_t palette_size;
-    uint32_t width;
-    uint32_t height;
-    uint8_t bps;
-    uint8_t color_type;
-    uint8_t compress_type;
-    uint8_t filter_type;
-    uint8_t interlace_type;
-    uint32_t crc_32;
-    uint32_t gamma;
-    uint8_t rendering_intent;
-    uint32_t white_point_x;
-    uint32_t white_point_y;
-    uint32_t red_x;
-    uint32_t red_y;
-    uint32_t green_x;
-    uint32_t green_y;
-    uint32_t blue_x;
-    uint32_t blue_y;
-    uint32_t x_axis;
-    uint32_t y_axis;
-    uint8_t unit;
-    uint32_t VirtualImageWidth;
-    uint32_t VirtualImageHeight;
-    uint32_t VirtualPageUnits;
-    char keyword[80];
-    char *text;
-    char chunk[5];
     int bit_index;
     int byte_index;
     int write_byte_index;
-    uint8_t *alpha_index;
-    uint16_t alpha_gray;
-    uint16_t alpha_red;
-    uint16_t alpha_green;
-    uint16_t alpha_blue;
     int bfinal;
     int btype;
     uint16_t len;
     uint16_t nlen;
-    int flag;
     RGBTRIPLE *color_palette;
     uint8_t cmf;
     uint8_t cm;
@@ -233,7 +405,6 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     int len_bit_value;
     int dist_bit;
     int dist_bit_value;
-    int k;
     int hclens_index_table[19] = {
         16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
     };
@@ -257,7 +428,6 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
         33,   49,   65,   97,  129,  193,  257,   385,   513,   769,
         1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577
     };
-    uint32_t idat_size;
 
     printf("PNG\n");
 
@@ -266,169 +436,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
         fread(&byte, 1, 1, input);
     }
 
-    idat_size = 0;
-    flag = 0;
-    do {
-        size = read_4bytes(input);
-        fread(&chunk[0], 1, 1, input);
-        fread(&chunk[1], 1, 1, input);
-        fread(&chunk[2], 1, 1, input);
-        fread(&chunk[3], 1, 1, input);
-        chunk[4] = '\0';
-
-        if(strcmp("IHDR", chunk) == 0) {
-            width = read_4bytes(input);
-            height = read_4bytes(input);
-            fread(&bps, 1, 1, input);
-            fread(&color_type, 1, 1, input);
-            fread(&compress_type, 1, 1, input);
-            fread(&filter_type, 1, 1, input);
-            fread(&interlace_type, 1, 1, input);
-            crc_32 = read_4bytes(input);
-
-            printf("size:%d\n", size);
-            printf("chunk:%s\n", chunk);
-            printf("width:%d\n", width);
-            printf("height:%d\n", height);
-            printf("bps:%d\n", bps);
-            printf("color type:%d\n", color_type);
-            printf("compress type:%d\n", compress_type);
-            printf("filter type:%d\n", filter_type);
-            printf("interlace type:%d\n", interlace_type);
-            printf("crc-32: %xh\n", crc_32);
-
-            output_stream = (uint8_t *)malloc(sizeof(uint8_t) * (width+1) * height);
-
-        } else if(strcmp(chunk, "IDAT") == 0) {
-            idat_size += size;
-            if(size == idat_size) {
-                png_image_data = (uint8_t *)malloc(sizeof(uint8_t) * size);
-                fread(png_image_data+idat_size-size, 1, size, input);
-            } else {
-                tmp = (uint8_t *)realloc(png_image_data, sizeof(uint8_t) * idat_size);
-                png_image_data = tmp;
-                fread(png_image_data+idat_size-size, 1, size, input);
-            }
-            crc_32 = read_4bytes(input);
-            printf("size:%d\n", size);
-            printf("chunk:%s\n", chunk);
-            printf("crc-32: %xh\n", crc_32);
-        } else if(strcmp(chunk, "PLTE") == 0) {
-            color_palette = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * size);
-            palette_size = size;
-
-            for(i = 0; i < size/3; i++) {
-                fread(&(color_palette[i].rgbtRed),   1, 1, input);
-                fread(&(color_palette[i].rgbtGreen), 1, 1, input);
-                fread(&(color_palette[i].rgbtBlue),  1, 1, input);
-            }
-            crc_32 = read_4bytes(input);
-
-            printf("size:%d\n", size);
-            printf("chunk:%s\n", chunk);
-            for(i = 0; i < size/3; i++) {
-                printf("[%d] : %d %d %d\n", i+1, color_palette[i].rgbtRed, color_palette[i].rgbtGreen, color_palette[i].rgbtBlue);
-            }
-            printf("crc-32: %xh\n", crc_32);
-        } else if(strcmp(chunk, "IEND") == 0) {
-            crc_32 = read_4bytes(input);
-            printf("size:%d\n", size);
-            printf("chunk:%s\n", chunk);
-            flag = 1;
-        } else if(strcmp(chunk, "gAMA") == 0) {
-            gamma = read_4bytes(input);
-            crc_32 = read_4bytes(input);
-            printf("size:%d\n", size);
-            printf("chunk:%s\n", chunk);
-            printf("gamma:%f(%d)\n", gamma/100000.0, gamma);
-        } else if(strcmp(chunk, "sRGB") == 0) {
-            fread(&rendering_intent, 1, 1, input);
-            crc_32 = read_4bytes(input);
-            printf("size:%d\n", size);
-            printf("chunk:%s\n", chunk);
-            printf("Rendering intent:%d\n", rendering_intent);
-        } else if(strcmp(chunk, "cHRM") == 0) {
-            white_point_x = read_4bytes(input);
-            white_point_y = read_4bytes(input);
-            red_x         = read_4bytes(input);
-            red_y         = read_4bytes(input);
-            green_x       = read_4bytes(input);
-            green_y       = read_4bytes(input);
-            blue_x        = read_4bytes(input);
-            blue_y        = read_4bytes(input);
-            crc_32 = read_4bytes(input);
-            printf("size:%d\n", size);
-            printf("chunk:%s\n", chunk);
-            printf("white point x:%d\n", white_point_x);
-            printf("white point y:%d\n", white_point_y);
-            printf("red x:%d\n", red_x);
-            printf("red y:%d\n", red_y);
-            printf("green x:%d\n", green_x);
-            printf("green y:%d\n", green_y);
-            printf("blue x:%d\n", blue_x);
-            printf("blue y:%d\n", blue_y);
-        } else if(strcmp(chunk, "pHYs") == 0) {
-            x_axis = read_4bytes(input);
-            y_axis = read_4bytes(input);
-            fread(&unit, 1, 1, input);
-            crc_32 = read_4bytes(input);
-            printf("size:%d\n", size);
-            printf("chunk:%s\n", chunk);
-            printf("x axis:%d\n", x_axis);
-            printf("y axis:%d\n", y_axis);
-            printf("unit:%d\n", unit);
-        } else if(strcmp(chunk, "vpAg") == 0) {
-            VirtualImageWidth = read_4bytes(input);
-            VirtualImageHeight = read_4bytes(input);
-            //VirtualPageUnits = read_4bytes(input);
-            fread(&VirtualPageUnits, 1, 1, input);
-            crc_32 = read_4bytes(input);
-            printf("size:%d\n", size);
-            printf("chunk:%s\n", chunk);
-            printf("VirtualImageWidth:%d\n", VirtualImageWidth);
-            printf("VirtualImageHeight:%d\n", VirtualImageHeight);
-            printf("VirtualPageUnits:%d\n", VirtualPageUnits);
-        } else if(strcmp(chunk, "tEXt") == 0) {
-            k = 0;
-            do {
-                fread(&keyword[k], 1, 1, input);
-                k++;
-            } while(keyword[k-1] != '\0');
-            text = (char *)malloc(sizeof(char) * (size-k+1));
-            while(k < size) {
-                fread(&text[k], 1, 1, input);
-                k++;
-            }
-            text[k] = '\0';
-            crc_32 = read_4bytes(input);
-            printf("size:%d\n", size);
-            printf("chunk:%s\n", chunk);
-            printf("keyword: %s\n", keyword);
-            printf("Text:%s\n", text);
-        } else if(strcmp(chunk, "tRNS") == 0) {
-            printf("size:%d\n", size);
-            printf("chunk:%s\n", chunk);
-
-            if(color_type == 3) {
-                alpha_index = (uint8_t *)malloc(sizeof(uint8_t) * palette_size);
-                for(k = 0; k < palette_size; k++) {
-                    fread(&alpha_index[k], 1, 1, input);
-                }
-            } else if(color_type == 0) {
-                alpha_gray = read_2bytes(input);
-            } else if(color_type == 2) {
-                alpha_red = read_2bytes(input);
-                alpha_green = read_2bytes(input);
-                alpha_blue = read_2bytes(input);
-            }
-
-            crc_32 = read_4bytes(input);
-        } else {
-            printf("size:%d\n", size);
-            printf("chunk:%s\n", chunk);
-            exit(0);
-        }
-    } while(flag == 0);
+    chunk_read(input, &output_stream, &png_image_data, &color_palette);
 
     bit_index = 0;
     byte_index = 0;
@@ -545,6 +553,9 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                     }
                 } while(id_index != (lit+dist));
 
+                printf("lit = %d\n", lit);
+                printf("dist = %d\n", dist);
+                printf("lit+dist = %d\n", lit+dist);
                 calc_next_code(tree,  &(id[0]),   next_code, 286, lit);
                 calc_next_code(dtree, &(id[lit]), next_code,  32, dist);
             } // 0x02
@@ -553,7 +564,6 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             do {
                 value = decode_huffman(png_image_data, &byte_index, &bit_index, &(tree[0]), lit);
 
-                /* if value < 256 */
                 if(value < 256) {
                     /* copy value (literal byte) to output stream */
                     output_stream[write_byte_index] = value;
@@ -596,12 +606,12 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     } while(bfinal == 0);
 
     printf("write_byte : %d\n", write_byte_index);
-    write_byte_index = 0;
     (*image_data) = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE *) * height);
     for(i = 0; i < height; i++) {
         (*image_data)[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * width);
     }
 
+    write_byte_index = 0;
     for(i = 0; i < height; i++) {
         write_line(output_stream, i, &write_byte_index, width, image_data, color_palette);
     }
