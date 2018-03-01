@@ -287,6 +287,83 @@ void calc_next_code(struct tree *tree, int *lens, int *next_code, size_t bl_coun
     free((void *)bl_count);
 }
 
+void decompress_dynamic_huffman_codes(uint8_t *png_image_data, int *byte_index, int *bit_index, int *lit, int *dist, struct tree *tree, struct tree *dtree)
+{
+    int hlit;
+    int hdist;
+    int hclen;
+    int hclens[19];
+    int next_code[286];
+    int *id;
+    int id_index;
+    int value;
+    int i;
+    int repeat;
+    int last_id;
+    int hclens_index_table[19] = {
+        16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
+    };
+
+    /* read representation of code trees (see subsection below) */
+    hlit = bit_read(png_image_data, byte_index, bit_index, 5);
+    printf("hlit = %d\n", hlit);
+    hdist = bit_read(png_image_data, byte_index, bit_index, 5);
+    printf("hdist = %d\n", hdist);
+    hclen = bit_read(png_image_data, byte_index, bit_index, 4);
+    printf("hclen = %d\n", hclen);
+    for(i = 0; i < 19; i++) {
+        hclens[i] = 0;
+    }
+    for(i = 0; i < (hclen+4); i++) {
+        hclens[hclens_index_table[i]] = bit_read(png_image_data, byte_index, bit_index, 3);
+        //printf("hclens[%d] = %d\n", hclens_index_table[i], hclens[hclens_index_table[i]]);
+    }
+
+    //clen
+    calc_next_code(tree, hclens, next_code, 8, 19);
+
+    *lit = hlit + 257;
+    *dist = hdist + 1;
+    id = (int *)malloc(sizeof(int) * (*lit+*dist));
+    id_index = 0;
+
+    do {
+        value = decode_huffman(png_image_data, byte_index, bit_index, &(tree[0]), 19);
+
+        if(value >= 0 && value <= 15) {
+            id[id_index] = value;
+            id_index += 1;
+        } else if(value == 16) {
+            repeat = bit_read(png_image_data, byte_index, bit_index, 2);
+            last_id = id[id_index-1];
+            for(i = 0; i < (repeat + 3); i ++) {
+                id[id_index] = last_id;
+                id_index += 1;
+            }
+        } else if(value == 17) {
+            repeat = bit_read(png_image_data, byte_index, bit_index, 3);
+            last_id = 0;
+            for(i = 0; i < (repeat + 3); i ++) {
+                id[id_index] = last_id;
+                id_index += 1;
+            }
+        } else if(value == 18) {
+            repeat = bit_read(png_image_data, byte_index, bit_index, 7);
+            last_id = 0;
+            for(i = 0; i < (repeat + 11); i ++) {
+                id[id_index] = last_id;
+                id_index += 1;
+            }
+        }
+    } while(id_index != (*lit+*dist));
+
+    printf("lit = %d\n", *lit);
+    printf("dist = %d\n", *dist);
+    printf("lit+dist = %d\n", *lit+*dist);
+    calc_next_code(tree,  &(id[0]),    next_code, 286, *lit);
+    calc_next_code(dtree, &(id[*lit]), next_code,  32, *dist);
+}
+
 void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width, RGBTRIPLE ***image_data, RGBTRIPLE *color_palette)
 {
     int j;
@@ -387,27 +464,15 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     uint8_t fdict;
     uint32_t dictid;
     int value;
-    int hlit;
-    int hdist;
-    int hclen;
-    int hclens[19];
     int bl_count[286];
-    int next_code[286];
     struct tree tree[286];
     int lit;
     int dist;
     struct tree dtree[32];
-    int *id;
-    int id_index;
-    int repeat;
-    int last_id;
     int len_bit;
     int len_bit_value;
     int dist_bit;
     int dist_bit_value;
-    int hclens_index_table[19] = {
-        16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
-    };
     int len_block_bit[29] = {
         0, 0, 0, 0, 0, 0, 0, 0, 1, 1,
         1, 1, 2, 2, 2, 2, 3, 3, 3, 3,
@@ -500,64 +565,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
         } else {
             /* if compressed with dynamic Huffman codes */
             if(btype == 0x02) {
-                /* read representation of code trees (see subsection below) */
-                hlit = bit_read(png_image_data, &byte_index, &bit_index, 5);
-                printf("hlit = %d\n", hlit);
-                hdist = bit_read(png_image_data, &byte_index, &bit_index, 5);
-                printf("hdist = %d\n", hdist);
-                hclen = bit_read(png_image_data, &byte_index, &bit_index, 4);
-                printf("hclen = %d\n", hclen);
-                for(i = 0; i < 19; i++) {
-                    hclens[i] = 0;
-                }
-                for(i = 0; i < (hclen+4); i++) {
-                    hclens[hclens_index_table[i]] = bit_read(png_image_data, &byte_index, &bit_index, 3);
-                    //printf("hclens[%d] = %d\n", hclens_index_table[i], hclens[hclens_index_table[i]]);
-                }
-
-                //clen
-                calc_next_code(tree, hclens, next_code, 8, 19);
-
-                lit = hlit + 257;
-                dist = hdist + 1;
-                id = (int *)malloc(sizeof(int) * (lit+dist));
-                id_index = 0;
-
-                do {
-                    value = decode_huffman(png_image_data, &byte_index, &bit_index, &(tree[0]), 19);
-
-                    if(value >= 0 && value <= 15) {
-                        id[id_index] = value;
-                        id_index += 1;
-                    } else if(value == 16) {
-                        repeat = bit_read(png_image_data, &byte_index, &bit_index, 2);
-                        last_id = id[id_index-1];
-                        for(i = 0; i < (repeat + 3); i ++) {
-                            id[id_index] = last_id;
-                            id_index += 1;
-                        }
-                    } else if(value == 17) {
-                        repeat = bit_read(png_image_data, &byte_index, &bit_index, 3);
-                        last_id = 0;
-                        for(i = 0; i < (repeat + 3); i ++) {
-                            id[id_index] = last_id;
-                            id_index += 1;
-                        }
-                    } else if(value == 18) {
-                        repeat = bit_read(png_image_data, &byte_index, &bit_index, 7);
-                        last_id = 0;
-                        for(i = 0; i < (repeat + 11); i ++) {
-                            id[id_index] = last_id;
-                            id_index += 1;
-                        }
-                    }
-                } while(id_index != (lit+dist));
-
-                printf("lit = %d\n", lit);
-                printf("dist = %d\n", dist);
-                printf("lit+dist = %d\n", lit+dist);
-                calc_next_code(tree,  &(id[0]),   next_code, 286, lit);
-                calc_next_code(dtree, &(id[lit]), next_code,  32, dist);
+                decompress_dynamic_huffman_codes(png_image_data, &byte_index, &bit_index, &lit, &dist, tree, dtree);
             } // 0x02
 
             /* loop (until end of block code recognized) */
@@ -571,6 +579,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                 } else if(value == END_OF_BLOCK) {
                     break;
                 } else {/* (value = 257..285) */
+                    printf("value = %d\n", value - 257);
                     len_bit = len_block_bit[value - 257];
                     len_bit_value = 0;
                     if(len_bit != 0) {
