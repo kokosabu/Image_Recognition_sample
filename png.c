@@ -442,6 +442,54 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
     //printf("[%d] : %d %d %d\n", i+1, color_palette[i].rgbtRed, color_palette[i].rgbtGreen, color_palette[i].rgbtBlue);
 }
 
+
+void decode_huffman_codes(uint8_t *png_image_data, int *byte_index, int *bit_index, struct )
+{
+    int value;
+
+    /* loop (until end of block code recognized) */
+    do {
+        value = decode_huffman(png_image_data, byte_index, bit_index, tree, lit);
+
+        if(value < 256) {
+            /* copy value (literal byte) to output stream */
+            output_stream[write_byte_index] = value;
+            write_byte_index += 1;
+        } else if(value == END_OF_BLOCK) {
+            break;
+        } else {/* (value = 257..285) */
+            printf("value = %d\n", value - 257);
+            len_bit = len_block_bit[value - 257];
+            len_bit_value = 0;
+            if(len_bit != 0) {
+                len_bit_value = bit_read(png_image_data, &byte_index, &bit_index, len_bit);
+            }
+            len  = len_block[value-257];
+            len += len_bit_value;
+
+            /* decode distance from input stream */
+            value = decode_huffman(png_image_data, &byte_index, &bit_index, &(dtree[0]), 32);
+            dist_bit = dist_block_bit[value];
+            dist_bit_value = 0;
+            if(dist_bit != 0) {
+                dist_bit_value = bit_read(png_image_data, &byte_index, &bit_index, dist_bit);
+            }
+
+            printf("dist = %d\n", dist);
+            dist = dist_block[value];
+            printf("dist(block) = %d\n", dist);
+            dist += dist_bit_value;
+            printf("dist(block+dist_bit) = %d\n", dist);
+            printf("write_byte:%d (%d)(%d)\n", write_byte_index, write_byte_index/(width+1), write_byte_index%(width+1));
+            /* move backwards distance bytes in the output stream, and copy length bytes from this position to the output stream. */
+            for(i = 0; i < len; i++) {
+                output_stream[write_byte_index] = output_stream[write_byte_index-dist];
+                write_byte_index += 1;
+            }
+        }
+    } while(1);
+}
+
 void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 {
     uint8_t *output_stream;
@@ -463,7 +511,6 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     int flg;
     uint8_t fdict;
     uint32_t dictid;
-    int value;
     int bl_count[286];
     struct tree tree[286];
     int lit;
@@ -568,6 +615,8 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                 decompress_dynamic_huffman_codes(png_image_data, &byte_index, &bit_index, &lit, &dist, tree, dtree);
             } // 0x02
 
+            decode_huffman_codes();
+#if 0
             /* loop (until end of block code recognized) */
             do {
                 value = decode_huffman(png_image_data, &byte_index, &bit_index, &(tree[0]), lit);
@@ -609,6 +658,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                     }
                 }
             } while(1);
+#endif
         }
 
         /* while not last block */
