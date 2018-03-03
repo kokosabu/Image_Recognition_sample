@@ -215,6 +215,50 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     } while(flag == 0);
 }
 
+void read_zlib_header(uint8_t *png_image_data, int *byte_index, int *bit_index)
+{
+    uint8_t cmf;
+    uint8_t cm;
+    uint8_t cinfo;
+    uint32_t window_size;
+    int flg;
+    uint8_t fdict;
+    uint32_t dictid;
+
+    cmf = png_image_data[*byte_index];
+    *byte_index += 1;
+    printf("%02xh\n", cmf);
+    cm = cmf & 0x0F;
+    cinfo = (cmf & 0xF0) >> 4;
+    printf("%02xh, %02xh\n", cm, cinfo);
+
+    if(cm != 8) {
+        printf("not deflate\n");
+        exit(0);
+    }
+    if(cinfo > 7) {
+        printf("CINFO above 7 are not allowed in this version of the specification\n");
+        exit(0);
+    }
+    window_size = pow(2, cinfo + 8);
+
+    flg = png_image_data[*byte_index];
+    *byte_index += 1;
+    fdict = (flg & 0x10) >> 5;
+    printf("fdict %d\n", fdict);
+
+    if(fdict == 1) {
+        dictid = png_image_data[*byte_index];
+        *byte_index += 1;
+        dictid = dictid << 8 | png_image_data[*byte_index];
+        *byte_index += 1;
+        dictid = dictid << 8 | png_image_data[*byte_index];
+        *byte_index += 1;
+        dictid = dictid << 8 | png_image_data[*byte_index];
+        *byte_index += 1;
+    }
+}
+
 unsigned int decode_huffman(uint8_t *png_image_data, int *byte_index, int *bit_index, struct tree *huffman_tree, int len)
 {
     unsigned int code;
@@ -529,14 +573,6 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     uint16_t len;
     uint16_t nlen;
     RGBTRIPLE *color_palette;
-    uint8_t cmf;
-    uint8_t cm;
-    uint8_t cinfo;
-    uint32_t window_size;
-    int flg;
-    uint8_t fdict;
-    uint32_t dictid;
-    //int bl_count[286];
     struct tree tree[286];
     int lit;
     int dist;
@@ -552,38 +588,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     byte_index = 0;
     write_byte_index = 0;
     do {
-        cmf = png_image_data[byte_index];
-        byte_index += 1;
-        printf("%02xh\n", cmf);
-        cm = cmf & 0x0F;
-        cinfo = (cmf & 0xF0) >> 4;
-        printf("%02xh, %02xh\n", cm, cinfo);
-
-        if(cm != 8) {
-            printf("not deflate\n");
-            exit(0);
-        }
-        if(cinfo > 7) {
-            printf("CINFO above 7 are not allowed in this version of the specification\n");
-            exit(0);
-        }
-        window_size = pow(2, cinfo + 8);
-
-        flg = png_image_data[byte_index];
-        byte_index += 1;
-        fdict = (flg & 0x10) >> 5;
-        printf("fdict %d\n", fdict);
-
-        if(fdict == 1) {
-            dictid = png_image_data[byte_index];
-            byte_index += 1;
-            dictid = dictid << 8 | png_image_data[byte_index];
-            byte_index += 1;
-            dictid = dictid << 8 | png_image_data[byte_index];
-            byte_index += 1;
-            dictid = dictid << 8 | png_image_data[byte_index];
-            byte_index += 1;
-        }
+        read_zlib_header(png_image_data, &byte_index, &bit_index);
 
         /* read block header from input stream. */
         bfinal = bit_read(png_image_data, &byte_index, &bit_index, 1);
@@ -627,6 +632,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     for(i = 0; i < height; i++) {
         write_line(output_stream, i, &write_byte_index, width, image_data, color_palette);
     }
+
     image_info->height   = height;
     image_info->width    = width;
     image_info->fileSize = height*width*3 + 54;
