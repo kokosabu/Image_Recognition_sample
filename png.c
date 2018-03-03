@@ -521,7 +521,6 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     uint8_t *output_stream;
     int i;
     uint8_t *png_image_data;
-    uint8_t byte;
     int bit_index;
     int byte_index;
     int write_byte_index;
@@ -545,10 +544,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 
     printf("PNG\n");
 
-    // TODO fread*8 -> fseek
-    for(i = 0; i < 8; i++) {
-        fread(&byte, 1, 1, input);
-    }
+    fseek(input, 8, SEEK_CUR);
 
     chunk_read(input, &output_stream, &png_image_data, &color_palette);
 
