@@ -248,14 +248,11 @@ void read_zlib_header(uint8_t *png_image_data, int *byte_index, int *bit_index)
     printf("fdict %d\n", fdict);
 
     if(fdict == 1) {
-        dictid = png_image_data[*byte_index];
-        *byte_index += 1;
-        dictid = dictid << 8 | png_image_data[*byte_index];
-        *byte_index += 1;
-        dictid = dictid << 8 | png_image_data[*byte_index];
-        *byte_index += 1;
-        dictid = dictid << 8 | png_image_data[*byte_index];
-        *byte_index += 1;
+        dictid =               png_image_data[*(byte_index  )];
+        dictid = dictid << 8 | png_image_data[*(byte_index+1)];
+        dictid = dictid << 8 | png_image_data[*(byte_index+2)];
+        dictid = dictid << 8 | png_image_data[*(byte_index+3)];
+        *byte_index += 4;
     }
 }
 
@@ -372,29 +369,41 @@ void decompress_dynamic_huffman_codes(uint8_t *png_image_data, int *byte_index, 
     id_index = 0;
 
     do {
+        int bit_read_table[19] = {
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 2, 3, 7
+        };
+        int repeat_base[19] = {
+            1, 1, 1, 1, 1, 1, 1, 1,  1, 1,
+            1, 1, 1, 1, 1, 1, 3, 3, 11
+        };
         value = decode_huffman(png_image_data, byte_index, bit_index, &(tree[0]), 19);
 
         if(value >= 0 && value <= 15) {
-            id[id_index] = value;
-            id_index += 1;
+            repeat = bit_read(png_image_data, byte_index, bit_index, bit_read_table[value]) + repeat_base[value];
+            last_id = value;
+            for(i = 0; i < repeat; i++) {
+                id[id_index] = last_id;
+                id_index += 1;
+            }
         } else if(value == 16) {
-            repeat = bit_read(png_image_data, byte_index, bit_index, 2);
+            repeat = bit_read(png_image_data, byte_index, bit_index, bit_read_table[value]) + repeat_base[value];
             last_id = id[id_index-1];
-            for(i = 0; i < (repeat + 3); i ++) {
+            for(i = 0; i < repeat; i++) {
                 id[id_index] = last_id;
                 id_index += 1;
             }
         } else if(value == 17) {
-            repeat = bit_read(png_image_data, byte_index, bit_index, 3);
+            repeat = bit_read(png_image_data, byte_index, bit_index, bit_read_table[value]) + repeat_base[value];
             last_id = 0;
-            for(i = 0; i < (repeat + 3); i ++) {
+            for(i = 0; i < repeat; i++) {
                 id[id_index] = last_id;
                 id_index += 1;
             }
         } else if(value == 18) {
-            repeat = bit_read(png_image_data, byte_index, bit_index, 7);
+            repeat = bit_read(png_image_data, byte_index, bit_index, bit_read_table[value]) + repeat_base[value];
             last_id = 0;
-            for(i = 0; i < (repeat + 11); i ++) {
+            for(i = 0; i < repeat; i++) {
                 id[id_index] = last_id;
                 id_index += 1;
             }
