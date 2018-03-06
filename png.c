@@ -4,6 +4,12 @@
 #include <math.h>
 
 enum {
+    NONE    = 0,
+    SUB     = 1,
+    UP      = 2,
+    AVERAGE = 3,
+    PAETH   = 4,
+
     END_OF_BLOCK = 256
 };
 
@@ -425,7 +431,7 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
     uint8_t old_red;
 
     printf("[%d] %d\n", i, output_stream[*write_byte_index]);
-    if(output_stream[*write_byte_index] == 0) {
+    if(output_stream[*write_byte_index] == NONE) {
         *write_byte_index += 1;
         for(j = 0; j < width; j++) {
             (*image_data)[i][j].rgbtBlue  = color_palette[output_stream[*write_byte_index]].rgbtBlue;
@@ -433,7 +439,7 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
             (*image_data)[i][j].rgbtRed   = color_palette[output_stream[*write_byte_index]].rgbtRed;
             (*write_byte_index)++;
         }
-    } else if(output_stream[*write_byte_index] == 1) {
+    } else if(output_stream[*write_byte_index] == SUB) {
         *write_byte_index += 1;
         old_blue = 0;
         old_green = 0;
@@ -447,7 +453,7 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
             old_red   = (*image_data)[i][j].rgbtRed;
             (*write_byte_index)++;
         }
-    } else if(output_stream[*write_byte_index] == 2) {
+    } else if(output_stream[*write_byte_index] == UP) {
         *write_byte_index += 1;
         for(j = 0; j < width; j++) {
             if(i == 0) {
@@ -464,7 +470,7 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
             (*image_data)[i][j].rgbtRed   = color_palette[output_stream[*write_byte_index]].rgbtRed     + old_red;
             (*write_byte_index)++;
         }
-    } else if(output_stream[*write_byte_index] == 3) {
+    } else if(output_stream[*write_byte_index] == AVERAGE) {
         *write_byte_index += 1;
         old_blue = 0;
         old_green = 0;
@@ -487,7 +493,7 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
             old_red   = (*image_data)[i][j].rgbtRed;
             (*write_byte_index)++;
         }
-    } else if(output_stream[*write_byte_index] == 4) {
+    } else if(output_stream[*write_byte_index] == PAETH) {
     } else {
         printf("undefined filter type\n");
         exit(0);
