@@ -55,6 +55,11 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     uint16_t alpha_red;
     uint16_t alpha_green;
     uint16_t alpha_blue;
+    uint8_t sbit_red;
+    uint8_t sbit_green;
+    uint8_t sbit_blue;
+    uint8_t sbit_gray;
+    uint8_t sbit_alpha;
 
     idat_size = 0;
     flag = 0;
@@ -213,9 +218,35 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
             }
 
             crc_32 = read_4bytes(input);
+        } else if(strcmp(chunk, "sBIT") == 0) {
+            printf("size:%d\n", size);
+            printf("chunk:%s\n", chunk);
+
+            if(color_type == 3) {
+                fread(&sbit_red, 1, 1, input);
+                fread(&sbit_green, 1, 1, input);
+                fread(&sbit_blue, 1, 1, input);
+            } else if(color_type == 0) {
+                fread(&sbit_gray, 1, 1, input);
+            } else if(color_type == 2) {
+                fread(&sbit_red, 1, 1, input);
+                fread(&sbit_green, 1, 1, input);
+                fread(&sbit_blue, 1, 1, input);
+            } else if(color_type == 4) {
+                fread(&sbit_gray, 1, 1, input);
+                fread(&sbit_alpha, 1, 1, input);
+            } else if(color_type == 6) {
+                fread(&sbit_red, 1, 1, input);
+                fread(&sbit_green, 1, 1, input);
+                fread(&sbit_blue, 1, 1, input);
+                fread(&sbit_alpha, 1, 1, input);
+            }
+
+            crc_32 = read_4bytes(input);
         } else {
             printf("size:%d\n", size);
             printf("chunk:%s\n", chunk);
+            printf("Don't support chunk. Exit!\n");
             exit(0);
         }
     } while(flag == 0);
@@ -334,6 +365,36 @@ void calc_next_code(struct tree *tree, int *lens, int *next_code, size_t bl_coun
     free((void *)bl_count);
 }
 
+void decompress_fixed_huffman_codes(uint8_t *png_image_data, int *byte_index, int *bit_index, int *lit, int *dist, struct tree *tree, struct tree *dtree)
+{
+    int i;
+
+    *lit = 286;
+    *dist = 32;
+
+    for(i = 0x00; i <= 0x8F; i++) {
+        tree[i].code = 0x30 + i;
+        tree[i].len  = 8;
+    }
+    for(i = 0x90; i <= 0xFF; i++) {
+        tree[i].code = 0x190 + i - 0x90;
+        tree[i].len  = 9;
+    }
+    for(i = 0x100; i <= 0x117; i++) {
+        tree[i].code = 0x00 + i - 0x100;
+        tree[i].len  = 7;
+    }
+    for(i = 0x118; i <= 0x11F; i++) {
+        tree[i].code = 0xC0 + i - 0x118;
+        tree[i].len  = 8;
+    }
+
+    for(i = 0; i < 32; i++) {
+        dtree[i].code = i + 1;
+        dtree[i].len  = 5;
+    }
+}
+
 void decompress_dynamic_huffman_codes(uint8_t *png_image_data, int *byte_index, int *bit_index, int *lit, int *dist, struct tree *tree, struct tree *dtree)
 {
     int hlit;
@@ -363,7 +424,6 @@ void decompress_dynamic_huffman_codes(uint8_t *png_image_data, int *byte_index, 
     }
     for(i = 0; i < (hclen+4); i++) {
         hclens[hclens_index_table[i]] = bit_read(png_image_data, byte_index, bit_index, 3);
-        //printf("hclens[%d] = %d\n", hclens_index_table[i], hclens[hclens_index_table[i]]);
     }
 
     //clen
@@ -421,6 +481,8 @@ void decompress_dynamic_huffman_codes(uint8_t *png_image_data, int *byte_index, 
     printf("lit+dist = %d\n", *lit+*dist);
     calc_next_code(tree,  &(id[0]),    next_code, 286, *lit);
     calc_next_code(dtree, &(id[*lit]), next_code,  32, *dist);
+
+    free((void *)id);
 }
 
 void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width, RGBTRIPLE ***image_data, RGBTRIPLE *color_palette)
@@ -588,9 +650,9 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     uint16_t len;
     uint16_t nlen;
     RGBTRIPLE *color_palette;
-    struct tree tree[286];
     int lit;
     int dist;
+    struct tree tree[286];
     struct tree dtree[32];
 
     printf("PNG\n");
@@ -608,7 +670,6 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
         /* read block header from input stream. */
         bfinal = bit_read(png_image_data, &byte_index, &bit_index, 1);
         btype = bit_read(png_image_data, &byte_index, &bit_index, 2);
-
         printf("%02x %02x\n", bfinal, btype);
 
         if(btype == 0x00) {
@@ -627,12 +688,12 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                 write_byte_index += 1;
                 byte_index += 1;
             }
-        } else {
+        } else if(btype == 0x01) {
+            decompress_fixed_huffman_codes(png_image_data, &byte_index, &bit_index, &lit, &dist, tree, dtree);
+            decode_huffman_codes(png_image_data, &byte_index, &bit_index, tree, lit, output_stream, &write_byte_index, dtree, dist);
+        } else if(btype == 0x02) {
             /* if compressed with dynamic Huffman codes */
-            if(btype == 0x02) {
-                decompress_dynamic_huffman_codes(png_image_data, &byte_index, &bit_index, &lit, &dist, tree, dtree);
-            } // 0x02
-
+            decompress_dynamic_huffman_codes(png_image_data, &byte_index, &bit_index, &lit, &dist, tree, dtree);
             decode_huffman_codes(png_image_data, &byte_index, &bit_index, tree, lit, output_stream, &write_byte_index, dtree, dist);
         }
     } while(bfinal == 0);
