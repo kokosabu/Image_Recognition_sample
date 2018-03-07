@@ -10,6 +10,10 @@ struct tree {
     int code;
 };
 
+typedef struct {
+    uint8_t color_type;
+} PNG_INFO;
+
 void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data);
 
 #endif

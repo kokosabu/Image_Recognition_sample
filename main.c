@@ -110,6 +110,7 @@ int main(int argc, char *argv[])
         printf("%d %d %d\n", image_info.fileSize, image_info.width, image_info.height);
     } else if(file_format == PNG) {
         decode_png(input, &image_info, &image_data);
+        printf("h\n");
         printf("%d %d %d\n", image_info.fileSize, image_info.width, image_info.height);
     }
     fclose(input);

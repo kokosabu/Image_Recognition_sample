@@ -16,7 +16,7 @@ enum {
 uint32_t width;
 uint32_t height;
 
-void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, RGBTRIPLE **color_palette, PNG_INFO *png_info)
 {
     uint32_t idat_size;
     uint8_t flag;
@@ -250,6 +250,8 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
             exit(0);
         }
     } while(flag == 0);
+
+    png_info->color_type = color_type;
 }
 
 void read_zlib_header(uint8_t *png_image_data, int *byte_index, int *bit_index)
@@ -384,7 +386,8 @@ void decompress_fixed_huffman_codes(uint8_t *png_image_data, int *byte_index, in
         tree[i].code = 0x00 + i - 0x100;
         tree[i].len  = 7;
     }
-    for(i = 0x118; i <= 0x11F; i++) {
+    //for(i = 0x118; i <= 0x11F; i++) {
+    for(i = 0x118; i <= 0x11D; i++) {
         tree[i].code = 0xC0 + i - 0x118;
         tree[i].len  = 8;
     }
@@ -485,20 +488,43 @@ void decompress_dynamic_huffman_codes(uint8_t *png_image_data, int *byte_index, 
     free((void *)id);
 }
 
-void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width, RGBTRIPLE ***image_data, RGBTRIPLE *color_palette)
+RGBTRIPLE get_color(RGBTRIPLE *color_palette, uint8_t *output_stream, int *write_byte_index, PNG_INFO *png_info)
+{
+    RGBTRIPLE c;
+
+    if(png_info->color_type == 0) {
+        c.rgbtRed = output_stream[*write_byte_index];
+        c.rgbtGreen = output_stream[*write_byte_index];
+        c.rgbtBlue = output_stream[*write_byte_index];
+    } else if(png_info->color_type == 3) {
+        c.rgbtRed = color_palette[output_stream[*write_byte_index]].rgbtRed;
+        c.rgbtGreen = color_palette[output_stream[*write_byte_index]].rgbtGreen;
+        c.rgbtBlue = color_palette[output_stream[*write_byte_index]].rgbtBlue;
+    } else {
+        c.rgbtRed = 0;
+        c.rgbtGreen = 0;
+        c.rgbtBlue = 0;
+    }
+
+    return c;
+}
+
+void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width, RGBTRIPLE ***image_data, RGBTRIPLE *color_palette, PNG_INFO *png_info)
 {
     int j;
-    uint8_t old_blue;
-    uint8_t old_green;
     uint8_t old_red;
+    uint8_t old_green;
+    uint8_t old_blue;
+    RGBTRIPLE c;
 
     printf("[%d] %d\n", i, output_stream[*write_byte_index]);
     if(output_stream[*write_byte_index] == NONE) {
         *write_byte_index += 1;
+        c = get_color(color_palette, output_stream, write_byte_index, png_info);
         for(j = 0; j < width; j++) {
-            (*image_data)[i][j].rgbtBlue  = color_palette[output_stream[*write_byte_index]].rgbtBlue;
-            (*image_data)[i][j].rgbtGreen = color_palette[output_stream[*write_byte_index]].rgbtGreen;
-            (*image_data)[i][j].rgbtRed   = color_palette[output_stream[*write_byte_index]].rgbtRed;
+            (*image_data)[i][j].rgbtBlue  = c.rgbtBlue;
+            (*image_data)[i][j].rgbtGreen = c.rgbtGreen;
+            (*image_data)[i][j].rgbtRed   = c.rgbtRed;
             (*write_byte_index)++;
         }
     } else if(output_stream[*write_byte_index] == SUB) {
@@ -622,11 +648,8 @@ void decode_huffman_codes(uint8_t *png_image_data, int *byte_index, int *bit_ind
                 dist_bit_value = bit_read(png_image_data, byte_index, bit_index, dist_bit);
             }
 
-            printf("dist = %d\n", dist);
             dist = dist_block[value];
-            printf("dist(block) = %d\n", dist);
             dist += dist_bit_value;
-            printf("dist(block+dist_bit) = %d\n", dist);
             printf("write_byte:%d (%d)(%d)\n", *write_byte_index, *write_byte_index/(width+1), *write_byte_index%(width+1));
             /* move backwards distance bytes in the output stream, and copy length bytes from this position to the output stream. */
             for(i = 0; i < len; i++) {
@@ -654,12 +677,13 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     int dist;
     struct tree tree[286];
     struct tree dtree[32];
+    PNG_INFO png_info;
 
     printf("PNG\n");
 
     fseek(input, 8, SEEK_CUR);
 
-    chunk_read(input, &output_stream, &png_image_data, &color_palette);
+    chunk_read(input, &output_stream, &png_image_data, &color_palette, &png_info);
 
     bit_index = 0;
     byte_index = 0;
@@ -706,7 +730,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 
     write_byte_index = 0;
     for(i = 0; i < height; i++) {
-        write_line(output_stream, i, &write_byte_index, width, image_data, color_palette);
+        write_line(output_stream, i, &write_byte_index, width, image_data, color_palette, &png_info);
     }
 
     image_info->height   = height;
