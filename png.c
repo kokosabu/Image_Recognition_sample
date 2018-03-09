@@ -66,7 +66,12 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     uint16_t background_color_green;
     uint16_t background_color_blue;
     uint16_t *image_histgram;
-    //uint8_t *image_histgram;
+    uint16_t year;
+    uint8_t month;
+    uint8_t day;
+    uint8_t hour;
+    uint8_t minute;
+    uint8_t second;
 
     idat_size = 0;
     flag = 0;
@@ -271,12 +276,22 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
 
             printf("palet : %d\n", palette_size);
             image_histgram = (uint16_t *)malloc(sizeof(uint16_t) * palette_size / 3);
-            //image_histgram = (uint8_t *)malloc(sizeof(uint8_t) * palette_size / 3);
 
             for(i = 0; i < palette_size / 3; i++) {
                 image_histgram[i] = read_2bytes(input);
-                //fread(&(image_histgram[i]), 1, 1, input);
             }
+
+            crc_32 = read_4bytes(input);
+        } else if(strcmp(chunk, "tIME") == 0) {
+            printf("size:%d\n", size);
+            printf("chunk:%s\n", chunk);
+
+            year = read_2bytes(input);
+            fread(&month, 1, 1, input);
+            fread(&day, 1, 1, input);
+            fread(&hour, 1, 1, input);
+            fread(&minute, 1, 1, input);
+            fread(&second, 1, 1, input);
 
             crc_32 = read_4bytes(input);
         } else {
