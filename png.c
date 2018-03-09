@@ -60,6 +60,13 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     uint8_t sbit_blue;
     uint8_t sbit_gray;
     uint8_t sbit_alpha;
+    uint8_t background_color_pallet;
+    uint16_t background_color_gray;
+    uint16_t background_color_red;
+    uint16_t background_color_green;
+    uint16_t background_color_blue;
+    uint16_t *image_histgram;
+    //uint8_t *image_histgram;
 
     idat_size = 0;
     flag = 0;
@@ -240,6 +247,35 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
                 fread(&sbit_green, 1, 1, input);
                 fread(&sbit_blue, 1, 1, input);
                 fread(&sbit_alpha, 1, 1, input);
+            }
+
+            crc_32 = read_4bytes(input);
+        } else if(strcmp(chunk, "bKGD") == 0) {
+            printf("size:%d\n", size);
+            printf("chunk:%s\n", chunk);
+
+            if(color_type == 3) {
+                fread(&background_color_pallet, 1, 1, input);
+            } else if(color_type == 0 || color_type == 4) {
+                background_color_gray = read_2bytes(input);
+            } else if(color_type == 2 || color_type == 6) {
+                background_color_red = read_2bytes(input);
+                background_color_green = read_2bytes(input);
+                background_color_blue = read_2bytes(input);
+            }
+
+            crc_32 = read_4bytes(input);
+        } else if(strcmp(chunk, "hIST") == 0) {
+            printf("size:%d\n", size);
+            printf("chunk:%s\n", chunk);
+
+            printf("palet : %d\n", palette_size);
+            image_histgram = (uint16_t *)malloc(sizeof(uint16_t) * palette_size / 3);
+            //image_histgram = (uint8_t *)malloc(sizeof(uint8_t) * palette_size / 3);
+
+            for(i = 0; i < palette_size / 3; i++) {
+                image_histgram[i] = read_2bytes(input);
+                //fread(&(image_histgram[i]), 1, 1, input);
             }
 
             crc_32 = read_4bytes(input);
@@ -629,6 +665,7 @@ void decode_huffman_codes(uint8_t *png_image_data, int *byte_index, int *bit_ind
             output_stream[*write_byte_index] = value;
             *write_byte_index += 1;
         } else if(value == END_OF_BLOCK) {
+            printf("%d\n", *write_byte_index);
             break;
         } else {/* (value = 257..285) */
             printf("value = %d\n", value - 257);
@@ -651,6 +688,7 @@ void decode_huffman_codes(uint8_t *png_image_data, int *byte_index, int *bit_ind
             dist = dist_block[value];
             dist += dist_bit_value;
             printf("write_byte:%d (%d)(%d)\n", *write_byte_index, *write_byte_index/(width+1), *write_byte_index%(width+1));
+            printf("dist = %d, len = %d\n", dist, len);
             /* move backwards distance bytes in the output stream, and copy length bytes from this position to the output stream. */
             for(i = 0; i < len; i++) {
                 output_stream[*write_byte_index] = output_stream[*write_byte_index-dist];
