@@ -187,7 +187,6 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
         } else if(strcmp(chunk, "vpAg") == 0) {
             VirtualImageWidth = read_4bytes(input);
             VirtualImageHeight = read_4bytes(input);
-            //VirtualPageUnits = read_4bytes(input);
             fread(&VirtualPageUnits, 1, 1, input);
             crc_32 = read_4bytes(input);
             printf("size:%d\n", size);
@@ -294,6 +293,13 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
             fread(&second, 1, 1, input);
 
             crc_32 = read_4bytes(input);
+        } else if(strcmp(chunk, "eXIf") == 0) {
+            printf("size:%d\n", size);
+            printf("chunk:%s\n", chunk);
+            for(i = 0; i < size; i++) {
+                fread(&k, 1, 1, input);
+            }
+            crc_32 = read_4bytes(input);
         } else {
             printf("size:%d\n", size);
             printf("chunk:%s\n", chunk);
@@ -361,9 +367,11 @@ unsigned int decode_huffman(uint8_t *png_image_data, int *byte_index, int *bit_i
         code_len += 1;
         for(i = 0; i < len; i++) {
             if(huffman_tree[i].len == code_len && huffman_tree[i].code == code) {
+                printf("[%d] %d, %d\n", i, huffman_tree[i].len, huffman_tree[i].code);
                 break;
             }
         }
+        printf("[%d][%d] i = %xh, code = %xh, len = %dd\n", *byte_index, *bit_index, i, code, code_len);
     } while(i == len);
 
     return i;
@@ -422,7 +430,7 @@ void decompress_fixed_huffman_codes(uint8_t *png_image_data, int *byte_index, in
 {
     int i;
 
-    *lit = 286;
+    *lit = 288;
     *dist = 32;
 
     for(i = 0x00; i <= 0x8F; i++) {
@@ -430,21 +438,26 @@ void decompress_fixed_huffman_codes(uint8_t *png_image_data, int *byte_index, in
         tree[i].len  = 8;
     }
     for(i = 0x90; i <= 0xFF; i++) {
-        tree[i].code = 0x190 + i - 0x90;
+        tree[i].code = 0x190 + (i - 0x90);
         tree[i].len  = 9;
     }
     for(i = 0x100; i <= 0x117; i++) {
-        tree[i].code = 0x00 + i - 0x100;
+        tree[i].code = 0x00 + (i - 0x100);
         tree[i].len  = 7;
     }
-    //for(i = 0x118; i <= 0x11F; i++) {
-    for(i = 0x118; i <= 0x11D; i++) {
-        tree[i].code = 0xC0 + i - 0x118;
+    for(i = 0x118; i <= 0x11F; i++) {
+        tree[i].code = 0xC0 + (i - 0x118);
         tree[i].len  = 8;
     }
 
+#if 0
+    for(i = 0; i <= 0x11F; i++) {
+        printf("[%3d] [%2d] %4d\n", i, tree[i].len, tree[i].code);
+    }
+#endif
+
     for(i = 0; i < 32; i++) {
-        dtree[i].code = i + 1;
+        dtree[i].code = i;
         dtree[i].len  = 5;
     }
 }
@@ -455,7 +468,7 @@ void decompress_dynamic_huffman_codes(uint8_t *png_image_data, int *byte_index, 
     int hdist;
     int hclen;
     int hclens[19];
-    int next_code[286];
+    int next_code[288];
     int *id;
     int id_index;
     int value;
@@ -533,7 +546,7 @@ void decompress_dynamic_huffman_codes(uint8_t *png_image_data, int *byte_index, 
     printf("lit = %d\n", *lit);
     printf("dist = %d\n", *dist);
     printf("lit+dist = %d\n", *lit+*dist);
-    calc_next_code(tree,  &(id[0]),    next_code, 286, *lit);
+    calc_next_code(tree,  &(id[0]),    next_code, 288, *lit);
     calc_next_code(dtree, &(id[*lit]), next_code,  32, *dist);
 
     free((void *)id);
@@ -651,18 +664,18 @@ void decode_huffman_codes(uint8_t *png_image_data, int *byte_index, int *bit_ind
     int dist_bit;
     int dist_bit_value;
     int len_block_bit[29] = {
-        0, 0, 0, 0, 0, 0, 0, 0, 1, 1,
-        1, 1, 2, 2, 2, 2, 3, 3, 3, 3,
-        4, 4, 4, 4, 5, 5, 5, 5, 0
+        0, 0, 0, 0, 0, 0, 0, 0, 1, 1, // 257-266
+        1, 1, 2, 2, 2, 2, 3, 3, 3, 3, // 267-276
+        4, 4, 4, 4, 5, 5, 5, 5, 0     // 277-285
     };
     int len_block[29] = {
-        3,  4,  5,   6,   7,   8,   9,  10,  11, 13,
-        15, 17, 19,  23,  27,  31,  35,  43,  51, 59,
+        3,  4,  5,  6,   7,   8,   9,   10,  11, 13,
+        15, 17, 19, 23,  27,  31,  35,  43,  51, 59,
         67, 83, 99, 115, 131, 163, 195, 227, 258
     };
     int dist_block_bit[30] = {
-        0, 0,  0,  0,  1,  1,  2,  2,  3,  3,
-        4, 4,  5,  5,  6,  6,  7,  7,  8,  8,
+        0, 0, 0,  0,  1,  1,  2,  2,  3,  3,
+        4, 4, 5,  5,  6,  6,  7,  7,  8,  8,
         9, 9, 10, 10, 11, 11, 12, 12, 13, 13
     };
     int dist_block[30] = {
@@ -678,6 +691,7 @@ void decode_huffman_codes(uint8_t *png_image_data, int *byte_index, int *bit_ind
         if(value < 256) {
             /* copy value (literal byte) to output stream */
             output_stream[*write_byte_index] = value;
+            printf("write_byte:%d = %d  (%d)(%d)\n", *write_byte_index, value, *byte_index, *bit_index);
             *write_byte_index += 1;
         } else if(value == END_OF_BLOCK) {
             printf("%d\n", *write_byte_index);
@@ -709,6 +723,10 @@ void decode_huffman_codes(uint8_t *png_image_data, int *byte_index, int *bit_ind
                 output_stream[*write_byte_index] = output_stream[*write_byte_index-dist];
                 *write_byte_index += 1;
             }
+
+            for(i = 0; i < 33; i++) {
+                printf("[%2d] %d\n", i, output_stream[i]);
+            }
         }
     } while(1);
 }
@@ -728,7 +746,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     RGBTRIPLE *color_palette;
     int lit;
     int dist;
-    struct tree tree[286];
+    struct tree tree[288];
     struct tree dtree[32];
     PNG_INFO png_info;
 
