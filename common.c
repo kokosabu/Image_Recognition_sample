@@ -80,3 +80,23 @@ int huffman_bit_read(uint8_t *input_stream, int *byte_pos, int *bit_pos, int bit
 
     return byte;
 }
+
+int image_bit_read(uint8_t *input_stream, int *byte_pos, int *bit_pos, int bit_len)
+{
+    uint8_t pattern[8] = {
+        0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01
+    };
+    uint8_t byte;
+
+    byte = input_stream[*byte_pos];
+    byte &= pattern[*bit_pos];
+    byte >>= (7 - *bit_pos);
+
+    *bit_pos += bit_len;
+    if(*bit_pos >= 8) {
+        *byte_pos += (*bit_pos) / 8;
+        *bit_pos %= 8;
+    }
+
+    return byte;
+}

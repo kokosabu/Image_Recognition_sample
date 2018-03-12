@@ -372,7 +372,6 @@ unsigned int decode_huffman(uint8_t *png_image_data, int *byte_index, int *bit_i
                 break;
             }
         }
-        printf("[%d][%d] i = %xh, code = %xh, len = %dd\n", *byte_index, *bit_index, i, code, code_len);
     } while(i == len);
 
     return i;
@@ -553,22 +552,66 @@ void decompress_dynamic_huffman_codes(uint8_t *png_image_data, int *byte_index, 
     free((void *)id);
 }
 
-RGBTRIPLE get_color(RGBTRIPLE *color_palette, uint8_t *output_stream, int *write_byte_index, PNG_INFO *png_info)
+RGBTRIPLE get_color(RGBTRIPLE *color_palette, uint8_t *output_stream, int *write_byte_index, PNG_INFO *png_info, int *index)
 {
     RGBTRIPLE c;
+    int data;
+    int i;
+
+    if(png_info->bps == 1 || png_info->bps == 2 || png_info->bps == 4 || png_info->bps == 8) {
+        printf("[%d][%d] : %3d : ", *write_byte_index, *index, output_stream[*write_byte_index]);
+        //data = bit_read(output_stream, write_byte_index, index, png_info->bps);
+
+        //data = huffman_bit_read(output_stream, write_byte_index, index, png_info->bps);
+
+        /*
+        data = 0;
+        for(i = 0; i < png_info->bps; i++) {
+            data <<= 1;
+            data |= huffman_bit_read(output_stream, write_byte_index, index, 1);
+        }
+        */
+
+        data = 0;
+        for(i = 0; i < png_info->bps; i++) {
+            data <<= 1;
+            data |= image_bit_read(output_stream, write_byte_index, index, 1);
+        }
+
+        printf("%d\n", data);
+        
+        switch(png_info->bps) {
+            case 1:
+                data = data * 255 / (2-1);
+                break;
+            case 2:
+                data = data * 255 / (4-1);
+                break;
+            case 4:
+                data = data * 255 / (16-1);
+                break;
+            case 8:
+            default:
+                data = data * 255 / (256-1);
+                break;
+        }
+    } else {
+        data = bit_read(output_stream, write_byte_index, index, 8);
+        data = data << 8 | bit_read(output_stream, write_byte_index, index, 8);
+    }
 
     if(png_info->color_type == 0) {
-        c.rgbtRed = output_stream[*write_byte_index];
-        c.rgbtGreen = output_stream[*write_byte_index];
-        c.rgbtBlue = output_stream[*write_byte_index];
+        c.rgbtRed   = data;
+        c.rgbtGreen = data;
+        c.rgbtBlue  = data;
     } else if(png_info->color_type == 3) {
-        c.rgbtRed = color_palette[output_stream[*write_byte_index]].rgbtRed;
-        c.rgbtGreen = color_palette[output_stream[*write_byte_index]].rgbtGreen;
-        c.rgbtBlue = color_palette[output_stream[*write_byte_index]].rgbtBlue;
+        c.rgbtRed   = color_palette[data].rgbtRed;
+        c.rgbtGreen = color_palette[data].rgbtGreen;
+        c.rgbtBlue  = color_palette[data].rgbtBlue;
     } else {
-        c.rgbtRed = 0;
+        c.rgbtRed   = 0;
         c.rgbtGreen = 0;
-        c.rgbtBlue = 0;
+        c.rgbtBlue  = 0;
     }
 
     return c;
@@ -586,14 +629,14 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
     printf("[%d] %d\n", i, output_stream[*write_byte_index]);
     if(output_stream[*write_byte_index] == NONE) {
         *write_byte_index += 1;
+        k = 0;
         for(j = 0; j < width; j++) {
-            for(k = k; k < (8/png_info->bps); k++) {
-                c = get_color(color_palette, output_stream, write_byte_index, png_info);
-                (*image_data)[i][j].rgbtBlue  = c.rgbtBlue;
-                (*image_data)[i][j].rgbtGreen = c.rgbtGreen;
-                (*image_data)[i][j].rgbtRed   = c.rgbtRed;
-                (*write_byte_index)++;
-            }
+            c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
+            (*image_data)[i][j].rgbtBlue  = c.rgbtBlue;
+            (*image_data)[i][j].rgbtGreen = c.rgbtGreen;
+            (*image_data)[i][j].rgbtRed   = c.rgbtRed;
+
+            //printf("[%d][%d] : %d\n", i, j, c.rgbtRed);
         }
     } else if(output_stream[*write_byte_index] == SUB) {
         *write_byte_index += 1;

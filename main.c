@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    output = fopen("test", "wb");
+    output = fopen("test.bmp", "wb");
     if(output == NULL) {
         return 0;
     }
