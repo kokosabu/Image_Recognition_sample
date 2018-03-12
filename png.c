@@ -309,6 +309,7 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     } while(flag == 0);
 
     png_info->color_type = color_type;
+    png_info->bps        = bps;
 }
 
 void read_zlib_header(uint8_t *png_image_data, int *byte_index, int *bit_index)
@@ -576,6 +577,7 @@ RGBTRIPLE get_color(RGBTRIPLE *color_palette, uint8_t *output_stream, int *write
 void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width, RGBTRIPLE ***image_data, RGBTRIPLE *color_palette, PNG_INFO *png_info)
 {
     int j;
+    int k;
     uint8_t old_red;
     uint8_t old_green;
     uint8_t old_blue;
@@ -584,12 +586,14 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
     printf("[%d] %d\n", i, output_stream[*write_byte_index]);
     if(output_stream[*write_byte_index] == NONE) {
         *write_byte_index += 1;
-        c = get_color(color_palette, output_stream, write_byte_index, png_info);
         for(j = 0; j < width; j++) {
-            (*image_data)[i][j].rgbtBlue  = c.rgbtBlue;
-            (*image_data)[i][j].rgbtGreen = c.rgbtGreen;
-            (*image_data)[i][j].rgbtRed   = c.rgbtRed;
-            (*write_byte_index)++;
+            for(k = k; k < (8/png_info->bps); k++) {
+                c = get_color(color_palette, output_stream, write_byte_index, png_info);
+                (*image_data)[i][j].rgbtBlue  = c.rgbtBlue;
+                (*image_data)[i][j].rgbtGreen = c.rgbtGreen;
+                (*image_data)[i][j].rgbtRed   = c.rgbtRed;
+                (*write_byte_index)++;
+            }
         }
     } else if(output_stream[*write_byte_index] == SUB) {
         *write_byte_index += 1;
@@ -722,10 +726,6 @@ void decode_huffman_codes(uint8_t *png_image_data, int *byte_index, int *bit_ind
             for(i = 0; i < len; i++) {
                 output_stream[*write_byte_index] = output_stream[*write_byte_index-dist];
                 *write_byte_index += 1;
-            }
-
-            for(i = 0; i < 33; i++) {
-                printf("[%2d] %d\n", i, output_stream[i]);
             }
         }
     } while(1);

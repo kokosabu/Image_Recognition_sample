@@ -12,6 +12,7 @@ struct tree {
 
 typedef struct {
     uint8_t color_type;
+    uint8_t bps;
 } PNG_INFO;
 
 void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data);
