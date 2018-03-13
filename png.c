@@ -617,6 +617,27 @@ RGBTRIPLE get_color(RGBTRIPLE *color_palette, uint8_t *output_stream, int *write
     return c;
 }
 
+unsigned int paeth_predictor(int a, int b, int c)
+{
+    int p;
+    int pa;
+    int pb;
+    int pc;
+
+    p = a + b - c;
+    pa = abs(p - a);
+    pb = abs(p - b);
+    pc = abs(p - c);
+
+    if(pa <= pb && pa <= pc) {
+        return a;
+    } else if(pb <= pc) {
+        return b;
+    } else {
+        return c;
+    }
+}
+
 void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width, RGBTRIPLE ***image_data, RGBTRIPLE *color_palette, PNG_INFO *png_info)
 {
     int j;
@@ -624,6 +645,15 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
     uint8_t old_red;
     uint8_t old_green;
     uint8_t old_blue;
+    uint8_t up_red;
+    uint8_t up_green;
+    uint8_t up_blue;
+    uint8_t left_red;
+    uint8_t left_green;
+    uint8_t left_blue;
+    uint8_t upper_left_red;
+    uint8_t upper_left_green;
+    uint8_t upper_left_blue;
     RGBTRIPLE c;
 
     printf("[%d] %d\n", i, output_stream[*write_byte_index]);
@@ -636,24 +666,27 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
             (*image_data)[i][j].rgbtGreen = c.rgbtGreen;
             (*image_data)[i][j].rgbtRed   = c.rgbtRed;
 
-            //printf("[%d][%d] : %d\n", i, j, c.rgbtRed);
+            printf("[%d][%d] : %d\n", i, j, c.rgbtRed);
         }
     } else if(output_stream[*write_byte_index] == SUB) {
         *write_byte_index += 1;
-        old_blue = 0;
-        old_green = 0;
+        k = 0;
         old_red = 0;
+        old_green = 0;
+        old_blue = 0;
         for(j = 0; j < width; j++) {
-            (*image_data)[i][j].rgbtBlue  = color_palette[output_stream[*write_byte_index]].rgbtBlue   + old_blue;
-            (*image_data)[i][j].rgbtGreen = color_palette[output_stream[*write_byte_index]].rgbtGreen + old_green;;
-            (*image_data)[i][j].rgbtRed   = color_palette[output_stream[*write_byte_index]].rgbtRed     + old_red;
-            old_blue  = (*image_data)[i][j].rgbtBlue;
-            old_green = (*image_data)[i][j].rgbtGreen;
+            c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
+            (*image_data)[i][j].rgbtRed   = (c.rgbtRed   + old_red) % 256;
+            (*image_data)[i][j].rgbtGreen = (c.rgbtGreen + old_green) % 256;
+            (*image_data)[i][j].rgbtBlue  = (c.rgbtBlue  + old_blue) % 256;
+
             old_red   = (*image_data)[i][j].rgbtRed;
-            (*write_byte_index)++;
+            old_green = (*image_data)[i][j].rgbtGreen;
+            old_blue  = (*image_data)[i][j].rgbtBlue;
         }
     } else if(output_stream[*write_byte_index] == UP) {
         *write_byte_index += 1;
+        k = 0;
         for(j = 0; j < width; j++) {
             if(i == 0) {
                 old_blue = 0;
@@ -664,13 +697,14 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
                 old_green = (*image_data)[i-1][j].rgbtGreen;
                 old_red   = (*image_data)[i-1][j].rgbtRed;
             }
-            (*image_data)[i][j].rgbtBlue  = color_palette[output_stream[*write_byte_index]].rgbtBlue   + old_blue;
-            (*image_data)[i][j].rgbtGreen = color_palette[output_stream[*write_byte_index]].rgbtGreen + old_green;;
-            (*image_data)[i][j].rgbtRed   = color_palette[output_stream[*write_byte_index]].rgbtRed     + old_red;
-            (*write_byte_index)++;
+            c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
+            (*image_data)[i][j].rgbtBlue  = (c.rgbtBlue   + old_blue) % 256;
+            (*image_data)[i][j].rgbtGreen = (c.rgbtGreen + old_green) % 256;
+            (*image_data)[i][j].rgbtRed   = (c.rgbtRed     + old_red) % 256;
         }
     } else if(output_stream[*write_byte_index] == AVERAGE) {
         *write_byte_index += 1;
+        k = 0;
         old_blue = 0;
         old_green = 0;
         old_red = 0;
@@ -684,15 +718,48 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
                 old_green += (*image_data)[i-1][j].rgbtGreen;
                 old_red   += (*image_data)[i-1][j].rgbtRed;
             }
-            (*image_data)[i][j].rgbtBlue  = color_palette[output_stream[*write_byte_index]].rgbtBlue   + old_blue/2;
-            (*image_data)[i][j].rgbtGreen = color_palette[output_stream[*write_byte_index]].rgbtGreen + old_green/2;
-            (*image_data)[i][j].rgbtRed   = color_palette[output_stream[*write_byte_index]].rgbtRed     + old_red/2;
+            c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
+            (*image_data)[i][j].rgbtBlue  = c.rgbtBlue   + old_blue/2;
+            (*image_data)[i][j].rgbtGreen = c.rgbtGreen + old_green/2;
+            (*image_data)[i][j].rgbtRed   = c.rgbtRed     + old_red/2;
             old_blue  = (*image_data)[i][j].rgbtBlue;
             old_green = (*image_data)[i][j].rgbtGreen;
             old_red   = (*image_data)[i][j].rgbtRed;
-            (*write_byte_index)++;
         }
     } else if(output_stream[*write_byte_index] == PAETH) {
+        *write_byte_index += 1;
+        k = 0;
+
+        left_blue = 0;
+        left_green = 0;
+        left_red = 0;
+        upper_left_red = 0;
+        upper_left_green = 0;
+        upper_left_blue = 0;
+        for(j = 0; j < width; j++) {
+            if(i == 0) {
+                up_red = 0;
+                up_green = 0;
+                up_blue = 0;
+                upper_left_red = 0;
+                upper_left_green = 0;
+                upper_left_blue = 0;
+            } else {
+                up_blue  = (*image_data)[i-1][j].rgbtBlue;
+                up_green = (*image_data)[i-1][j].rgbtGreen;
+                up_red   = (*image_data)[i-1][j].rgbtRed;
+                upper_left_red = (*image_data)[i-1][j-1].rgbtRed;
+                upper_left_green = (*image_data)[i-1][j-1].rgbtGreen;
+                upper_left_blue = (*image_data)[i-1][j-1].rgbtBlue;
+            }
+            c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
+            (*image_data)[i][j].rgbtBlue  = (c.rgbtBlue  + paeth_predictor(left_blue, up_blue, upper_left_blue)) % 256;
+            (*image_data)[i][j].rgbtGreen = (c.rgbtGreen + paeth_predictor(left_green, up_green, upper_left_green)) % 256;
+            (*image_data)[i][j].rgbtRed   = (c.rgbtRed   + paeth_predictor(left_red, up_red, upper_left_red)) % 256;
+            left_blue  = (*image_data)[i][j].rgbtBlue;
+            left_green = (*image_data)[i][j].rgbtGreen;
+            left_red   = (*image_data)[i][j].rgbtRed;
+        }
     } else {
         printf("undefined filter type\n");
         exit(0);
