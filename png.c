@@ -571,21 +571,23 @@ int get_color_data(uint8_t *output_stream, int *write_byte_index, PNG_INFO *png_
         }
 
         printf("%d\n", data);
-        
-        switch(png_info->bps) {
-            case 1:
-                data = data * 255 / (2-1);
-                break;
-            case 2:
-                data = data * 255 / (4-1);
-                break;
-            case 4:
-                data = data * 255 / (16-1);
-                break;
-            case 8:
-            default:
-                data = data * 255 / (256-1);
-                break;
+       
+        if(png_info->color_type != 3) {
+            switch(png_info->bps) {
+                case 1:
+                    data = data * 255 / (2-1);
+                    break;
+                case 2:
+                    data = data * 255 / (4-1);
+                    break;
+                case 4:
+                    data = data * 255 / (16-1);
+                    break;
+                case 8:
+                default:
+                    data = data * 255 / (256-1);
+                    break;
+            }
         }
     } else {
         data = bit_read(output_stream, write_byte_index, index, 8);
@@ -824,14 +826,17 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
                 (*image_data)[i][j].rgbtRed   = (c.rgbtRed   + paeth_predictor(left_red,   up_red,   upper_left_red))   % 256;
                 (*image_data)[i][j].rgbtGreen = (c.rgbtGreen + paeth_predictor(left_green, up_green, upper_left_green)) % 256;
                 (*image_data)[i][j].rgbtBlue  = (c.rgbtBlue  + paeth_predictor(left_blue,  up_blue,  upper_left_blue))  % 256;
+                left_red   = (*image_data)[i][j].rgbtRed;
+                left_green = (*image_data)[i][j].rgbtGreen;
+                left_blue  = (*image_data)[i][j].rgbtBlue;
             } else {
                 (*image_data)[i][j].rgbtRed   = ((c.rgbtRed   + paeth_predictor(left_red,   up_red,   upper_left_red))   % 65536) >> 8;
                 (*image_data)[i][j].rgbtGreen = ((c.rgbtGreen + paeth_predictor(left_green, up_green, upper_left_green)) % 65536) >> 8;
                 (*image_data)[i][j].rgbtBlue  = ((c.rgbtBlue  + paeth_predictor(left_blue,  up_blue,  upper_left_blue))  % 65536) >> 8;
+                left_red   = (*image_data)[i][j].rgbtRed   << 8;
+                left_green = (*image_data)[i][j].rgbtGreen << 8;
+                left_blue  = (*image_data)[i][j].rgbtBlue  << 8;
             }
-            left_red   = (*image_data)[i][j].rgbtRed   << 8;
-            left_green = (*image_data)[i][j].rgbtGreen << 8;
-            left_blue  = (*image_data)[i][j].rgbtBlue  << 8;
         }
     } else {
         printf("undefined filter type\n");
