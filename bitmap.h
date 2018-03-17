@@ -28,16 +28,16 @@ typedef struct tagBITMAPINFOHEADER {
 } BITMAPINFOHEADER;
 
 typedef struct tagRGBTRIPLE { 
-  uint8_t rgbtBlue; 
-  uint8_t rgbtGreen; 
-  uint8_t rgbtRed; 
+  uint16_t rgbtBlue; 
+  uint16_t rgbtGreen; 
+  uint16_t rgbtRed; 
 } RGBTRIPLE;
 
 typedef struct tagRGBQUAD {
-  uint8_t rgbBlue;
-  uint8_t rgbGreen;
-  uint8_t rgbRed;
-  uint8_t rgbReserved;
+  uint16_t rgbBlue;
+  uint16_t rgbGreen;
+  uint16_t rgbRed;
+  uint16_t rgbReserved;
 } RGBQUAD;
 
 void decode_bitmap(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data);

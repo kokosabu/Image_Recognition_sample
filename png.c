@@ -555,9 +555,9 @@ void decompress_dynamic_huffman_codes(uint8_t *png_image_data, int *byte_index, 
     free((void *)id);
 }
 
-RGBTRIPLE get_color(RGBTRIPLE *color_palette, uint8_t *output_stream, int *write_byte_index, PNG_INFO *png_info, int *index)
+
+int get_color_data(uint8_t *output_stream, int *write_byte_index, PNG_INFO *png_info, int *index)
 {
-    RGBTRIPLE c;
     int data;
     int i;
 
@@ -592,11 +592,28 @@ RGBTRIPLE get_color(RGBTRIPLE *color_palette, uint8_t *output_stream, int *write
         data = data << 8 | bit_read(output_stream, write_byte_index, index, 8);
     }
 
+    return data;
+}
+
+RGBTRIPLE get_color(RGBTRIPLE *color_palette, uint8_t *output_stream, int *write_byte_index, PNG_INFO *png_info, int *index)
+{
+    RGBTRIPLE c;
+    int data;
+
     if(png_info->color_type == 0) {
+        data = get_color_data(output_stream, write_byte_index, png_info, index);
         c.rgbtRed   = data;
         c.rgbtGreen = data;
         c.rgbtBlue  = data;
+    } else if(png_info->color_type == 2) {
+        data = get_color_data(output_stream, write_byte_index, png_info, index);
+        c.rgbtRed   = data;
+        data = get_color_data(output_stream, write_byte_index, png_info, index);
+        c.rgbtGreen = data;
+        data = get_color_data(output_stream, write_byte_index, png_info, index);
+        c.rgbtBlue  = data;
     } else if(png_info->color_type == 3) {
+        data = get_color_data(output_stream, write_byte_index, png_info, index);
         c.rgbtRed   = color_palette[data].rgbtRed;
         c.rgbtGreen = color_palette[data].rgbtGreen;
         c.rgbtBlue  = color_palette[data].rgbtBlue;
