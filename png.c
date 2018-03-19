@@ -625,6 +625,14 @@ RGBTRIPLE get_color(RGBTRIPLE *color_palette, uint8_t *output_stream, int *write
         c.rgbtGreen = data;
         c.rgbtBlue  = data;
         data = get_color_data(output_stream, write_byte_index, png_info, index);
+    } else if(png_info->color_type == 6) {
+        data = get_color_data(output_stream, write_byte_index, png_info, index);
+        c.rgbtRed   = data;
+        data = get_color_data(output_stream, write_byte_index, png_info, index);
+        c.rgbtGreen = data;
+        data = get_color_data(output_stream, write_byte_index, png_info, index);
+        c.rgbtBlue  = data;
+        data = get_color_data(output_stream, write_byte_index, png_info, index);
     } else {
         c.rgbtRed   = 0;
         c.rgbtGreen = 0;
@@ -803,9 +811,9 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
                     up_green = (*image_data)[i-1][j].rgbtGreen;
                     up_red   = (*image_data)[i-1][j].rgbtRed;
                 } else {
-                    up_blue  = (*image_data)[i-1][j].rgbtBlue  << 8;
-                    up_green = (*image_data)[i-1][j].rgbtGreen << 8;
-                    up_red   = (*image_data)[i-1][j].rgbtRed   << 8;
+                    up_blue  = (uint16_t)(*image_data)[i-1][j].rgbtBlue  << 8;
+                    up_green = (uint16_t)(*image_data)[i-1][j].rgbtGreen << 8;
+                    up_red   = (uint16_t)(*image_data)[i-1][j].rgbtRed   << 8;
                 }
                 upper_left_red   = 0;
                 upper_left_green = 0;
@@ -819,12 +827,12 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
                     upper_left_green = (*image_data)[i-1][j-1].rgbtGreen;
                     upper_left_blue  = (*image_data)[i-1][j-1].rgbtBlue;
                 } else {
-                    up_blue  = (*image_data)[i-1][j].rgbtBlue  << 8;
-                    up_green = (*image_data)[i-1][j].rgbtGreen << 8;
-                    up_red   = (*image_data)[i-1][j].rgbtRed   << 8;
-                    upper_left_red   = (*image_data)[i-1][j-1].rgbtRed   << 8;
-                    upper_left_green = (*image_data)[i-1][j-1].rgbtGreen << 8;
-                    upper_left_blue  = (*image_data)[i-1][j-1].rgbtBlue  << 8;
+                    up_blue          = ((uint16_t)(*image_data)[i-1][j].rgbtBlue)    << 8;
+                    up_green         = ((uint16_t)(*image_data)[i-1][j].rgbtGreen)   << 8;
+                    up_red           = ((uint16_t)(*image_data)[i-1][j].rgbtRed)     << 8;
+                    upper_left_red   = ((uint16_t)(*image_data)[i-1][j-1].rgbtRed)   << 8;
+                    upper_left_green = ((uint16_t)(*image_data)[i-1][j-1].rgbtGreen) << 8;
+                    upper_left_blue  = ((uint16_t)(*image_data)[i-1][j-1].rgbtBlue)  << 8;
                 }
             }
             c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
@@ -865,8 +873,8 @@ void decode_huffman_codes(uint8_t *png_image_data, int *byte_index, int *bit_ind
         4, 4, 4, 4, 5, 5, 5, 5, 0     // 277-285
     };
     int len_block[29] = {
-        3,  4,  5,  6,   7,   8,   9,   10,  11, 13,
-        15, 17, 19, 23,  27,  31,  35,  43,  51, 59,
+        3,  4,  5,  6,   7,   8,   9,   10,  11,  13,
+        15, 17, 19, 23,  27,  31,  35,  43,  51,  59,
         67, 83, 99, 115, 131, 163, 195, 227, 258
     };
     int dist_block_bit[30] = {
@@ -876,7 +884,7 @@ void decode_huffman_codes(uint8_t *png_image_data, int *byte_index, int *bit_ind
     };
     int dist_block[30] = {
         1,    2,    3,    4,    5,    7,    9,    13,    17,    25,
-        33,   49,   65,   97,  129,  193,  257,   385,   513,   769,
+        33,   49,   65,   97,   129,  193,  257,  385,   513,   769,
         1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577
     };
 
