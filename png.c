@@ -619,6 +619,12 @@ RGBTRIPLE get_color(RGBTRIPLE *color_palette, uint8_t *output_stream, int *write
         c.rgbtRed   = color_palette[data].rgbtRed;
         c.rgbtGreen = color_palette[data].rgbtGreen;
         c.rgbtBlue  = color_palette[data].rgbtBlue;
+    } else if(png_info->color_type == 4) {
+        data = get_color_data(output_stream, write_byte_index, png_info, index);
+        c.rgbtRed   = data;
+        c.rgbtGreen = data;
+        c.rgbtBlue  = data;
+        data = get_color_data(output_stream, write_byte_index, png_info, index);
     } else {
         c.rgbtRed   = 0;
         c.rgbtGreen = 0;
