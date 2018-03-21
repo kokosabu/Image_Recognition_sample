@@ -311,8 +311,9 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
         }
     } while(flag == 0);
 
-    png_info->color_type = color_type;
-    png_info->bps        = bps;
+    png_info->color_type     = color_type;
+    png_info->bps            = bps;
+    png_info->interlace_type = interlace_type;
 }
 
 void read_zlib_header(uint8_t *png_image_data, int *byte_index, int *bit_index)
@@ -854,7 +855,21 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
         }
     } else {
         printf("undefined filter type\n");
-        exit(0);
+        *write_byte_index += 1;
+        k = 0;
+        for(j = 0; j < width; j++) {
+            c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
+            if(png_info->bps != 16) {
+                (*image_data)[i][j].rgbtBlue  = c.rgbtBlue;
+                (*image_data)[i][j].rgbtGreen = c.rgbtGreen;
+                (*image_data)[i][j].rgbtRed   = c.rgbtRed;
+            } else {
+                (*image_data)[i][j].rgbtBlue  = c.rgbtBlue  >> 8;
+                (*image_data)[i][j].rgbtGreen = c.rgbtGreen >> 8;
+                (*image_data)[i][j].rgbtRed   = c.rgbtRed   >> 8;
+            }
+        }
+        //exit(0);
     }
 }
 
@@ -999,9 +1014,12 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
         (*image_data)[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * width);
     }
 
-    write_byte_index = 0;
-    for(i = 0; i < height; i++) {
-        write_line(output_stream, i, &write_byte_index, width, image_data, color_palette, &png_info);
+    if(png_info.interlace_type == 0) {
+        write_byte_index = 0;
+        for(i = 0; i < height; i++) {
+            write_line(output_stream, i, &write_byte_index, width, image_data, color_palette, &png_info);
+        }
+    } else {
     }
 
     image_info->height   = height;
