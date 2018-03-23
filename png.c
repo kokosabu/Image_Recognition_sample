@@ -72,6 +72,12 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     uint8_t hour;
     uint8_t minute;
     uint8_t second;
+    char keyword_itxt[80];
+    uint8_t compress_flag;
+    int l;
+    char tag[80];
+    char text2[80];
+
 
     idat_size = 0;
     flag = 0;
@@ -302,6 +308,51 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
             for(i = 0; i < size; i++) {
                 fread(&k, 1, 1, input);
             }
+            crc_32 = read_4bytes(input);
+        } else if(strcmp(chunk, "iTXt") == 0) {
+            k = 0;
+            do {
+                fread(&keyword_itxt[k], 1, 1, input);
+                k++;
+            } while(keyword_itxt[k-1] != '\0');
+
+            fread(&compress_flag, 1, 1, input);
+            k++;
+            fread(&compress_type, 1, 1, input);
+            k++;
+
+            l = 0;
+            do {
+                fread(&tag[l], 1, 1, input);
+                k++;
+                l++;
+            } while(tag[l-1] != '\0');
+
+            l = 0;
+            do {
+                fread(&keyword[l], 1, 1, input);
+                k++;
+                l++;
+            } while(keyword[l-1] != '\0');
+
+            l = 0;
+            text2[l] = '\0';
+            while(k < size) {
+                fread(&text2[l], 1, 1, input);
+                k++;
+                l++;
+                text2[l] = '\0';
+            }
+
+            printf("keyword:%s\n", keyword_itxt);
+            printf("compress_flag:%d\n", compress_flag);
+            printf("compress_type:%d\n", compress_type);
+            printf("tag:%s\n", tag);
+            printf("keyword:%s\n", keyword);
+            printf("text:%s\n", text2);
+            printf("size:%d\n", size);
+            printf("chunk:%s\n", chunk);
+
             crc_32 = read_4bytes(input);
         } else {
             printf("size:%d\n", size);
