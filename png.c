@@ -933,7 +933,7 @@ void write_interlace(uint8_t *output_stream, int i, int *write_byte_index, int w
     uint8_t step_x[7]  = {8, 8, 4, 4, 2, 2, 1};
 
     for(i = start_y[pass]; i < height; i += step_y[pass]) {
-        printf("[%d] %d\n", i, output_stream[*write_byte_index]);
+        printf("[%d][%d] %d, (%d, %d)\n", i, start_x[pass], output_stream[*write_byte_index], step_y[pass], step_x[pass]);
         if(output_stream[*write_byte_index] == NONE) {
             *write_byte_index += 1;
             k = 0;
@@ -983,19 +983,19 @@ void write_interlace(uint8_t *output_stream, int i, int *write_byte_index, int w
             *write_byte_index += 1;
             k = 0;
             for(j = start_x[pass]; j < width; j += step_x[pass]) {
-                if(i == 0) {
+                if(i == start_y[pass]) {
                     old_red   = 0;
                     old_green = 0;
                     old_blue  = 0;
                 } else {
                     if(png_info->bps != 16) {
-                        old_red   = (*image_data)[i-1][j].rgbtRed;
-                        old_green = (*image_data)[i-1][j].rgbtGreen;
-                        old_blue  = (*image_data)[i-1][j].rgbtBlue;
+                        old_red   = (*image_data)[i-step_y[pass]][j].rgbtRed;
+                        old_green = (*image_data)[i-step_y[pass]][j].rgbtGreen;
+                        old_blue  = (*image_data)[i-step_y[pass]][j].rgbtBlue;
                     } else {
-                        old_red   = (*image_data)[i-1][j].rgbtRed   << 8;
-                        old_green = (*image_data)[i-1][j].rgbtGreen << 8;
-                        old_blue  = (*image_data)[i-1][j].rgbtBlue  << 8;
+                        old_red   = (*image_data)[i-step_y[pass]][j].rgbtRed   << 8;
+                        old_green = (*image_data)[i-step_y[pass]][j].rgbtGreen << 8;
+                        old_blue  = (*image_data)[i-step_y[pass]][j].rgbtBlue  << 8;
                     }
                 }
                 c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
@@ -1019,19 +1019,19 @@ void write_interlace(uint8_t *output_stream, int i, int *write_byte_index, int w
             old_green = 0;
             old_blue  = 0;
             for(j = start_x[pass]; j < width; j += step_x[pass]) {
-                if(i == 0) {
+                if(i == start_y[pass]) {
                     old_red   += 0;
                     old_green += 0;
                     old_blue  += 0;
                 } else {
                     if(png_info->bps != 16) {
-                        old_red   += (*image_data)[i-1][j].rgbtRed;
-                        old_green += (*image_data)[i-1][j].rgbtGreen;
-                        old_blue  += (*image_data)[i-1][j].rgbtBlue;
+                        old_red   += (*image_data)[i-step_y[pass]][j].rgbtRed;
+                        old_green += (*image_data)[i-step_y[pass]][j].rgbtGreen;
+                        old_blue  += (*image_data)[i-step_y[pass]][j].rgbtBlue;
                     } else {
-                        old_red   += (*image_data)[i-1][j].rgbtRed   << 8;
-                        old_green += (*image_data)[i-1][j].rgbtGreen << 8;
-                        old_blue  += (*image_data)[i-1][j].rgbtBlue  << 8;
+                        old_red   += (*image_data)[i-step_y[pass]][j].rgbtRed   << 8;
+                        old_green += (*image_data)[i-step_y[pass]][j].rgbtGreen << 8;
+                        old_blue  += (*image_data)[i-step_y[pass]][j].rgbtBlue  << 8;
                     }
                 }
                 c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
@@ -1062,41 +1062,41 @@ void write_interlace(uint8_t *output_stream, int i, int *write_byte_index, int w
             upper_left_green = 0;
             upper_left_blue  = 0;
             for(j = start_x[pass]; j < width; j += step_x[pass]) {
-                if(i == 0) {
+                if(i == start_y[pass]) {
                     up_red   = 0;
                     up_green = 0;
                     up_blue  = 0;
                     upper_left_red   = 0;
                     upper_left_green = 0;
                     upper_left_blue  = 0;
-                } else if(j == 0) {
+                } else if(j == start_x[pass]) {
                     if(png_info->bps != 16) {
-                        up_blue  = (*image_data)[i-1][j].rgbtBlue;
-                        up_green = (*image_data)[i-1][j].rgbtGreen;
-                        up_red   = (*image_data)[i-1][j].rgbtRed;
+                        up_blue  = (*image_data)[i-step_y[pass]][j].rgbtBlue;
+                        up_green = (*image_data)[i-step_y[pass]][j].rgbtGreen;
+                        up_red   = (*image_data)[i-step_y[pass]][j].rgbtRed;
                     } else {
-                        up_blue  = (uint16_t)(*image_data)[i-1][j].rgbtBlue  << 8;
-                        up_green = (uint16_t)(*image_data)[i-1][j].rgbtGreen << 8;
-                        up_red   = (uint16_t)(*image_data)[i-1][j].rgbtRed   << 8;
+                        up_blue  = (uint16_t)(*image_data)[i-step_y[pass]][j].rgbtBlue  << 8;
+                        up_green = (uint16_t)(*image_data)[i-step_y[pass]][j].rgbtGreen << 8;
+                        up_red   = (uint16_t)(*image_data)[i-step_y[pass]][j].rgbtRed   << 8;
                     }
                     upper_left_red   = 0;
                     upper_left_green = 0;
                     upper_left_blue  = 0;
                 } else {
                     if(png_info->bps != 16) {
-                        up_blue  = (*image_data)[i-1][j].rgbtBlue;
-                        up_green = (*image_data)[i-1][j].rgbtGreen;
-                        up_red   = (*image_data)[i-1][j].rgbtRed;
-                        upper_left_red   = (*image_data)[i-1][j-1].rgbtRed;
-                        upper_left_green = (*image_data)[i-1][j-1].rgbtGreen;
-                        upper_left_blue  = (*image_data)[i-1][j-1].rgbtBlue;
+                        up_red           = (*image_data)[i-step_y[pass]][j].rgbtRed;
+                        up_green         = (*image_data)[i-step_y[pass]][j].rgbtGreen;
+                        up_blue          = (*image_data)[i-step_y[pass]][j].rgbtBlue;
+                        upper_left_red   = (*image_data)[i-step_y[pass]][j-step_x[pass]].rgbtRed;
+                        upper_left_green = (*image_data)[i-step_y[pass]][j-step_x[pass]].rgbtGreen;
+                        upper_left_blue  = (*image_data)[i-step_y[pass]][j-step_x[pass]].rgbtBlue;
                     } else {
-                        up_blue          = ((uint16_t)(*image_data)[i-1][j].rgbtBlue)    << 8;
-                        up_green         = ((uint16_t)(*image_data)[i-1][j].rgbtGreen)   << 8;
-                        up_red           = ((uint16_t)(*image_data)[i-1][j].rgbtRed)     << 8;
-                        upper_left_red   = ((uint16_t)(*image_data)[i-1][j-1].rgbtRed)   << 8;
-                        upper_left_green = ((uint16_t)(*image_data)[i-1][j-1].rgbtGreen) << 8;
-                        upper_left_blue  = ((uint16_t)(*image_data)[i-1][j-1].rgbtBlue)  << 8;
+                        up_red           = ((uint16_t)(*image_data)[i-step_y[pass]][j].rgbtRed)     << 8;
+                        up_green         = ((uint16_t)(*image_data)[i-step_y[pass]][j].rgbtGreen)   << 8;
+                        up_blue          = ((uint16_t)(*image_data)[i-step_y[pass]][j].rgbtBlue)    << 8;
+                        upper_left_red   = ((uint16_t)(*image_data)[i-step_y[pass]][j-step_x[pass]].rgbtRed)   << 8;
+                        upper_left_green = ((uint16_t)(*image_data)[i-step_y[pass]][j-step_x[pass]].rgbtGreen) << 8;
+                        upper_left_blue  = ((uint16_t)(*image_data)[i-step_y[pass]][j-step_x[pass]].rgbtBlue)  << 8;
                     }
                 }
                 c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
