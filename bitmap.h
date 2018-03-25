@@ -30,7 +30,9 @@ typedef struct tagBITMAPINFOHEADER {
 typedef struct tagRGBTRIPLE { 
   uint16_t rgbtBlue; 
   uint16_t rgbtGreen; 
-  uint16_t rgbtRed; 
+  uint16_t rgbtRed;
+
+  uint16_t rgbtAlpha; 
 } RGBTRIPLE;
 
 typedef struct tagRGBQUAD {

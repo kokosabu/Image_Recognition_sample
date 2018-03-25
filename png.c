@@ -654,6 +654,12 @@ RGBTRIPLE get_color(RGBTRIPLE *color_palette, uint8_t *output_stream, int *write
     RGBTRIPLE c;
     int data;
 
+    if(png_info->bps != 16) {
+        c.rgbtAlpha = 0xFF;
+    } else {
+        c.rgbtAlpha = 0xFFFF;
+    }
+
     if(png_info->color_type == 0) {
         data = get_color_data(output_stream, write_byte_index, png_info, index);
         c.rgbtRed   = data;
@@ -677,6 +683,7 @@ RGBTRIPLE get_color(RGBTRIPLE *color_palette, uint8_t *output_stream, int *write
         c.rgbtGreen = data;
         c.rgbtBlue  = data;
         data = get_color_data(output_stream, write_byte_index, png_info, index);
+        c.rgbtAlpha = data;
     } else if(png_info->color_type == 6) {
         data = get_color_data(output_stream, write_byte_index, png_info, index);
         c.rgbtRed   = data;
@@ -685,10 +692,12 @@ RGBTRIPLE get_color(RGBTRIPLE *color_palette, uint8_t *output_stream, int *write
         data = get_color_data(output_stream, write_byte_index, png_info, index);
         c.rgbtBlue  = data;
         data = get_color_data(output_stream, write_byte_index, png_info, index);
+        c.rgbtAlpha = data;
     } else {
         c.rgbtRed   = 0;
         c.rgbtGreen = 0;
         c.rgbtBlue  = 0;
+        c.rgbtAlpha = 0xFFFF;
     }
 
     return c;
@@ -738,6 +747,7 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
         *write_byte_index += 1;
         k = 0;
         for(j = 0; j < width; j++) {
+            printf("[%d][%d]\n", i, j);
             c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
             if(png_info->bps != 16) {
                 (*image_data)[i][j].rgbtBlue  = c.rgbtBlue;
@@ -756,6 +766,7 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
         old_green = 0;
         old_blue  = 0;
         for(j = 0; j < width; j++) {
+            printf("[%d][%d]\n", i, j);
             c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
             if(png_info->bps != 16) {
                 (*image_data)[i][j].rgbtRed   = (c.rgbtRed   + old_red)   % 256;
@@ -792,6 +803,7 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
                     old_blue  = (*image_data)[i-1][j].rgbtBlue  << 8;
                 }
             }
+            printf("[%d][%d]\n", i, j);
             c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
             if(png_info->bps != 16) {
                 (*image_data)[i][j].rgbtRed   = (c.rgbtRed   + old_red)   % 256;
@@ -825,6 +837,7 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
                     old_blue  += (*image_data)[i-1][j].rgbtBlue  << 8;
                 }
             }
+            printf("[%d][%d]\n", i, j);
             c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
             if(png_info->bps != 16) {
                 (*image_data)[i][j].rgbtRed   = (c.rgbtRed   + old_red   / 2) % 256;
@@ -887,6 +900,7 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
                     upper_left_blue  = ((uint16_t)(*image_data)[i-1][j-1].rgbtBlue)  << 8;
                 }
             }
+            printf("[%d][%d]\n", i, j);
             c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
             if(png_info->bps != 16) {
                 (*image_data)[i][j].rgbtRed   = (c.rgbtRed   + paeth_predictor(left_red,   up_red,   upper_left_red))   % 256;
