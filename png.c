@@ -475,6 +475,8 @@ void calc_next_code(struct tree *tree, int *lens, int *next_code, size_t bl_coun
             if(len < min_len) {
                 min_len = len;
             }
+        } else {
+            tree[i].code = 0;
         }
     }
 
@@ -550,6 +552,11 @@ void decompress_dynamic_huffman_codes(uint8_t *png_image_data, int *byte_index, 
 
     //clen
     calc_next_code(tree, hclens, next_code, 8, 19);
+#if 1
+    for(i = 0; i < 19; i++) {
+        printf("-- [%3d] [%2d] %4d\n", i, tree[i].len, tree[i].code);
+    }
+#endif
 
     *lit = hlit + 257;
     *dist = hdist + 1;
