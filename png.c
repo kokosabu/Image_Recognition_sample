@@ -548,11 +548,13 @@ void decompress_dynamic_huffman_codes(uint8_t *png_image_data, int *byte_index, 
     }
     for(i = 0; i < (hclen+4); i++) {
         hclens[hclens_index_table[i]] = bit_read(png_image_data, byte_index, bit_index, 3);
+        printf("[%d]([%d]) %4d\n", i, hclens_index_table[i], hclens[hclens_index_table[i]]);
     }
 
     //clen
     calc_next_code(tree, hclens, next_code, 8, 19);
 #if 1
+    printf("clen tree\n");
     for(i = 0; i < 19; i++) {
         printf("-- [%3d] [%2d] %4d\n", i, tree[i].len, tree[i].code);
     }
@@ -610,6 +612,18 @@ void decompress_dynamic_huffman_codes(uint8_t *png_image_data, int *byte_index, 
     printf("lit+dist = %d\n", *lit+*dist);
     calc_next_code(tree,  &(id[0]),    next_code, 288, *lit);
     calc_next_code(dtree, &(id[*lit]), next_code,  32, *dist);
+#if 1
+    printf("tree\n");
+    for(i = 0; i < 288; i++) {
+        printf("-- [%3d] [%2d] %4d\n", i, tree[i].len, tree[i].code);
+    }
+#endif
+#if 1
+    printf("dtree\n");
+    for(i = 0; i < 32; i++) {
+        printf("-- [%3d] [%2d] %4d\n", i, dtree[i].len, dtree[i].code);
+    }
+#endif
 
     free((void *)id);
 }
