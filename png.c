@@ -610,7 +610,22 @@ void decompress_dynamic_huffman_codes(uint8_t *png_image_data, int *byte_index, 
     printf("lit = %d\n", *lit);
     printf("dist = %d\n", *dist);
     printf("lit+dist = %d\n", *lit+*dist);
+#if 1
+    for(i = 0; i < (*lit+*dist); i++) {
+        printf("id[%d] = %d\n", i, id[i]);
+    }
+#endif
+    //calc_next_code(tree,  &(id[0]),    next_code, 288, *lit);
+    //calc_next_code(dtree, &(id[*lit]), next_code,  32, *dist);
+    for(i = 0; i < 288; i++) {
+        tree[i].len = 0;
+        tree[i].code = 0;
+    }
     calc_next_code(tree,  &(id[0]),    next_code, 288, *lit);
+    for(i = 0; i < 32; i++) {
+        dtree[i].len = 0;
+        dtree[i].code = 0;
+    }
     calc_next_code(dtree, &(id[*lit]), next_code,  32, *dist);
 #if 1
     printf("tree\n");
