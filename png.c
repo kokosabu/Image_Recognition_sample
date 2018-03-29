@@ -51,10 +51,10 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     char keyword[80];
     char *text;
     uint8_t *alpha_index;
-    uint16_t alpha_gray;
-    uint16_t alpha_red;
-    uint16_t alpha_green;
-    uint16_t alpha_blue;
+    uint16_t *alpha_gray;
+    uint16_t *alpha_red;
+    uint16_t *alpha_green;
+    uint16_t *alpha_blue;
     uint8_t sbit_red;
     uint8_t sbit_green;
     uint8_t sbit_blue;
@@ -225,16 +225,24 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
             printf("chunk:%s\n", chunk);
 
             if(color_type == 3) {
-                alpha_index = (uint8_t *)malloc(sizeof(uint8_t) * palette_size);
-                for(k = 0; k < palette_size; k++) {
+                alpha_index = (uint8_t *)malloc(sizeof(uint8_t) * size);
+                for(k = 0; k < size; k++) {
                     fread(&alpha_index[k], 1, 1, input);
                 }
             } else if(color_type == 0) {
-                alpha_gray = read_2bytes(input);
+                alpha_gray = (uint16_t *)malloc(sizeof(uint16_t) * size/2);
+                for(k = 0; k < size/2; k++) {
+                    alpha_gray[k] = read_2bytes(input);
+                }
             } else if(color_type == 2) {
-                alpha_red = read_2bytes(input);
-                alpha_green = read_2bytes(input);
-                alpha_blue = read_2bytes(input);
+                alpha_red   = (uint16_t *)malloc(sizeof(uint16_t) * size/6);
+                alpha_green = (uint16_t *)malloc(sizeof(uint16_t) * size/6);
+                alpha_blue  = (uint16_t *)malloc(sizeof(uint16_t) * size/6);
+                for(k = 0; k < size/6; k++) {
+                    alpha_red[k]   = read_2bytes(input);
+                    alpha_green[k] = read_2bytes(input);
+                    alpha_blue[k]  = read_2bytes(input);
+                }
             }
 
             crc_32 = read_4bytes(input);
@@ -678,8 +686,12 @@ int get_color_data(uint8_t *output_stream, int *write_byte_index, PNG_INFO *png_
             }
         }
     } else {
+        printf("[%d][%d] : %3d : ", *write_byte_index, *index, output_stream[*write_byte_index]);
+
         data = bit_read(output_stream, write_byte_index, index, 8);
         data = data << 8 | bit_read(output_stream, write_byte_index, index, 8);
+
+        printf("%d\n", data);
     }
 
     return data;
