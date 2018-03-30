@@ -101,6 +101,7 @@ void decode_bitmap(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     for(i = info_header.biHeight-1; i >= 0; i--) {
         (*image_data)[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * info_header.biWidth);
         for(j = 0; j < info_header.biWidth; j++) {
+            (*image_data)[i][j].rgbtAlpha = 255;
             if(color_pallet_rgbr == NULL) {
                 fread(&((*image_data)[i][j].rgbtBlue), 1, 1, input);
                 fread(&((*image_data)[i][j].rgbtGreen), 1, 1, input);
