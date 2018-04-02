@@ -125,6 +125,7 @@ void encode_bitmap(FILE *output, IMAGEINFO *image_info, RGBTRIPLE ***output_imag
     int j;
     BITMAPFILEHEADER file_header;
     BITMAPINFOHEADER info_header;
+    uint8_t write_data;
     uint8_t dummy;
 
     file_header.bfType      = ('M' << 8) | 'B';
@@ -166,9 +167,18 @@ void encode_bitmap(FILE *output, IMAGEINFO *image_info, RGBTRIPLE ***output_imag
 
     for(i = info_header.biHeight-1; i >= 0; i--) {
         for(j = 0; j < info_header.biWidth; j++) {
-            fwrite(&(*output_image_data)[i][j].rgbtBlue, 1, 1, output);
-            fwrite(&(*output_image_data)[i][j].rgbtGreen, 1, 1, output);
-            fwrite(&(*output_image_data)[i][j].rgbtRed, 1, 1, output);
+            //write_data = ((uint32_t)(*output_image_data)[i][j].rgbtBlue * (255 - (*output_image_data)[i][j].rgbtAlpha) / 255 + 255 * (*output_image_data)[i][j].rgbtAlpha / 255);
+            write_data = ((uint32_t)(*output_image_data)[i][j].rgbtBlue * (255 - (*output_image_data)[i][j].rgbtAlpha) / 255 + 255 * ((uint32_t)255 - (*output_image_data)[i][j].rgbtAlpha) / 255);
+            fwrite(&write_data, 1, 1, output);
+            //write_data = ((uint32_t)(*output_image_data)[i][j].rgbtGreen * (255 - (*output_image_data)[i][j].rgbtAlpha) / 255 + 255 * (*output_image_data)[i][j].rgbtAlpha / 255);
+            write_data = ((uint32_t)(*output_image_data)[i][j].rgbtGreen * (255 - (*output_image_data)[i][j].rgbtAlpha) / 255 + 255 * ((uint32_t)255 - (*output_image_data)[i][j].rgbtAlpha) / 255);
+            fwrite(&write_data, 1, 1, output);
+            //write_data = ((uint32_t)(*output_image_data)[i][j].rgbtRed * (255 - (*output_image_data)[i][j].rgbtAlpha) / 255 + 255 * (*output_image_data)[i][j].rgbtAlpha / 255);
+            write_data = ((uint32_t)(*output_image_data)[i][j].rgbtRed * (255 - (*output_image_data)[i][j].rgbtAlpha) / 255 + 255 * ((uint32_t)255 - (*output_image_data)[i][j].rgbtAlpha) / 255);
+            fwrite(&write_data, 1, 1, output);
+            // fwrite(&(*output_image_data)[i][j].rgbtBlue, 1, 1, output);
+            // fwrite(&(*output_image_data)[i][j].rgbtGreen, 1, 1, output);
+            // fwrite(&(*output_image_data)[i][j].rgbtRed, 1, 1, output);
         }
         dummy = 0;
         fwrite(&dummy, 1, (3*info_header.biWidth)%4, output);
