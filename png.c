@@ -78,6 +78,12 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     char tag[80];
     char text2[80];
 
+    alpha_index = NULL;
+    alpha_gray = NULL;
+    alpha_red = NULL;
+    alpha_green = NULL;
+    alpha_blue = NULL;
+
 
     idat_size = 0;
     flag = 0;
@@ -373,6 +379,11 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     png_info->color_type     = color_type;
     png_info->bps            = bps;
     png_info->interlace_type = interlace_type;
+    png_info->alpha_index    = alpha_index;
+    png_info->alpha_gray     = alpha_gray;
+    png_info->alpha_red      = alpha_red;
+    png_info->alpha_green    = alpha_green;
+    png_info->alpha_blue     = alpha_blue;
 }
 
 void read_zlib_header(uint8_t *png_image_data, int *byte_index, int *bit_index)
@@ -704,8 +715,10 @@ RGBTRIPLE get_color(RGBTRIPLE *color_palette, uint8_t *output_stream, int *write
 
     if(png_info->bps != 16) {
         c.rgbtAlpha = 0xFF;
+        //c.rgbtAlpha = 0x00;
     } else {
         c.rgbtAlpha = 0xFFFF;
+        //c.rgbtAlpha = 0x0000;
     }
 
     if(png_info->color_type == 0) {
@@ -725,6 +738,9 @@ RGBTRIPLE get_color(RGBTRIPLE *color_palette, uint8_t *output_stream, int *write
         c.rgbtRed   = color_palette[data].rgbtRed;
         c.rgbtGreen = color_palette[data].rgbtGreen;
         c.rgbtBlue  = color_palette[data].rgbtBlue;
+        if(png_info->alpha_index != NULL) {
+            c.rgbtAlpha = png_info->alpha_index[data];
+        }
     } else if(png_info->color_type == 4) {
         data = get_color_data(output_stream, write_byte_index, png_info, index);
         c.rgbtRed   = data;
@@ -799,7 +815,7 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
         *write_byte_index += 1;
         k = 0;
         for(j = 0; j < width; j++) {
-            printf("[%d][%d]\n", i, j);
+            printf("-[%d][%d]-\n", i, j);
             c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
             if(png_info->bps != 16) {
                 (*image_data)[i][j].rgbtRed   = c.rgbtRed;
@@ -812,6 +828,7 @@ void write_line(uint8_t *output_stream, int i, int *write_byte_index, int width,
                 (*image_data)[i][j].rgbtBlue  = c.rgbtBlue  >> 8;
                 (*image_data)[i][j].rgbtAlpha = c.rgbtAlpha >> 8;
             }
+            printf("%d %d %d %d\n", (*image_data)[i][j].rgbtRed, (*image_data)[i][j].rgbtGreen, (*image_data)[i][j].rgbtBlue, (*image_data)[i][j].rgbtAlpha);
         }
     } else if(output_stream[*write_byte_index] == SUB) {
         *write_byte_index += 1;
