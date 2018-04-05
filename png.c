@@ -77,6 +77,13 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     int l;
     char tag[80];
     char text2[80];
+    char pallet_name[80];
+    uint8_t sample;
+    uint16_t *red_sample;
+    uint16_t *green_sample;
+    uint16_t *blue_sample;
+    uint16_t *alpha_sample;
+    uint16_t *freq_sample;
 
     alpha_index = NULL;
     alpha_gray = NULL;
@@ -368,6 +375,23 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
             printf("chunk:%s\n", chunk);
 
             crc_32 = read_4bytes(input);
+        } else if(strcmp(chunk, "sPLT") == 0) {
+            k = 0;
+            do {
+                fread(&pallet_name[k], 1, 1, input);
+                k++;
+            } while(pallet_name[k-1] != '\0');
+            printf("%s\n", pallet_name);
+            exit(0);
+            /*
+    uint8_t sample;
+    uint16_t *red_sample;
+    uint16_t *green_sample;
+    uint16_t *blue_sample;
+    uint16_t *alpha_sample;
+    uint16_t *freq_sample;
+    */
+
         } else {
             printf("size:%d\n", size);
             printf("chunk:%s\n", chunk);
@@ -726,6 +750,9 @@ RGBTRIPLE get_color(RGBTRIPLE *color_palette, uint8_t *output_stream, int *write
         c.rgbtRed   = data;
         c.rgbtGreen = data;
         c.rgbtBlue  = data;
+        if(png_info->alpha_gray != NULL) {
+            c.rgbtAlpha = png_info->alpha_gray[data];
+        }
     } else if(png_info->color_type == 2) {
         data = get_color_data(output_stream, write_byte_index, png_info, index);
         c.rgbtRed   = data;
