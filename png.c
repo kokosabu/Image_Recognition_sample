@@ -376,15 +376,18 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
 
             crc_32 = read_4bytes(input);
         } else if(strcmp(chunk, "sPLT") == 0) {
+            printf("size:%d\n", size);
+            printf("chunk:%s\n", chunk);
             k = 0;
             do {
                 fread(&pallet_name[k], 1, 1, input);
                 k++;
             } while(pallet_name[k-1] != '\0');
             printf("%s\n", pallet_name);
+            fread(&sample, 1, 1, input);
+            printf("%d\n", sample);
             exit(0);
             /*
-    uint8_t sample;
     uint16_t *red_sample;
     uint16_t *green_sample;
     uint16_t *blue_sample;
