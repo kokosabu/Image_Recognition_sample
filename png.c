@@ -386,15 +386,44 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
             printf("%s\n", pallet_name);
             fread(&sample, 1, 1, input);
             printf("%d\n", sample);
-            exit(0);
-            /*
-    uint16_t *red_sample;
-    uint16_t *green_sample;
-    uint16_t *blue_sample;
-    uint16_t *alpha_sample;
-    uint16_t *freq_sample;
-    */
-
+            if(sample == 8) {
+                /* 6 */
+                red_sample   = (uint16_t *)malloc(sizeof(uint16_t) * (size - strlen(pallet_name) - 2) / 6);
+                green_sample = (uint16_t *)malloc(sizeof(uint16_t) * (size - strlen(pallet_name) - 2) / 6);
+                blue_sample  = (uint16_t *)malloc(sizeof(uint16_t) * (size - strlen(pallet_name) - 2) / 6);
+                alpha_sample = (uint16_t *)malloc(sizeof(uint16_t) * (size - strlen(pallet_name) - 2) / 6);
+                freq_sample  = (uint16_t *)malloc(sizeof(uint16_t) * (size - strlen(pallet_name) - 2) / 6);
+                for(i = 0; i < ((size - strlen(pallet_name) - 2) / 6); i++) {
+                    red_sample[i]   = 0;
+                    green_sample[i] = 0;
+                    blue_sample[i]  = 0;
+                    alpha_sample[i] = 0;
+                    freq_sample[i]  = 0;
+                    fread(&red_sample[i], 1, 1, input);
+                    fread(&green_sample[i], 1, 1, input);
+                    fread(&blue_sample[i], 1, 1, input);
+                    fread(&alpha_sample[i], 1, 1, input);
+                    freq_sample[i] = read_2bytes(input);
+                    printf("[%d] : %d %d %d %d %d\n", i, red_sample[i], green_sample[i], blue_sample[i], alpha_sample[i], freq_sample[i]);
+                }
+            } else if(sample == 16) {
+                /* 10 */
+                red_sample   = (uint16_t *)malloc(sizeof(uint16_t) * (size - strlen(pallet_name) - 2) / 10);
+                green_sample = (uint16_t *)malloc(sizeof(uint16_t) * (size - strlen(pallet_name) - 2) / 10);
+                blue_sample  = (uint16_t *)malloc(sizeof(uint16_t) * (size - strlen(pallet_name) - 2) / 10);
+                alpha_sample = (uint16_t *)malloc(sizeof(uint16_t) * (size - strlen(pallet_name) - 2) / 10);
+                freq_sample  = (uint16_t *)malloc(sizeof(uint16_t) * (size - strlen(pallet_name) - 2) / 10);
+                for(i = 0; i < ((size - strlen(pallet_name) - 2) / 10); i++) {
+                    red_sample[i] = read_2bytes(input);
+                    green_sample[i] = read_2bytes(input);
+                    blue_sample[i] = read_2bytes(input);
+                    alpha_sample[i] = read_2bytes(input);
+                    freq_sample[i] = read_2bytes(input);
+                }
+            } else {
+                exit(0);
+            }
+            crc_32 = read_4bytes(input);
         } else {
             printf("size:%d\n", size);
             printf("chunk:%s\n", chunk);
