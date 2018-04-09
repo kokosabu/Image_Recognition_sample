@@ -1100,6 +1100,7 @@ void filter(uint8_t *output_stream, int i, int *write_byte_index, int width, RGB
     RGBTRIPLE c;
 
     printf("[%d] %d\n", i, output_stream[*write_byte_index]);
+    width = ((width-1) / (8 / png_info->bps)) + 1;
     if(output_stream[*write_byte_index] == NONE) {
         *write_byte_index += 1;
         for(j = 0; j < width; j++) {
@@ -1116,30 +1117,21 @@ void filter(uint8_t *output_stream, int i, int *write_byte_index, int width, RGB
         k = 0;
         for(j = 0; j < width; j++) {
             if(i == 0) {
-                //old_red   = 0;
+                up_byte = 0;
             } else {
-                //old_alpha = (*image_data)[i-1][j].rgbtAlpha;
+                up_byte = output_stream[*write_byte_index - (width+1)];
             }
-            printf("[%d][%d]\n", i, j);
-            if(png_info->bps != 16) {
-                //(*image_data)[i][j].rgbtAlpha = (c.rgbtAlpha + old_alpha) % 256;
-            } else {
-                //(*image_data)[i][j].rgbtAlpha = ((c.rgbtAlpha + old_alpha) % 65536) >> 8;
-            }
+            output_stream[*write_byte_index] = (output_stream[*write_byte_index] + up_byte) % 256;
         }
     } else if(output_stream[*write_byte_index] == AVERAGE) {
         *write_byte_index += 1;
-        k = 0;
-        //old_alpha = 0;
         for(j = 0; j < width; j++) {
             if(i == 0) {
-                //old_alpha += 0;
+                up_byte = 0;
             } else {
-                //old_red   += (*image_data)[i-1][j].rgbtRed;
+                up_byte = output_stream[*write_byte_index - (width+1)];
             }
-            printf("[%d][%d]\n", i, j);
-            //(*image_data)[i][j].rgbtAlpha = (c.rgbtAlpha + old_alpha / 2) % 256;
-            //old_alpha = (*image_data)[i][j].rgbtAlpha;
+            output_stream[*write_byte_index] = (output_stream[*write_byte_index] + (output_stream[*write_byte_index-1] + up_byte)/2) % 256;
         }
     } else if(output_stream[*write_byte_index] == PAETH) {
         *write_byte_index += 1;
@@ -1168,6 +1160,48 @@ void filter(uint8_t *output_stream, int i, int *write_byte_index, int width, RGB
     }
 }
 
+void line(uint8_t *output_stream, int i, int *write_byte_index, int width, RGBTRIPLE ***image_data, RGBTRIPLE *color_palette, PNG_INFO *png_info)
+{
+    int j;
+    int k;
+    uint16_t old_red;
+    uint16_t old_green;
+    uint16_t old_blue;
+    uint16_t old_alpha;
+    uint16_t up_red;
+    uint16_t up_green;
+    uint16_t up_blue;
+    uint16_t up_alpha;
+    uint16_t left_red;
+    uint16_t left_green;
+    uint16_t left_blue;
+    uint16_t left_alpha;
+    uint16_t upper_left_red;
+    uint16_t upper_left_green;
+    uint16_t upper_left_blue;
+    uint16_t upper_left_alpha;
+    RGBTRIPLE c;
+
+    printf("[%d] %d\n", i, output_stream[*write_byte_index]);
+    *write_byte_index += 1;
+    k = 0;
+    for(j = 0; j < width; j++) {
+        printf("-[%d][%d]-\n", i, j);
+        c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
+        if(png_info->bps != 16) {
+            (*image_data)[i][j].rgbtRed   = c.rgbtRed;
+            (*image_data)[i][j].rgbtGreen = c.rgbtGreen;
+            (*image_data)[i][j].rgbtBlue  = c.rgbtBlue;
+            (*image_data)[i][j].rgbtAlpha = c.rgbtAlpha;
+        } else {
+            (*image_data)[i][j].rgbtRed   = c.rgbtRed   >> 8;
+            (*image_data)[i][j].rgbtGreen = c.rgbtGreen >> 8;
+            (*image_data)[i][j].rgbtBlue  = c.rgbtBlue  >> 8;
+            (*image_data)[i][j].rgbtAlpha = c.rgbtAlpha >> 8;
+        }
+        printf("%d %d %d %d\n", (*image_data)[i][j].rgbtRed, (*image_data)[i][j].rgbtGreen, (*image_data)[i][j].rgbtBlue, (*image_data)[i][j].rgbtAlpha);
+    }
+}
 void write_interlace(uint8_t *output_stream, int i, int *write_byte_index, int width, RGBTRIPLE ***image_data, RGBTRIPLE *color_palette, PNG_INFO *png_info, int height, int pass)
 {
     int j;
@@ -1566,7 +1600,11 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     if(png_info.interlace_type == 0) {
         write_byte_index = 0;
         for(i = 0; i < height; i++) {
-            write_line(output_stream, i, &write_byte_index, width, image_data, color_palette, &png_info);
+            filter(output_stream, i, &write_byte_index, width, image_data, color_palette, &png_info);
+        }
+        write_byte_index = 0;
+        for(i = 0; i < height; i++) {
+            line(output_stream, i, &write_byte_index, width, image_data, color_palette, &png_info);
         }
         // filter
         // for(i = 0; i < height; i++) {
@@ -1582,4 +1620,4 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     image_info->height   = height;
     image_info->width    = width;
     image_info->fileSize = height*width*3 + 54;
-}
+    }
