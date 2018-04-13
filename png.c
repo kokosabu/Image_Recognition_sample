@@ -449,6 +449,12 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
         printf("Don't support color_type. Exit!\n");
         exit(0);
     }
+
+    if(png_info->bps == 1 || png_info->bps == 2 || png_info->bps == 4 || png_info->bps == 8 || png_info->bps == 16) {
+    } else {
+        printf("Don't support depth. Exit!\n");
+        exit(0);
+    }
 }
 
 void read_zlib_header(uint8_t *png_image_data, int *byte_index, int *bit_index)
