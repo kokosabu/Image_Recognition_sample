@@ -443,6 +443,12 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     png_info->alpha_red      = alpha_red;
     png_info->alpha_green    = alpha_green;
     png_info->alpha_blue     = alpha_blue;
+
+    if(png_info->color_type == 0 || png_info->color_type == 2 || png_info->color_type == 4 || png_info->color_type == 5 || png_info->color_type == 6) {
+    } else {
+        printf("Don't support color_type. Exit!\n");
+        exit(0);
+    }
 }
 
 void read_zlib_header(uint8_t *png_image_data, int *byte_index, int *bit_index)
@@ -457,10 +463,10 @@ void read_zlib_header(uint8_t *png_image_data, int *byte_index, int *bit_index)
 
     cmf = png_image_data[*byte_index];
     *byte_index += 1;
-    printf("%02xh\n", cmf);
+    printf("cmf %02xh\n", cmf);
     cm = cmf & 0x0F;
     cinfo = (cmf & 0xF0) >> 4;
-    printf("%02xh, %02xh\n", cm, cinfo);
+    printf("cm %02xh, cinfo %02xh\n", cm, cinfo);
 
     if(cm != 8) {
         printf("not deflate\n");
@@ -756,7 +762,7 @@ int get_color_data(uint8_t *output_stream, int *write_byte_index, PNG_INFO *png_
             }
         }
     } else {
-        printf("[%d][%d] : %3d : ", *write_byte_index, *index, output_stream[*write_byte_index]);
+        printf("bps16 [%d][%d] : %3d : ", *write_byte_index, *index, output_stream[*write_byte_index]);
 
         data = bit_read(output_stream, write_byte_index, index, 8);
         data = data << 8 | bit_read(output_stream, write_byte_index, index, 8);
@@ -863,91 +869,159 @@ void filter(uint8_t *output_stream, int i, int *write_byte_index, int width, PNG
 
     printf("[%d( %d )] %d\n", i, *write_byte_index, output_stream[*write_byte_index]);
     if(png_info->bps != 16) {
-        //width = (width / (8 / png_info->bps)) * w[png_info->color_type];
         width = width / (8 / png_info->bps);
     } else {
         //width = width*2*w[png_info->color_type];
-        width = width*2;
+        //width = width*2;
     }
 
     if(output_stream[*write_byte_index] == NONE) {
         *write_byte_index += 1;
         for(j = 0; j < width; j++) {
-            *write_byte_index += 1;
+            if(png_info->bps != 16) {
+                *write_byte_index += 1;
+            } else {
+                *write_byte_index += 2;
+            }
         }
     } else if(output_stream[*write_byte_index] == SUB) {
         *write_byte_index += 1;
         for(j = 0; j < width; j++) {
-            printf("[%d] %d : ", j, output_stream[*write_byte_index]);
-            for(k = 0; k < w[png_info->color_type]; k++) {
-                if(j == 0) {
-                    output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + 0) % 256;
-                } else {
-                    output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + output_stream[*write_byte_index+k-w[png_info->color_type]]) % 256;
+            if(png_info->bps != 16) {
+                printf("[%d] %d : ", j, output_stream[*write_byte_index]);
+                for(k = 0; k < w[png_info->color_type]; k++) {
+                    if(j == 0) {
+                        output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + 0) % 256;
+                    } else {
+                        output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + output_stream[*write_byte_index+k-w[png_info->color_type]]) % 256;
+                    }
                 }
+                printf("%d\n", output_stream[*write_byte_index]);
+                *write_byte_index += w[png_info->color_type];
+            } else {
+                printf("[%d] %d : ", j, output_stream[*write_byte_index]);
+                for(k = 0; k < w[png_info->color_type]*2; k++) {
+                    if(j == 0) {
+                        output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + 0) % 256;
+                    } else {
+                        output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + output_stream[*write_byte_index+k-w[png_info->color_type]*2]) % 256;
+                    }
+                }
+                printf("%d\n", output_stream[*write_byte_index]);
+                *write_byte_index += w[png_info->color_type] * 2;
             }
-            printf("%d\n", output_stream[*write_byte_index]);
-            *write_byte_index += w[png_info->color_type];
         }
     } else if(output_stream[*write_byte_index] == UP) {
         *write_byte_index += 1;
         for(j = 0; j < width; j++) {
-            for(k = 0; k < w[png_info->color_type]; k++) {
-                if(i == 0) {
-                    up_byte = 0;
-                } else {
-                    up_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]+1)];
+            if(png_info->bps != 16) {
+                for(k = 0; k < w[png_info->color_type]; k++) {
+                    if(i == 0) {
+                        up_byte = 0;
+                    } else {
+                        up_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]+1)];
+                    }
+                    output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + up_byte) % 256;
                 }
-                output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + up_byte) % 256;
+                *write_byte_index += w[png_info->color_type];
+            } else {
+                for(k = 0; k < w[png_info->color_type]*2; k++) {
+                    if(i == 0) {
+                        up_byte = 0;
+                    } else {
+                        up_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]*2+1)];
+                    }
+                    output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + up_byte) % 256;
+                }
+                *write_byte_index += w[png_info->color_type] * 2;
             }
-            *write_byte_index += w[png_info->color_type];
         }
     } else if(output_stream[*write_byte_index] == AVERAGE) {
         *write_byte_index += 1;
         for(j = 0; j < width; j++) {
-            for(k = 0; k < w[png_info->color_type]; k++) {
-                if(i == 0) {
-                    up_byte = 0;
-                } else {
-                    up_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]+1)];
+            if(png_info->bps != 16) {
+                for(k = 0; k < w[png_info->color_type]; k++) {
+                    if(i == 0) {
+                        up_byte = 0;
+                    } else {
+                        up_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]+1)];
+                    }
+                    if(j == 0) {
+                        output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + (up_byte)/2) % 256;
+                    } else {
+                        output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + (output_stream[*write_byte_index+k-w[png_info->color_type]] + up_byte)/2) % 256;
+                    }
                 }
-                if(j == 0) {
-                    output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + (up_byte)/2) % 256;
-                } else {
-                    output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + (output_stream[*write_byte_index+k-w[png_info->color_type]] + up_byte)/2) % 256;
+                *write_byte_index += w[png_info->color_type];
+            } else {
+                for(k = 0; k < w[png_info->color_type]*2; k++) {
+                    if(i == 0) {
+                        up_byte = 0;
+                    } else {
+                        up_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]*2+1)];
+                    }
+                    if(j == 0) {
+                        output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + (up_byte)/2) % 256;
+                    } else {
+                        output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + (output_stream[*write_byte_index+k-w[png_info->color_type]*2] + up_byte)/2) % 256;
+                    }
                 }
+                *write_byte_index += w[png_info->color_type] * 2;
             }
-            *write_byte_index += w[png_info->color_type];
         }
     } else if(output_stream[*write_byte_index] == PAETH) {
         *write_byte_index += 1;
 
         for(j = 0; j < width; j++) {
-            printf("[%d] ", j);
-            for(k = 0; k < w[png_info->color_type]; k++) {
-                if(i == 0) {
-                    up_byte = 0;
-                } else {
-                    up_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]+1)];
-                }
-                if(j == 0) {
-                    left_byte = 0;
-                } else {
-                    left_byte = output_stream[*write_byte_index + k - w[png_info->color_type]];
-                }
-                if(i == 0 || j == 0) {
-                    upper_left_byte = 0;
-                } else {
-                    upper_left_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]+1) - w[png_info->color_type]];
-                }
+            if(png_info->bps != 16) {
+                printf("[%d] ", j);
+                for(k = 0; k < w[png_info->color_type]; k++) {
+                    if(i == 0) {
+                        up_byte = 0;
+                    } else {
+                        up_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]+1)];
+                    }
+                    if(j == 0) {
+                        left_byte = 0;
+                    } else {
+                        left_byte = output_stream[*write_byte_index + k - w[png_info->color_type]];
+                    }
+                    if(i == 0 || j == 0) {
+                        upper_left_byte = 0;
+                    } else {
+                        upper_left_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]+1) - w[png_info->color_type]];
+                    }
 
-                printf("[%d] (%d, %d, %d, %d)-> ", k, *write_byte_index+k, *write_byte_index+k-w[png_info->color_type], *write_byte_index+k-(width*w[png_info->color_type]+1), *write_byte_index+k-(width*w[png_info->color_type]+1)-w[png_info->color_type]);
-                printf("(%d, %d, %d, %d)->", output_stream[*write_byte_index+k], left_byte, up_byte, upper_left_byte);
-                output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + paeth_predictor(left_byte, up_byte, upper_left_byte)) % 256;
-                printf("%d\n", output_stream[*write_byte_index+k]);
+                    output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + paeth_predictor(left_byte, up_byte, upper_left_byte)) % 256;
+                    printf("%d\n", output_stream[*write_byte_index+k]);
+                }
+                printf("\n");
+                *write_byte_index += w[png_info->color_type];
+            } else {
+                printf("[%d] ", j);
+                for(k = 0; k < w[png_info->color_type]*2; k++) {
+                    if(i == 0) {
+                        up_byte = 0;
+                    } else {
+                        up_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]*2+1)];
+                    }
+                    if(j == 0) {
+                        left_byte = 0;
+                    } else {
+                        left_byte = output_stream[*write_byte_index + k - w[png_info->color_type]*2];
+                    }
+                    if(i == 0 || j == 0) {
+                        upper_left_byte = 0;
+                    } else {
+                        upper_left_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]*2+1) - w[png_info->color_type]*2];
+                    }
+
+                    output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + paeth_predictor(left_byte, up_byte, upper_left_byte)) % 256;
+                    printf("%d\n", output_stream[*write_byte_index+k]);
+                }
+                printf("\n");
+                *write_byte_index += w[png_info->color_type]*2;
             }
-            printf("\n");
-            *write_byte_index += w[png_info->color_type];
         }
     } else {
         printf("undefined filter type\n");
@@ -1298,8 +1372,6 @@ void decode_huffman_codes(uint8_t *png_image_data, int *byte_index, int *bit_ind
 
             dist = dist_block[value];
             dist += dist_bit_value;
-            printf("write_byte:%d (%d)(%d)\n", *write_byte_index, *write_byte_index/(width+1), *write_byte_index%(width+1));
-            printf("dist = %d, len = %d\n", dist, len);
             /* move backwards distance bytes in the output stream, and copy length bytes from this position to the output stream. */
             for(i = 0; i < len; i++) {
                 output_stream[*write_byte_index] = output_stream[*write_byte_index-dist];
@@ -1343,7 +1415,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
         /* read block header from input stream. */
         bfinal = bit_read(png_image_data, &byte_index, &bit_index, 1);
         btype = bit_read(png_image_data, &byte_index, &bit_index, 2);
-        printf("%02x %02x\n", bfinal, btype);
+        printf("bfinal %02x, btype %02x\n", bfinal, btype);
 
         if(btype == 0x00) {
             /* skip any remaining bits in current partially processed byte */

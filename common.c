@@ -30,31 +30,34 @@ uint32_t read_4bytes(FILE *input)
     return result;
 }
 
-int bit_read(uint8_t *input_stream, int *byte_pos, int *bit_pos, int bit_len)
+int one_bit_read(uint8_t *input_stream, int *byte_pos, int *bit_pos)
 {
     uint8_t pattern[8] = {
-        0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F, 0xFF
+        0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80
     };
-    uint8_t byte;
-    uint8_t next_byte;
+    uint8_t bit;
 
-    byte      = input_stream[*byte_pos];
-    next_byte = input_stream[(*byte_pos)+1];
+    bit   = input_stream[*byte_pos];
+    bit  &= pattern[*bit_pos];
+    bit >>= *bit_pos;
 
-    if((8-(*bit_pos)) >= bit_len) {
-        byte >>= *bit_pos;
-        byte &= pattern[bit_len-1];
-    } else {
-        byte >>= *bit_pos;
-        byte &= pattern[(8-(*bit_pos))-1];
-        next_byte &= pattern[(*bit_pos) - (8-bit_len) - 1];
-        byte = byte | ( next_byte << (8-(*bit_pos)) );
+    *bit_pos += 1;
+    if(*bit_pos >= 8) {
+        *byte_pos += 1;
+        *bit_pos = 0;
     }
 
-    *bit_pos += bit_len;
-    if(*bit_pos >= 8) {
-        *byte_pos += (*bit_pos) / 8;
-        *bit_pos %= 8;
+    return bit;
+}
+
+int bit_read(uint8_t *input_stream, int *byte_pos, int *bit_pos, int bit_len)
+{
+    uint16_t byte;
+    int i;
+
+    byte = 0;
+    for(i = 0; i < bit_len; i++) {
+        byte |= one_bit_read(input_stream, byte_pos, bit_pos) << i;
     }
 
     return byte;
@@ -64,7 +67,6 @@ int huffman_bit_read(uint8_t *input_stream, int *byte_pos, int *bit_pos, int bit
 {
     uint8_t pattern[8] = {
         0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80
-            //0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01
     };
     uint8_t byte;
 
