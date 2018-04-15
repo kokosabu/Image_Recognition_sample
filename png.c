@@ -15,6 +15,33 @@ enum {
 
 uint32_t width;
 uint32_t height;
+uint32_t crc_table[256];
+
+void make_crc_table(void) {
+    for (uint32_t i = 0; i < 256; i++) {
+        uint32_t c = i;
+        for (int j = 0; j < 8; j++) {
+            c = (c & 1) ? (0xEDB88320 ^ (c >> 1)) : (c >> 1);
+        }
+        crc_table[i] = c;
+    }
+}
+
+uint32_t crc32(uint8_t *buf, size_t len, uint32_t c) {
+    for (size_t i = 0; i < len; i++) {
+        c = crc_table[(c ^ buf[i]) & 0xFF] ^ (c >> 8);
+    }
+    //return c ^ 0xFFFFFFFF;
+    return c;
+}
+
+uint32_t crc32_4bytes(uint32_t *buf, uint32_t c) {
+    c = crc32(((uint8_t *)buf)+3, 1, c);
+    c = crc32(((uint8_t *)buf)+2, 1, c);
+    c = crc32(((uint8_t *)buf)+1, 1, c);
+    c = crc32(((uint8_t *)buf)+0, 1, c);
+    return c;
+}
 
 void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, RGBTRIPLE **color_palette, PNG_INFO *png_info)
 {
@@ -28,6 +55,7 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     uint8_t filter_type;
     uint8_t interlace_type;
     uint32_t crc_32;
+    uint32_t crc;
     uint8_t *tmp;
     int i;
     int k;
@@ -92,9 +120,16 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     alpha_blue = NULL;
     png_info->tRNS_size = 0;
 
+    *png_image_data = NULL;
+
+    make_crc_table();
+
     idat_size = 0;
     flag = 0;
     do {
+        //crc = 0x04C11DB7;
+        crc = 0xFFFFFFFF;
+
         size = read_4bytes(input);
         fread(&chunk[0], 1, 1, input);
         fread(&chunk[1], 1, 1, input);
@@ -111,6 +146,14 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
             fread(&filter_type, 1, 1, input);
             fread(&interlace_type, 1, 1, input);
             crc_32 = read_4bytes(input);
+            crc = crc32((uint8_t *)chunk, 4, crc);
+            crc = crc32_4bytes(&width, crc);
+            crc = crc32_4bytes(&height, crc);
+            crc = crc32(&bps, 1, crc);
+            crc = crc32(&color_type, 1, crc);
+            crc = crc32(&compress_type, 1, crc);
+            crc = crc32(&filter_type, 1, crc);
+            crc = crc32(&interlace_type, 1, crc);
 
             printf("size:%d\n", size);
             printf("chunk:%s\n", chunk);
@@ -123,22 +166,36 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
             printf("interlace type:%d\n", interlace_type);
             printf("crc-32: %xh\n", crc_32);
 
+            crc ^= 0xFFFFFFFF;
+            if(crc != crc_32) {
+                printf("incorrect %s checksum\n", chunk);
+                exit(0);
+            }
+
             *output_stream = (uint8_t *)malloc(sizeof(uint8_t) * (width+1) * height);
 
         } else if(strcmp(chunk, "IDAT") == 0) {
             idat_size += size;
+            crc = crc32((uint8_t *)chunk, 4, crc);
             if(size == idat_size) {
                 *png_image_data = (uint8_t *)malloc(sizeof(uint8_t) * size);
                 fread((*png_image_data)+idat_size-size, 1, size, input);
+                crc = crc32((*png_image_data)+idat_size-size, size, crc);
             } else {
                 tmp = (uint8_t *)realloc(*png_image_data, sizeof(uint8_t) * idat_size);
                 *png_image_data = tmp;
                 fread((*png_image_data)+idat_size-size, 1, size, input);
+                crc = crc32((*png_image_data)+idat_size-size, size, crc);
             }
+            crc ^= 0xFFFFFFFF;
             crc_32 = read_4bytes(input);
             printf("size:%d\n", size);
             printf("chunk:%s\n", chunk);
             printf("crc-32: %xh\n", crc_32);
+            if(crc != crc_32) {
+                printf("incorrect %s checksum\n", chunk);
+                exit(0);
+            }
         } else if(strcmp(chunk, "PLTE") == 0) {
             *color_palette = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * size);
             palette_size = size;
@@ -160,9 +217,15 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
             }
             printf("crc-32: %xh\n", crc_32);
         } else if(strcmp(chunk, "IEND") == 0) {
+            crc = crc32((uint8_t *)chunk, 4, crc);
+            crc ^= 0xFFFFFFFF;
             crc_32 = read_4bytes(input);
             printf("size:%d\n", size);
             printf("chunk:%s\n", chunk);
+            if(crc != crc_32) {
+                printf("incorrect %s checksum\n", chunk);
+                exit(0);
+            }
             flag = 1;
         } else if(strcmp(chunk, "gAMA") == 0) {
             gamma = read_4bytes(input);
@@ -453,6 +516,11 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     if(png_info->bps == 1 || png_info->bps == 2 || png_info->bps == 4 || png_info->bps == 8 || png_info->bps == 16) {
     } else {
         printf("Don't support depth. Exit!\n");
+        exit(0);
+    }
+
+    if(*png_image_data == NULL) {
+        printf("missing IDAT chunk. Exit!\n");
         exit(0);
     }
 }
