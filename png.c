@@ -507,7 +507,7 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     png_info->alpha_green    = alpha_green;
     png_info->alpha_blue     = alpha_blue;
 
-    if(png_info->color_type == 0 || png_info->color_type == 2 || png_info->color_type == 4 || png_info->color_type == 5 || png_info->color_type == 6) {
+    if(png_info->color_type == 0 || png_info->color_type == 2 || png_info->color_type == 3 || png_info->color_type == 4 || png_info->color_type == 5 || png_info->color_type == 6) {
     } else {
         printf("Don't support color_type. Exit!\n");
         exit(0);
