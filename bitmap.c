@@ -192,7 +192,9 @@ void encode_bitmap(FILE *output, IMAGEINFO *image_info, RGBTRIPLE ***output_imag
             }
             fwrite(&write_data, 1, 1, output);
         }
-        dummy = 0;
-        fwrite(&dummy, 1, (3*info_header.biWidth)%4, output);
+        if(((3*info_header.biWidth)%4) != 0) {
+            dummy = 0;
+            fwrite(&dummy, 1, 4 - ((3*info_header.biWidth)%4), output);
+        }
     }
 }
