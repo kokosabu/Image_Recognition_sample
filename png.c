@@ -100,12 +100,12 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     uint8_t hour;
     uint8_t minute;
     uint8_t second;
-    char keyword_itxt[80];
+    char keyword_itxt[160+1];
     uint8_t compress_flag;
     int l;
-    char tag[80];
-    char text2[80];
-    char pallet_name[80];
+    char tag[160+1];
+    char text2[160+1];
+    char pallet_name[160+1];
     uint8_t sample;
     uint16_t *red_sample;
     uint16_t *green_sample;
@@ -947,7 +947,6 @@ void filter_interlace(uint8_t *output_stream, int i, int *write_byte_index, int 
     int tmp;
 
     if(png_info->bps != 16) {
-        //width = width / (8 / png_info->bps);
         tmp = width / (8 / png_info->bps);
         if((width % (8/png_info->bps)) != 0) {
             width = tmp + 1;
@@ -994,8 +993,8 @@ void filter_interlace(uint8_t *output_stream, int i, int *write_byte_index, int 
         else if(output_stream[*write_byte_index] == UP) {
             *write_byte_index += 1;
             for(j = start_x[pass]; j < width; j += step_x[pass]) {
-                int tmp = width / step_x[pass];
-                if((width%step_x[pass]) != 0) {
+                int tmp = (width-start_x[pass]) / step_x[pass];
+                if(((width-start_x[pass])%step_x[pass]) != 0) {
                     tmp += 1;
                 }
                 if(png_info->bps != 16) {
@@ -1003,7 +1002,6 @@ void filter_interlace(uint8_t *output_stream, int i, int *write_byte_index, int 
                         if(i == start_y[pass]) {
                             up_byte = 0;
                         } else {
-                            //up_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]+1)];
                             up_byte = output_stream[*write_byte_index + k - (tmp*w[png_info->color_type]+1)];
                         }
                         output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + up_byte) % 256;
@@ -1024,8 +1022,8 @@ void filter_interlace(uint8_t *output_stream, int i, int *write_byte_index, int 
         } else if(output_stream[*write_byte_index] == AVERAGE) {
             *write_byte_index += 1;
             for(j = start_x[pass]; j < width; j += step_x[pass]) {
-                int tmp = width / step_x[pass];
-                if((width%step_x[pass]) != 0) {
+                int tmp = (width-start_x[pass]) / step_x[pass];
+                if(((width-start_x[pass])%step_x[pass]) != 0) {
                     tmp += 1;
                 }
                 if(png_info->bps != 16) {
@@ -1062,8 +1060,8 @@ void filter_interlace(uint8_t *output_stream, int i, int *write_byte_index, int 
             *write_byte_index += 1;
 
             for(j = start_x[pass]; j < width; j += step_x[pass]) {
-                int tmp = width / step_x[pass];
-                if((width%step_x[pass]) != 0) {
+                int tmp = (width-start_x[pass]) / step_x[pass];
+                if(((width-start_x[pass])%step_x[pass]) != 0) {
                     tmp += 1;
                 }
                 if(png_info->bps != 16) {
@@ -1773,6 +1771,14 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
         for(i = 0; i < 7; i++) {
             write_interlace(output_stream, i, &write_byte_index, width, image_data, color_palette, &png_info, height, i);
         }
+        printf("-----------\n");
+        for(i = 0; i < height; i++) {
+            printf("-- [%d] --\n", i);
+            for(int j = 0; j < width; j++) {
+                printf("[%d] : %d, %d\n", j, (*image_data)[i][j].rgbtRed, (*image_data)[i][j].rgbtAlpha);
+            }
+        }
+        printf("-----------\n");
 #else
         write_byte_index = 0;
         for(i = 0; i < 7; i++) {
@@ -1783,6 +1789,14 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
         for(i = 0; i < 7; i++) {
             interlace(output_stream, i, &write_byte_index, width, image_data, color_palette, &png_info, height, i);
         }
+        printf("-----------\n");
+        for(i = 0; i < height; i++) {
+            printf("-- [%d] --\n", i);
+            for(int j = 0; j < width; j++) {
+                printf("[%d] : %d, %d\n", j, (*image_data)[i][j].rgbtRed, (*image_data)[i][j].rgbtAlpha);
+            }
+        }
+        printf("-----------\n");
 #endif
     }
 
