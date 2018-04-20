@@ -119,6 +119,7 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     alpha_green = NULL;
     alpha_blue = NULL;
     png_info->tRNS_size = 0;
+    gamma = 100000;
 
     *png_image_data = NULL;
 
@@ -506,6 +507,7 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     png_info->alpha_red      = alpha_red;
     png_info->alpha_green    = alpha_green;
     png_info->alpha_blue     = alpha_blue;
+    png_info->gamma          = gamma;
 
     if(png_info->color_type == 0 || png_info->color_type == 2 || png_info->color_type == 3 || png_info->color_type == 4 || png_info->color_type == 5 || png_info->color_type == 6) {
     } else {
@@ -906,6 +908,12 @@ RGBTRIPLE get_color(RGBTRIPLE *color_palette, uint8_t *output_stream, int *write
         c.rgbtGreen = 0;
         c.rgbtBlue  = 0;
         c.rgbtAlpha = 0xFFFF;
+    }
+
+    if(png_info->gamma != 100000) {
+        c.rgbtRed   = (uint8_t)(255.0 * pow((c.rgbtRed   / 255.0), (100000.0/png_info->gamma)));
+        c.rgbtGreen = (uint8_t)(255.0 * pow((c.rgbtGreen / 255.0), (100000.0/png_info->gamma)));
+        c.rgbtBlue  = (uint8_t)(255.0 * pow((c.rgbtBlue  / 255.0), (100000.0/png_info->gamma)));
     }
 
     return c;
