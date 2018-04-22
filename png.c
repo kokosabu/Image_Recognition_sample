@@ -1774,9 +1774,10 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             line(output_stream, i, &write_byte_index, width, image_data, color_palette, &png_info);
         }
     } else {
-#if 0
+#if 1
         write_byte_index = 0;
         for(i = 0; i < 7; i++) {
+            printf("-- %d --\n", i);
             write_interlace(output_stream, i, &write_byte_index, width, image_data, color_palette, &png_info, height, i);
         }
         printf("-----------\n");
