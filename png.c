@@ -1064,11 +1064,15 @@ void filter_interlace(uint8_t *output_stream, int i, int *write_byte_index, int 
         } else if(output_stream[*write_byte_index] == AVERAGE) {
             *write_byte_index += 1;
             count = 0;
+            printf("%d\n", *write_byte_index);
             for(j = start_x[pass]; j < width; j += step_x[pass]) {
+                printf("width : %d\nstart_x[pass] : %d\nstep_x[pass] : %d\n", width, start_x[pass], step_x[pass]);
+                // 32 0 8
                 int tmp = (width-start_x[pass]) / step_x[pass];
                 if(((width-start_x[pass])%step_x[pass]) != 0) {
                     tmp += 1;
                 }
+                printf("tmp : %d\n", tmp);
                 if(png_info->bps != 16) {
                     for(k = 0; k < w[png_info->color_type]; k++) {
                         if(i == start_y[pass]) {
@@ -1085,14 +1089,18 @@ void filter_interlace(uint8_t *output_stream, int i, int *write_byte_index, int 
                     count += w[png_info->color_type];
                 } else {
                     for(k = 0; k < w[png_info->color_type]*2; k++) {
+                        printf("i : %d, start_y[pass] : %d\n", i, start_y[pass]);
                         if(i == start_y[pass]) {
                             up_byte = 0;
                         } else {
-                            up_byte = output_stream[*write_byte_index + k - (tmp*w[png_info->color_type]*2+1)];
+                            //up_byte = output_stream[*write_byte_index + k - (tmp*w[png_info->color_type]*2+1)];
+                            up_byte = output_stream[*write_byte_index + k - (w[png_info->color_type]*2+1)];
                         }
+                        printf("j : %d, start_x[pass] : %d\n", j, start_x[pass]);
                         if(j == start_x[pass]) {
                             output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + (up_byte)/2) % 256;
                         } else {
+                            printf("*write_byte_index : %d, k : %d, w[png_info->color_teyp] : %d\n", *write_byte_index, k, w[png_info->color_type]);
                             output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + (output_stream[*write_byte_index+k-w[png_info->color_type]*2] + up_byte)/2) % 256;
                         }
                     }
