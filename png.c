@@ -18,9 +18,13 @@ uint32_t height;
 uint32_t crc_table[256];
 
 void make_crc_table(void) {
-    for (uint32_t i = 0; i < 256; i++) {
-        uint32_t c = i;
-        for (int j = 0; j < 8; j++) {
+    uint32_t i;
+    uint32_t c;
+    int j;
+
+    for (i = 0; i < 256; i++) {
+        c = i;
+        for (j = 0; j < 8; j++) {
             c = (c & 1) ? (0xEDB88320 ^ (c >> 1)) : (c >> 1);
         }
         crc_table[i] = c;
@@ -28,10 +32,10 @@ void make_crc_table(void) {
 }
 
 uint32_t crc32(uint8_t *buf, size_t len, uint32_t c) {
-    for (size_t i = 0; i < len; i++) {
+    size_t i;
+    for (i = 0; i < len; i++) {
         c = crc_table[(c ^ buf[i]) & 0xFF] ^ (c >> 8);
     }
-    //return c ^ 0xFFFFFFFF;
     return c;
 }
 
@@ -1181,10 +1185,7 @@ void filter(uint8_t *output_stream, int i, int *write_byte_index, int width, PNG
         } else {
             width = tmp;
         }
-        //width = width / (8 / png_info->bps);
     } else {
-        //width = width*2*w[png_info->color_type];
-        //width = width*2;
     }
 
     if(output_stream[*write_byte_index] == NONE) {
@@ -1510,12 +1511,6 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     for(i = 0; i < height; i++) {
         (*image_data)[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * width);
     }
-
-    printf("-----------\n");
-    for(i = 0; i < write_byte_index; i++) {
-        printf("[%d] : %d\n", i, output_stream[i]);
-    }
-    printf("-----------\n");
 
     if(png_info.interlace_type == 0) {
         write_byte_index = 0;
