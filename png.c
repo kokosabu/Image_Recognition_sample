@@ -676,6 +676,14 @@ void decompress_dynamic_huffman_codes(uint8_t *png_image_data, int *byte_index, 
     int hclens_index_table[19] = {
         16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
     };
+    int bit_read_table[19] = {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 2, 3, 7
+    };
+    int repeat_base[19] = {
+        1, 1, 1, 1, 1, 1, 1, 1,  1, 1,
+        1, 1, 1, 1, 1, 1, 3, 3, 11
+    };
 
     /* read representation of code trees (see subsection below) */
     hlit = bit_read(png_image_data, byte_index, bit_index, 5);
@@ -701,14 +709,6 @@ void decompress_dynamic_huffman_codes(uint8_t *png_image_data, int *byte_index, 
     id_index = 0;
 
     do {
-        int bit_read_table[19] = {
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 2, 3, 7
-        };
-        int repeat_base[19] = {
-            1, 1, 1, 1, 1, 1, 1, 1,  1, 1,
-            1, 1, 1, 1, 1, 1, 3, 3, 11
-        };
         value = decode_huffman(png_image_data, byte_index, bit_index, &(tree[0]), 19);
 
         if(value >= 0 && value <= 15) {
