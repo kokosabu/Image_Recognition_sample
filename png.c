@@ -13,7 +13,6 @@ enum {
     END_OF_BLOCK = 256
 };
 
-uint32_t width;
 uint32_t height;
 uint32_t crc_table[256];
 
@@ -50,6 +49,7 @@ uint32_t crc32_4bytes(uint32_t *buf, uint32_t c) {
 void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, RGBTRIPLE **color_palette, PNG_INFO *png_info)
 {
     uint32_t idat_size;
+    uint32_t width;
     uint8_t flag;
     uint32_t size;
     char chunk[5];
@@ -495,6 +495,7 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     png_info->alpha_green    = alpha_green;
     png_info->alpha_blue     = alpha_blue;
     png_info->gamma          = gamma;
+    png_info->width          = width;
 
     if(png_info->color_type == 0 || png_info->color_type == 2 || png_info->color_type == 3 || png_info->color_type == 4 || png_info->color_type == 5 || png_info->color_type == 6) {
     } else {
@@ -1509,31 +1510,31 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     printf("write_byte : %d\n", write_byte_index);
     (*image_data) = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE *) * height);
     for(i = 0; i < height; i++) {
-        (*image_data)[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * width);
+        (*image_data)[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * png_info.width);
     }
 
     if(png_info.interlace_type == 0) {
         write_byte_index = 0;
         for(i = 0; i < height; i++) {
-            filter(output_stream, i, &write_byte_index, width, &png_info);
+            filter(output_stream, i, &write_byte_index, png_info.width, &png_info);
         }
         write_byte_index = 0;
         for(i = 0; i < height; i++) {
-            line(output_stream, i, &write_byte_index, width, image_data, color_palette, &png_info);
+            line(output_stream, i, &write_byte_index, png_info.width, image_data, color_palette, &png_info);
         }
     } else {
         write_byte_index = 0;
         for(i = 0; i < 7; i++) {
             printf("-- %d --\n", i);
-            filter_interlace(output_stream, i, &write_byte_index, width, &png_info, height, i);
+            filter_interlace(output_stream, i, &write_byte_index, png_info.width, &png_info, height, i);
         }
         write_byte_index = 0;
         for(i = 0; i < 7; i++) {
-            interlace(output_stream, i, &write_byte_index, width, image_data, color_palette, &png_info, height, i);
+            interlace(output_stream, i, &write_byte_index, png_info.width, image_data, color_palette, &png_info, height, i);
         }
     }
 
     image_info->height   = height;
-    image_info->width    = width;
-    image_info->fileSize = height*width*3 + 54;
+    image_info->width    = png_info.width;
+    image_info->fileSize = height*png_info.width*3 + 54;
 }
