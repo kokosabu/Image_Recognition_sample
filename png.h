@@ -22,6 +22,7 @@ typedef struct {
     uint8_t tRNS_size;
     uint32_t gamma;
     uint32_t width;
+    uint32_t height;
 } PNG_INFO;
 
 void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data);
