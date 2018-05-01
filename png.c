@@ -14,25 +14,111 @@ enum {
     END_OF_BLOCK = 256
 };
 
-void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, RGBTRIPLE **color_palette, PNG_INFO *png_info)
+void chunk_read_ihdr(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
 {
-    uint32_t idat_size;
-    uint32_t width;
-    uint32_t height;
-    uint8_t flag;
-    uint32_t size;
-    char chunk[5];
-    uint8_t bps;
-    uint8_t color_type;
-    uint8_t compress_type;
-    uint8_t filter_type;
-    uint8_t interlace_type;
+    uint32_t crc_32;
+    uint32_t crc;
+
+    png_info->width = read_4bytes(input);
+    png_info->height = read_4bytes(input);
+    fread(&(png_info->bps),            1, 1, input);
+    fread(&(png_info->color_type),     1, 1, input);
+    fread(&(png_info->compress_type),  1, 1, input);
+    fread(&(png_info->filter_type),    1, 1, input);
+    fread(&(png_info->interlace_type), 1, 1, input);
+    crc_32 = read_4bytes(input);
+
+    crc = 0xFFFFFFFF;
+    crc = crc32((uint8_t *)chunk, 4, crc);
+    crc = crc32_4bytes(&(png_info->width), crc);
+    crc = crc32_4bytes(&(png_info->height), crc);
+    crc = crc32(&(png_info->bps),            1, crc);
+    crc = crc32(&(png_info->color_type),     1, crc);
+    crc = crc32(&(png_info->compress_type),  1, crc);
+    crc = crc32(&(png_info->filter_type),    1, crc);
+    crc = crc32(&(png_info->interlace_type), 1, crc);
+    crc ^= 0xFFFFFFFF;
+    if(crc != crc_32) {
+        printf("incorrect %s checksum\n", chunk);
+        exit(0);
+    }
+
+    printf("chunk:%s\n", chunk);
+    printf("width:%d\n", png_info->width);
+    printf("height:%d\n", png_info->height);
+    printf("bps:%d\n", png_info->bps);
+    printf("color type:%d\n", png_info->color_type);
+    printf("compress type:%d\n", png_info->compress_type);
+    printf("filter type:%d\n", png_info->filter_type);
+    printf("interlace type:%d\n", png_info->interlace_type);
+
+    *output_stream = (uint8_t *)malloc(sizeof(uint8_t) * (png_info->width+1) * png_info->height);
+}
+
+void chunk_read_idat(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+{
     uint32_t crc_32;
     uint32_t crc;
     uint8_t *tmp;
+    crc = 0xFFFFFFFF;
+
+    png_info->idat_size += size;
+    crc = crc32((uint8_t *)chunk, 4, crc);
+    if(size == png_info->idat_size) {
+        *png_image_data = (uint8_t *)malloc(sizeof(uint8_t) * size);
+        printf("png_image_data size : %d\n", size);
+        fread((*png_image_data)+png_info->idat_size-size, 1, size, input);
+        crc = crc32((*png_image_data)+png_info->idat_size-size, size, crc);
+    } else {
+        tmp = (uint8_t *)realloc(*png_image_data, sizeof(uint8_t) * png_info->idat_size);
+        *png_image_data = tmp;
+        fread((*png_image_data)+png_info->idat_size-size, 1, size, input);
+        crc = crc32((*png_image_data)+png_info->idat_size-size, size, crc);
+    }
+    crc ^= 0xFFFFFFFF;
+    crc_32 = read_4bytes(input);
+    printf("chunk:%s\n", chunk);
+    if(crc != crc_32) {
+        printf("incorrect %s checksum\n", chunk);
+        exit(0);
+    }
+}
+
+void chunk_read_plte(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+{
+    uint32_t crc_32;
+    uint32_t crc;
+    int i;
+    crc = 0xFFFFFFFF;
+
+    *color_palette = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * size);
+    png_info->palette_size = size;
+
+    for(i = 0; i < size/3; i++) {
+        (*color_palette)[i].rgbtRed   = 0;
+        (*color_palette)[i].rgbtGreen = 0;
+        (*color_palette)[i].rgbtBlue  = 0;
+        fread(&((*color_palette)[i].rgbtRed),   1, 1, input);
+        fread(&((*color_palette)[i].rgbtGreen), 1, 1, input);
+        fread(&((*color_palette)[i].rgbtBlue),  1, 1, input);
+    }
+    crc_32 = read_4bytes(input);
+
+    for(i = 0; i < size/3; i++) {
+        printf("PLTE [%d] : %d %d %d\n", i, (*color_palette)[i].rgbtRed, (*color_palette)[i].rgbtGreen, (*color_palette)[i].rgbtBlue);
+    }
+}
+
+void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, RGBTRIPLE **color_palette, PNG_INFO *png_info)
+{
+    uint8_t flag;
+    uint32_t size;
+    char chunk[5];
+    uint8_t compress_type;
+    uint32_t crc_32;
+    uint32_t crc;
     int i;
     int k;
-    uint32_t palette_size;
     uint32_t gamma;
     uint8_t rendering_intent;
     uint32_t white_point_x;
@@ -98,7 +184,7 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
 
     make_crc_table();
 
-    idat_size = 0;
+    png_info->idat_size = 0;
     flag = 0;
     do {
         crc = 0xFFFFFFFF;
@@ -111,82 +197,11 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
         chunk[4] = '\0';
 
         if(strcmp("IHDR", chunk) == 0) {
-            width = read_4bytes(input);
-            height = read_4bytes(input);
-            fread(&bps, 1, 1, input);
-            fread(&color_type, 1, 1, input);
-            fread(&compress_type, 1, 1, input);
-            fread(&filter_type, 1, 1, input);
-            fread(&interlace_type, 1, 1, input);
-            crc_32 = read_4bytes(input);
-            crc = crc32((uint8_t *)chunk, 4, crc);
-            crc = crc32_4bytes(&width, crc);
-            crc = crc32_4bytes(&height, crc);
-            crc = crc32(&bps, 1, crc);
-            crc = crc32(&color_type, 1, crc);
-            crc = crc32(&compress_type, 1, crc);
-            crc = crc32(&filter_type, 1, crc);
-            crc = crc32(&interlace_type, 1, crc);
-
-            printf("chunk:%s\n", chunk);
-            printf("width:%d\n", width);
-            printf("height:%d\n", height);
-            printf("bps:%d\n", bps);
-            printf("color type:%d\n", color_type);
-            printf("compress type:%d\n", compress_type);
-            printf("filter type:%d\n", filter_type);
-            printf("interlace type:%d\n", interlace_type);
-            printf("crc-32: %xh\n", crc_32);
-
-            crc ^= 0xFFFFFFFF;
-            if(crc != crc_32) {
-                printf("incorrect %s checksum\n", chunk);
-                exit(0);
-            }
-
-            *output_stream = (uint8_t *)malloc(sizeof(uint8_t) * (width+1) * height);
-
+            chunk_read_ihdr(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
         } else if(strcmp(chunk, "IDAT") == 0) {
-            idat_size += size;
-            crc = crc32((uint8_t *)chunk, 4, crc);
-            if(size == idat_size) {
-                *png_image_data = (uint8_t *)malloc(sizeof(uint8_t) * size);
-                printf("png_image_data size : %d\n", size);
-                fread((*png_image_data)+idat_size-size, 1, size, input);
-                crc = crc32((*png_image_data)+idat_size-size, size, crc);
-            } else {
-                tmp = (uint8_t *)realloc(*png_image_data, sizeof(uint8_t) * idat_size);
-                *png_image_data = tmp;
-                fread((*png_image_data)+idat_size-size, 1, size, input);
-                crc = crc32((*png_image_data)+idat_size-size, size, crc);
-            }
-            crc ^= 0xFFFFFFFF;
-            crc_32 = read_4bytes(input);
-            printf("chunk:%s\n", chunk);
-            printf("crc-32: %xh\n", crc_32);
-            if(crc != crc_32) {
-                printf("incorrect %s checksum\n", chunk);
-                exit(0);
-            }
+            chunk_read_idat(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
         } else if(strcmp(chunk, "PLTE") == 0) {
-            *color_palette = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * size);
-            palette_size = size;
-
-            for(i = 0; i < size/3; i++) {
-                (*color_palette)[i].rgbtRed   = 0;
-                (*color_palette)[i].rgbtGreen = 0;
-                (*color_palette)[i].rgbtBlue  = 0;
-                fread(&((*color_palette)[i].rgbtRed),   1, 1, input);
-                fread(&((*color_palette)[i].rgbtGreen), 1, 1, input);
-                fread(&((*color_palette)[i].rgbtBlue),  1, 1, input);
-            }
-            crc_32 = read_4bytes(input);
-
-            printf("chunk:%s\n", chunk);
-            for(i = 0; i < size/3; i++) {
-                printf("[%d] : %d %d %d\n", i, (*color_palette)[i].rgbtRed, (*color_palette)[i].rgbtGreen, (*color_palette)[i].rgbtBlue);
-            }
-            printf("crc-32: %xh\n", crc_32);
+            chunk_read_plte(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
         } else if(strcmp(chunk, "IEND") == 0) {
             crc = crc32((uint8_t *)chunk, 4, crc);
             crc ^= 0xFFFFFFFF;
@@ -263,18 +278,18 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
         } else if(strcmp(chunk, "tRNS") == 0) {
             printf("chunk:%s\n", chunk);
 
-            if(color_type == 3) {
+            if(png_info->color_type == 3) {
                 alpha_index = (uint8_t *)malloc(sizeof(uint8_t) * size);
                 for(k = 0; k < size; k++) {
                     fread(&alpha_index[k], 1, 1, input);
                     printf("[%d] : %d (alpha)\n", k, alpha_index[k]);
                 }
-            } else if(color_type == 0) {
+            } else if(png_info->color_type == 0) {
                 alpha_gray = (uint16_t *)malloc(sizeof(uint16_t) * size/2);
                 for(k = 0; k < size/2; k++) {
                     alpha_gray[k] = read_2bytes(input);
                 }
-            } else if(color_type == 2) {
+            } else if(png_info->color_type == 2) {
                 alpha_red   = (uint16_t *)malloc(sizeof(uint16_t) * size/6);
                 alpha_green = (uint16_t *)malloc(sizeof(uint16_t) * size/6);
                 alpha_blue  = (uint16_t *)malloc(sizeof(uint16_t) * size/6);
@@ -291,20 +306,20 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
         } else if(strcmp(chunk, "sBIT") == 0) {
             printf("chunk:%s\n", chunk);
 
-            if(color_type == 3) {
+            if(png_info->color_type == 3) {
                 fread(&sbit_red, 1, 1, input);
                 fread(&sbit_green, 1, 1, input);
                 fread(&sbit_blue, 1, 1, input);
-            } else if(color_type == 0) {
+            } else if(png_info->color_type == 0) {
                 fread(&sbit_gray, 1, 1, input);
-            } else if(color_type == 2) {
+            } else if(png_info->color_type == 2) {
                 fread(&sbit_red, 1, 1, input);
                 fread(&sbit_green, 1, 1, input);
                 fread(&sbit_blue, 1, 1, input);
-            } else if(color_type == 4) {
+            } else if(png_info->color_type == 4) {
                 fread(&sbit_gray, 1, 1, input);
                 fread(&sbit_alpha, 1, 1, input);
-            } else if(color_type == 6) {
+            } else if(png_info->color_type == 6) {
                 fread(&sbit_red, 1, 1, input);
                 fread(&sbit_green, 1, 1, input);
                 fread(&sbit_blue, 1, 1, input);
@@ -315,11 +330,11 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
         } else if(strcmp(chunk, "bKGD") == 0) {
             printf("chunk:%s\n", chunk);
 
-            if(color_type == 3) {
+            if(png_info->color_type == 3) {
                 fread(&background_color_pallet, 1, 1, input);
-            } else if(color_type == 0 || color_type == 4) {
+            } else if(png_info->color_type == 0 || png_info->color_type == 4) {
                 background_color_gray = read_2bytes(input);
-            } else if(color_type == 2 || color_type == 6) {
+            } else if(png_info->color_type == 2 || png_info->color_type == 6) {
                 background_color_red = read_2bytes(input);
                 background_color_green = read_2bytes(input);
                 background_color_blue = read_2bytes(input);
@@ -329,10 +344,10 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
         } else if(strcmp(chunk, "hIST") == 0) {
             printf("chunk:%s\n", chunk);
 
-            printf("palet : %d\n", palette_size);
-            image_histgram = (uint16_t *)malloc(sizeof(uint16_t) * palette_size / 3);
+            printf("palet : %d\n", png_info->palette_size);
+            image_histgram = (uint16_t *)malloc(sizeof(uint16_t) * png_info->palette_size / 3);
 
-            for(i = 0; i < palette_size / 3; i++) {
+            for(i = 0; i < png_info->palette_size / 3; i++) {
                 image_histgram[i] = read_2bytes(input);
             }
 
@@ -455,17 +470,12 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
         }
     } while(flag == 0);
 
-    png_info->color_type     = color_type;
-    png_info->bps            = bps;
-    png_info->interlace_type = interlace_type;
     png_info->alpha_index    = alpha_index;
     png_info->alpha_gray     = alpha_gray;
     png_info->alpha_red      = alpha_red;
     png_info->alpha_green    = alpha_green;
     png_info->alpha_blue     = alpha_blue;
     png_info->gamma          = gamma;
-    png_info->width          = width;
-    png_info->height         = height;
 
     if(png_info->color_type == 0 || png_info->color_type == 2 || png_info->color_type == 3 || png_info->color_type == 4 || png_info->color_type == 5 || png_info->color_type == 6) {
     } else {
@@ -705,11 +715,15 @@ void decompress_dynamic_huffman_codes(uint8_t *png_image_data, int *byte_index, 
 
     printf("-- tree --\n");
     for(i = 0; i < *lit; i++) {
-        printf("[%d] %d (%d)\n", i, tree[i].code, tree[i].len);
+        if(tree[i].len != 0) {
+            printf("[%d] %d (%d)\n", i, tree[i].code, tree[i].len);
+        }
     }
     printf("-- dtree --\n");
     for(i = 0; i < *dist; i++) {
-        printf("[%d] %d (%d)\n", i, dtree[i].code, dtree[i].len);
+        if(dtree[i].len != 0) {
+            printf("[%d] %d (%d)\n", i, dtree[i].code, dtree[i].len);
+        }
     }
 
     free((void *)id);
@@ -851,8 +865,9 @@ unsigned int paeth_predictor(int a, int b, int c)
     }
 }
 
-void filter_interlace(uint8_t *output_stream, int i, int *write_byte_index, int width, PNG_INFO *png_info, int height, int pass)
+void filter_interlace(uint8_t *output_stream, int *write_byte_index, PNG_INFO *png_info, int pass)
 {
+    int i;
     int j;
     int k;
     uint8_t up_byte;
@@ -867,23 +882,21 @@ void filter_interlace(uint8_t *output_stream, int i, int *write_byte_index, int 
     int count;
 
     if(png_info->bps != 16) {
-        tmp = width / (8 / png_info->bps);
-        if((width % (8/png_info->bps)) != 0) {
-            //width = tmp + 1;
+        tmp = png_info->width / (8 / png_info->bps);
+        if((png_info->width % (8/png_info->bps)) != 0) {
             tmp += 1;
         } else {
-            //width = tmp;
             ;
         }
     }
 
-    for(i = start_y[pass]; i < height; i += step_y[pass]) {
-        if(start_x[pass] >= width) {
+    for(i = start_y[pass]; i < png_info->height; i += step_y[pass]) {
+        if(start_x[pass] >= png_info->width) {
             break;
         }
         if(output_stream[*write_byte_index] == NONE) {
             *write_byte_index += 1;
-            for(j = start_x[pass]; j < width; j += step_x[pass]) {
+            for(j = start_x[pass]; j < png_info->width; j += step_x[pass]) {
                 count = 0;
                 if(png_info->bps != 16) {
                     count += w[png_info->color_type];
@@ -901,7 +914,7 @@ void filter_interlace(uint8_t *output_stream, int i, int *write_byte_index, int 
             }
         } else if(output_stream[*write_byte_index] == SUB) {
             *write_byte_index += 1;
-            for(j = start_x[pass]; j < width; j += step_x[pass]) {
+            for(j = start_x[pass]; j < png_info->width; j += step_x[pass]) {
                 count = 0;
                 if(png_info->bps != 16) {
                     for(k = 0; k < w[png_info->color_type]; k++) {
@@ -934,10 +947,10 @@ void filter_interlace(uint8_t *output_stream, int i, int *write_byte_index, int 
         }
         else if(output_stream[*write_byte_index] == UP) {
             *write_byte_index += 1;
-            for(j = start_x[pass]; j < width; j += step_x[pass]) {
+            for(j = start_x[pass]; j < png_info->width; j += step_x[pass]) {
                 count = 0;
-                int tmp = (width-start_x[pass]) / step_x[pass];
-                if(((width-start_x[pass])%step_x[pass]) != 0) {
+                int tmp = (png_info->width-start_x[pass]) / step_x[pass];
+                if(((png_info->width-start_x[pass])%step_x[pass]) != 0) {
                     tmp += 1;
                 }
                 if(png_info->bps != 16) {
@@ -972,10 +985,10 @@ void filter_interlace(uint8_t *output_stream, int i, int *write_byte_index, int 
             }
         } else if(output_stream[*write_byte_index] == AVERAGE) {
             *write_byte_index += 1;
-            for(j = start_x[pass]; j < width; j += step_x[pass]) {
+            for(j = start_x[pass]; j < png_info->width; j += step_x[pass]) {
                 count = 0;
-                int tmp = (width-start_x[pass]) / step_x[pass];
-                if(((width-start_x[pass])%step_x[pass]) != 0) {
+                int tmp = (png_info->width-start_x[pass]) / step_x[pass];
+                if(((png_info->width-start_x[pass])%step_x[pass]) != 0) {
                     tmp += 1;
                 }
                 if(png_info->bps != 16) {
@@ -1019,10 +1032,10 @@ void filter_interlace(uint8_t *output_stream, int i, int *write_byte_index, int 
         } else if(output_stream[*write_byte_index] == PAETH) {
             *write_byte_index += 1;
 
-            for(j = start_x[pass]; j < width; j += step_x[pass]) {
+            for(j = start_x[pass]; j < png_info->width; j += step_x[pass]) {
                 count = 0;
-                int tmp = (width-start_x[pass]) / step_x[pass];
-                if(((width-start_x[pass])%step_x[pass]) != 0) {
+                int tmp = (png_info->width-start_x[pass]) / step_x[pass];
+                if(((png_info->width-start_x[pass])%step_x[pass]) != 0) {
                     tmp += 1;
                 }
                 if(png_info->bps != 16) {
@@ -1083,8 +1096,9 @@ void filter_interlace(uint8_t *output_stream, int i, int *write_byte_index, int 
     }
 }
 
-void interlace(uint8_t *output_stream, int i, int *write_byte_index, int width, RGBTRIPLE ***image_data, RGBTRIPLE *color_palette, PNG_INFO *png_info, int height, int pass)
+void interlace(uint8_t *output_stream, int *write_byte_index, RGBTRIPLE ***image_data, RGBTRIPLE *color_palette, PNG_INFO *png_info, int pass)
 {
+    int i;
     int j;
     int k;
     RGBTRIPLE c;
@@ -1093,14 +1107,14 @@ void interlace(uint8_t *output_stream, int i, int *write_byte_index, int width, 
     uint8_t step_y[7]  = {8, 8, 8, 4, 4, 2, 2};
     uint8_t step_x[7]  = {8, 8, 4, 4, 2, 2, 1};
 
-    printf("[%d] %d\n", i, output_stream[*write_byte_index]);
+    printf("[%d] %d\n", pass, output_stream[*write_byte_index]);
     k = 0;
-    for(i = start_y[pass]; i < height; i += step_y[pass]) {
-        if(start_x[pass] >= width) {
+    for(i = start_y[pass]; i < png_info->height; i += step_y[pass]) {
+        if(start_x[pass] >= png_info->width) {
             break;
         }
         *write_byte_index += 1;
-        for(j = start_x[pass]; j < width; j += step_x[pass]) {
+        for(j = start_x[pass]; j < png_info->width; j += step_x[pass]) {
             c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
             if(png_info->bps != 16) {
                 (*image_data)[i][j].rgbtRed   = c.rgbtRed;
@@ -1122,20 +1136,21 @@ void interlace(uint8_t *output_stream, int i, int *write_byte_index, int width, 
     }
 }
 
-void filter(uint8_t *output_stream, int i, int *write_byte_index, int width, PNG_INFO *png_info)
+void filter(uint8_t *output_stream, int i, int *write_byte_index, PNG_INFO *png_info)
 {
     int j;
     int k;
     uint8_t up_byte;
     uint8_t left_byte;
     uint8_t tmp;
+    uint8_t width;
     uint8_t upper_left_byte;
     uint8_t w[] = {1, 0, 3, 1, 2, 0, 4};
 
     printf("[%d( %d )] %d\n", i, *write_byte_index, output_stream[*write_byte_index]);
     if(png_info->bps != 16) {
-        tmp = width / (8 / png_info->bps);
-        if((width % (8/png_info->bps)) != 0) {
+        tmp = png_info->width / (8 / png_info->bps);
+        if((png_info->width % (8/png_info->bps)) != 0) {
             width = tmp + 1;
         } else {
             width = tmp;
@@ -1297,7 +1312,7 @@ void filter(uint8_t *output_stream, int i, int *write_byte_index, int width, PNG
     }
 }
 
-void line(uint8_t *output_stream, int i, int *write_byte_index, int width, RGBTRIPLE ***image_data, RGBTRIPLE *color_palette, PNG_INFO *png_info)
+void line(uint8_t *output_stream, int i, int *write_byte_index, RGBTRIPLE ***image_data, RGBTRIPLE *color_palette, PNG_INFO *png_info)
 {
     int j;
     int k;
@@ -1306,7 +1321,7 @@ void line(uint8_t *output_stream, int i, int *write_byte_index, int width, RGBTR
     printf("[%d] %d\n", i, output_stream[*write_byte_index]);
     *write_byte_index += 1;
     k = 0;
-    for(j = 0; j < width; j++) {
+    for(j = 0; j < png_info->width; j++) {
         printf("-[%d][%d]-\n", i, j);
         c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
         if(png_info->bps != 16) {
@@ -1478,21 +1493,21 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     if(png_info.interlace_type == 0) {
         write_byte_index = 0;
         for(i = 0; i < png_info.height; i++) {
-            filter(output_stream, i, &write_byte_index, png_info.width, &png_info);
+            filter(output_stream, i, &write_byte_index, &png_info);
         }
         write_byte_index = 0;
         for(i = 0; i < png_info.height; i++) {
-            line(output_stream, i, &write_byte_index, png_info.width, image_data, color_palette, &png_info);
+            line(output_stream, i, &write_byte_index, image_data, color_palette, &png_info);
         }
     } else {
         write_byte_index = 0;
         for(i = 0; i < 7; i++) {
             printf("-- %d --\n", i);
-            filter_interlace(output_stream, i, &write_byte_index, png_info.width, &png_info, png_info.height, i);
+            filter_interlace(output_stream, &write_byte_index, &png_info, i);
         }
         write_byte_index = 0;
         for(i = 0; i < 7; i++) {
-            interlace(output_stream, i, &write_byte_index, png_info.width, image_data, color_palette, &png_info, png_info.height, i);
+            interlace(output_stream, &write_byte_index, image_data, color_palette, &png_info, i);
         }
     }
 
