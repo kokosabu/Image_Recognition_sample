@@ -27,6 +27,8 @@ typedef struct {
     uint32_t height;
     uint32_t idat_size;
     uint32_t palette_size;
+
+    uint8_t flag;
 } PNG_INFO;
 
 void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data);
