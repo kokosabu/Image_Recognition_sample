@@ -14,6 +14,11 @@ enum {
     END_OF_BLOCK = 256
 };
 
+struct chunk_read_info {
+    char *name;
+    void (*func)(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette);
+};
+
 void chunk_read_ihdr(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
 {
     uint32_t crc_32;
@@ -525,6 +530,28 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
 {
     uint32_t size;
     char chunk[5];
+    int i;
+    struct chunk_read_info chunk_read_table[] =
+    {
+        {"IHDR", chunk_read_ihdr},
+        {"IDAT", chunk_read_idat},
+        {"PLTE", chunk_read_plte},
+        {"IEND", chunk_read_iend},
+        {"gAMA", chunk_read_gama},
+        {"sRGB", chunk_read_srgb},
+        {"cHRM", chunk_read_chrm},
+        {"pHYs", chunk_read_phys},
+        {"vpAg", chunk_read_vpag},
+        {"tEXt", chunk_read_text},
+        {"tRNS", chunk_read_trns},
+        {"sBIT", chunk_read_sbit},
+        {"bKGD", chunk_read_bkgd},
+        {"hIST", chunk_read_hist},
+        {"eXIf", chunk_read_exif},
+        {"iTXt", chunk_read_itxt},
+        {"sPLT", chunk_read_splt},
+        {"zTXt", chunk_read_ztxt},
+    };
 
     png_info->alpha_index = NULL;
     png_info->alpha_gray = NULL;
@@ -548,100 +575,13 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
         fread(&chunk[3], 1, 1, input);
         chunk[4] = '\0';
 
-#if 0
-        struct chunk_read_info {
-            char *name;
-            //void chunk_read_plte(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
-        };
-        struct chunk_read_info chunk_read_table[]
-        {
-            {"IHDR", chunk_read_ihdr},
-            {"IDAT", chunk_read_idat},
-        //} else if(strcmp(chunk, "PLTE") == 0) {
-        //    chunk_read_plte(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        //} else if(strcmp(chunk, "IEND") == 0) {
-        //    chunk_read_iend(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        //} else if(strcmp(chunk, "gAMA") == 0) {
-        //    chunk_read_gama(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        //} else if(strcmp(chunk, "sRGB") == 0) {
-        //    chunk_read_srgb(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        //} else if(strcmp(chunk, "cHRM") == 0) {
-        //    chunk_read_chrm(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        //} else if(strcmp(chunk, "pHYs") == 0) {
-        //    chunk_read_phys(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        //} else if(strcmp(chunk, "vpAg") == 0) {
-        //    chunk_read_vpag(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        //} else if(strcmp(chunk, "tEXt") == 0) {
-        //    chunk_read_text(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        //} else if(strcmp(chunk, "tRNS") == 0) {
-        //    chunk_read_trns(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        //} else if(strcmp(chunk, "sBIT") == 0) {
-        //    chunk_read_sbit(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        //} else if(strcmp(chunk, "bKGD") == 0) {
-        //    chunk_read_bkgd(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        //} else if(strcmp(chunk, "hIST") == 0) {
-        //    chunk_read_hist(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        //} else if(strcmp(chunk, "tIME") == 0) {
-        //    chunk_read_time(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        //} else if(strcmp(chunk, "eXIf") == 0) {
-        //    chunk_read_exif(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        //} else if(strcmp(chunk, "iTXt") == 0) {
-        //    chunk_read_itxt(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        //} else if(strcmp(chunk, "sPLT") == 0) {
-        //    chunk_read_splt(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        //} else if(strcmp(chunk, "zTXt") == 0) {
-        //    chunk_read_ztxt(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        //};
-        for(i = 0; i < table; i++) {
+        for(i = 0; i < sizeof(chunk_read_table)/sizeof(chunk_read_table[0]); i++) {
             if(strcmp(chunk_read_table[i].name, chunk) == 0) {
                 chunk_read_table[i].func(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
                 break;
             }
         }
-        if(i == table) {
-            chunk_read_not_found(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        }
-#endif
-
-        if(strcmp("IHDR", chunk) == 0) {
-            chunk_read_ihdr(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        } else if(strcmp(chunk, "IDAT") == 0) {
-            chunk_read_idat(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        } else if(strcmp(chunk, "PLTE") == 0) {
-            chunk_read_plte(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        } else if(strcmp(chunk, "IEND") == 0) {
-            chunk_read_iend(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        } else if(strcmp(chunk, "gAMA") == 0) {
-            chunk_read_gama(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        } else if(strcmp(chunk, "sRGB") == 0) {
-            chunk_read_srgb(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        } else if(strcmp(chunk, "cHRM") == 0) {
-            chunk_read_chrm(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        } else if(strcmp(chunk, "pHYs") == 0) {
-            chunk_read_phys(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        } else if(strcmp(chunk, "vpAg") == 0) {
-            chunk_read_vpag(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        } else if(strcmp(chunk, "tEXt") == 0) {
-            chunk_read_text(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        } else if(strcmp(chunk, "tRNS") == 0) {
-            chunk_read_trns(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        } else if(strcmp(chunk, "sBIT") == 0) {
-            chunk_read_sbit(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        } else if(strcmp(chunk, "bKGD") == 0) {
-            chunk_read_bkgd(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        } else if(strcmp(chunk, "hIST") == 0) {
-            chunk_read_hist(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        } else if(strcmp(chunk, "tIME") == 0) {
-            chunk_read_time(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        } else if(strcmp(chunk, "eXIf") == 0) {
-            chunk_read_exif(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        } else if(strcmp(chunk, "iTXt") == 0) {
-            chunk_read_itxt(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        } else if(strcmp(chunk, "sPLT") == 0) {
-            chunk_read_splt(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        } else if(strcmp(chunk, "zTXt") == 0) {
-            chunk_read_ztxt(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
-        } else {
+        if(i == sizeof(chunk_read_table)/sizeof(chunk_read_table[0])) {
             chunk_read_not_found(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
         }
     } while(png_info->flag == 0);
