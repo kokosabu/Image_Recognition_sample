@@ -526,7 +526,7 @@ void chunk_read_not_found(FILE *input, char *chunk, uint8_t **output_stream, PNG
     exit(0);
 }
 
-void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, RGBTRIPLE **color_palette, PNG_INFO *png_info)
+void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, PNG_INFO *png_info)
 {
     uint32_t size;
     char chunk[5];
@@ -577,12 +577,13 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
 
         for(i = 0; i < sizeof(chunk_read_table)/sizeof(chunk_read_table[0]); i++) {
             if(strcmp(chunk_read_table[i].name, chunk) == 0) {
-                chunk_read_table[i].func(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
+                //chunk_read_table[i].func(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
+                chunk_read_table[i].func(input, &(chunk[0]), output_stream, png_info, size, png_image_data, &(png_info->color_palette));
                 break;
             }
         }
         if(i == sizeof(chunk_read_table)/sizeof(chunk_read_table[0])) {
-            chunk_read_not_found(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
+            chunk_read_not_found(input, &(chunk[0]), output_stream, png_info, size, png_image_data, &(png_info->color_palette));
         }
     } while(png_info->flag == 0);
 
@@ -1575,14 +1576,13 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     int write_byte_index;
     int bfinal;
     int btype;
-    RGBTRIPLE *color_palette;
     PNG_INFO png_info;
 
     printf("PNG\n");
 
     fseek(input, 8, SEEK_CUR);
 
-    chunk_read(input, &output_stream, &png_image_data, &color_palette, &png_info);
+    chunk_read(input, &output_stream, &png_image_data, &png_info);
 
     bit_index = 0;
     byte_index = 0;
@@ -1617,7 +1617,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
         }
         write_byte_index = 0;
         for(i = 0; i < png_info.height; i++) {
-            line(output_stream, i, &write_byte_index, image_data, color_palette, &png_info);
+            line(output_stream, i, &write_byte_index, image_data, png_info.color_palette, &png_info);
         }
     } else {
         write_byte_index = 0;
@@ -1627,7 +1627,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
         }
         write_byte_index = 0;
         for(i = 0; i < 7; i++) {
-            interlace(output_stream, &write_byte_index, image_data, color_palette, &png_info, i);
+            interlace(output_stream, &write_byte_index, image_data, png_info.color_palette, &png_info, i);
         }
     }
 

@@ -28,6 +28,7 @@ typedef struct {
     uint32_t idat_size;
     uint32_t palette_size;
 
+    RGBTRIPLE *color_palette;
     uint8_t flag;
 } PNG_INFO;
 
