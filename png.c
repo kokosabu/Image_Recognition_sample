@@ -108,21 +108,21 @@ void chunk_read_plte(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     int i;
     crc = 0xFFFFFFFF;
 
-    *color_palette = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * size);
+    png_info->color_palette = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * size);
     png_info->palette_size = size;
 
     for(i = 0; i < size/3; i++) {
-        (*color_palette)[i].rgbtRed   = 0;
-        (*color_palette)[i].rgbtGreen = 0;
-        (*color_palette)[i].rgbtBlue  = 0;
-        fread(&((*color_palette)[i].rgbtRed),   1, 1, input);
-        fread(&((*color_palette)[i].rgbtGreen), 1, 1, input);
-        fread(&((*color_palette)[i].rgbtBlue),  1, 1, input);
+        (png_info->color_palette)[i].rgbtRed   = 0;
+        (png_info->color_palette)[i].rgbtGreen = 0;
+        (png_info->color_palette)[i].rgbtBlue  = 0;
+        fread(&((png_info->color_palette[i]).rgbtRed),   1, 1, input);
+        fread(&((png_info->color_palette[i]).rgbtGreen), 1, 1, input);
+        fread(&((png_info->color_palette[i]).rgbtBlue),  1, 1, input);
     }
     crc_32 = read_4bytes(input);
 
     for(i = 0; i < size/3; i++) {
-        printf("PLTE [%d] : %d %d %d\n", i, (*color_palette)[i].rgbtRed, (*color_palette)[i].rgbtGreen, (*color_palette)[i].rgbtBlue);
+        printf("PLTE [%d] : %d %d %d\n", i, (png_info->color_palette)[i].rgbtRed, (png_info->color_palette)[i].rgbtGreen, (png_info->color_palette)[i].rgbtBlue);
     }
 }
 
@@ -577,7 +577,6 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
 
         for(i = 0; i < sizeof(chunk_read_table)/sizeof(chunk_read_table[0]); i++) {
             if(strcmp(chunk_read_table[i].name, chunk) == 0) {
-                //chunk_read_table[i].func(input, &(chunk[0]), output_stream, png_info, size, png_image_data, color_palette);
                 chunk_read_table[i].func(input, &(chunk[0]), output_stream, png_info, size, png_image_data, &(png_info->color_palette));
                 break;
             }
@@ -622,7 +621,7 @@ void read_zlib_header(uint8_t *png_image_data, int *byte_index, int *bit_index)
 
     flg = png_image_data[*byte_index];
     *byte_index += 1;
-    fdict = (flg & 0x10) >> 5;
+    fdict = (flg & 0x20) >> 5;
     printf("fdict %d\n", fdict);
 
     if(fdict == 1) {
