@@ -16,10 +16,10 @@ enum {
 
 struct chunk_read_info {
     char *name;
-    void (*func)(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette);
+    void (*func)(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data);
 };
 
-void chunk_read_ihdr(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read_ihdr(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     uint32_t crc_32;
     uint32_t crc;
@@ -72,7 +72,7 @@ void chunk_read_ihdr(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     *output_stream = (uint8_t *)malloc(sizeof(uint8_t) * (png_info->width+1) * png_info->height);
 }
 
-void chunk_read_idat(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read_idat(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     uint32_t crc_32;
     uint32_t crc;
@@ -101,7 +101,7 @@ void chunk_read_idat(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     }
 }
 
-void chunk_read_plte(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read_plte(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     uint32_t crc_32;
     uint32_t crc;
@@ -126,7 +126,7 @@ void chunk_read_plte(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     }
 }
 
-void chunk_read_iend(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read_iend(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     uint32_t crc_32;
     uint32_t crc;
@@ -143,7 +143,7 @@ void chunk_read_iend(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     png_info->flag = 1;
 }
 
-void chunk_read_gama(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read_gama(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     uint32_t crc_32;
 
@@ -152,7 +152,7 @@ void chunk_read_gama(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     printf("gamma:%f(%d)\n", png_info->gamma/100000.0, png_info->gamma);
 }
 
-void chunk_read_srgb(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read_srgb(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     uint32_t crc_32;
     uint8_t rendering_intent;
@@ -163,7 +163,7 @@ void chunk_read_srgb(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     printf("Rendering intent:%d\n", rendering_intent);
 }
 
-void chunk_read_chrm(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read_chrm(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     uint32_t white_point_x;
     uint32_t white_point_y;
@@ -195,7 +195,7 @@ void chunk_read_chrm(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     printf("blue y:%d\n", blue_y);
 }
 
-void chunk_read_phys(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read_phys(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     uint32_t x_axis;
     uint32_t y_axis;
@@ -212,7 +212,7 @@ void chunk_read_phys(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     printf("unit:%d\n", unit);
 }
 
-void chunk_read_vpag(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read_vpag(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     uint32_t VirtualImageWidth;
     uint32_t VirtualImageHeight;
@@ -229,7 +229,7 @@ void chunk_read_vpag(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     printf("VirtualPageUnits:%d\n", VirtualPageUnits);
 }
 
-void chunk_read_text(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read_text(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     char keyword[80];
     char *text;
@@ -255,7 +255,7 @@ void chunk_read_text(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     free((void *)text);
 }
 
-void chunk_read_trns(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read_trns(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     uint32_t crc_32;
     int k;
@@ -287,7 +287,7 @@ void chunk_read_trns(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     png_info->tRNS_size = size;
 }
 
-void chunk_read_sbit(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read_sbit(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     uint8_t sbit_red;
     uint8_t sbit_green;
@@ -319,7 +319,7 @@ void chunk_read_sbit(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     crc_32 = read_4bytes(input);
 }
 
-void chunk_read_bkgd(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read_bkgd(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     uint8_t background_color_pallet;
     uint16_t background_color_gray;
@@ -341,7 +341,7 @@ void chunk_read_bkgd(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     crc_32 = read_4bytes(input);
 }
 
-void chunk_read_hist(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read_hist(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     uint32_t crc_32;
     uint16_t *image_histgram;
@@ -359,7 +359,7 @@ void chunk_read_hist(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     free((void *)image_histgram);
 }
 
-void chunk_read_time(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read_time(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     uint16_t year;
     uint8_t month;
@@ -378,7 +378,7 @@ void chunk_read_time(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     crc_32 = read_4bytes(input);
 }
 
-void chunk_read_exif(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read_exif(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     int i;
     uint8_t k;
@@ -391,7 +391,7 @@ void chunk_read_exif(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     crc_32 = read_4bytes(input);
 }
 
-void chunk_read_itxt(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read_itxt(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     int k;
     char keyword_itxt[160+1];
@@ -449,7 +449,7 @@ void chunk_read_itxt(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     crc_32 = read_4bytes(input);
 }
 
-void chunk_read_splt(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read_splt(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     int k;
     int i;
@@ -505,7 +505,7 @@ void chunk_read_splt(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     crc_32 = read_4bytes(input);
 }
 
-void chunk_read_ztxt(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read_ztxt(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     int i;
     uint8_t k;
@@ -518,7 +518,7 @@ void chunk_read_ztxt(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     crc_32 = read_4bytes(input);
 }
 
-void chunk_read_not_found(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data, RGBTRIPLE **color_palette)
+void chunk_read_not_found(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     printf("size:%d\n", size);
     printf("chunk:%s\n", chunk);
@@ -577,12 +577,12 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
 
         for(i = 0; i < sizeof(chunk_read_table)/sizeof(chunk_read_table[0]); i++) {
             if(strcmp(chunk_read_table[i].name, chunk) == 0) {
-                chunk_read_table[i].func(input, &(chunk[0]), output_stream, png_info, size, png_image_data, &(png_info->color_palette));
+                chunk_read_table[i].func(input, &(chunk[0]), output_stream, png_info, size, png_image_data);
                 break;
             }
         }
         if(i == sizeof(chunk_read_table)/sizeof(chunk_read_table[0])) {
-            chunk_read_not_found(input, &(chunk[0]), output_stream, png_info, size, png_image_data, &(png_info->color_palette));
+            chunk_read_not_found(input, &(chunk[0]), output_stream, png_info, size, png_image_data);
         }
     } while(png_info->flag == 0);
 
@@ -871,7 +871,7 @@ int get_color_data(uint8_t *output_stream, int *write_byte_index, PNG_INFO *png_
     return data;
 }
 
-RGBTRIPLE get_color(RGBTRIPLE *color_palette, uint8_t *output_stream, int *write_byte_index, PNG_INFO *png_info, int *index)
+RGBTRIPLE get_color(uint8_t *output_stream, int *write_byte_index, PNG_INFO *png_info, int *index)
 {
     RGBTRIPLE c;
     int data;
@@ -899,9 +899,9 @@ RGBTRIPLE get_color(RGBTRIPLE *color_palette, uint8_t *output_stream, int *write
         c.rgbtBlue  = data;
     } else if(png_info->color_type == 3) {
         data = get_color_data(output_stream, write_byte_index, png_info, index);
-        c.rgbtRed   = color_palette[data].rgbtRed;
-        c.rgbtGreen = color_palette[data].rgbtGreen;
-        c.rgbtBlue  = color_palette[data].rgbtBlue;
+        c.rgbtRed   = (png_info->color_palette)[data].rgbtRed;
+        c.rgbtGreen = (png_info->color_palette)[data].rgbtGreen;
+        c.rgbtBlue  = (png_info->color_palette)[data].rgbtBlue;
         if(png_info->alpha_index != NULL) {
             if(data < png_info->tRNS_size) {
                 c.rgbtAlpha = png_info->alpha_index[data];
@@ -1194,7 +1194,7 @@ void filter_interlace(uint8_t *output_stream, int *write_byte_index, PNG_INFO *p
     }
 }
 
-void interlace(uint8_t *output_stream, int *write_byte_index, RGBTRIPLE ***image_data, RGBTRIPLE *color_palette, PNG_INFO *png_info, int pass)
+void interlace(uint8_t *output_stream, int *write_byte_index, RGBTRIPLE ***image_data, PNG_INFO *png_info, int pass)
 {
     int i;
     int j;
@@ -1213,7 +1213,7 @@ void interlace(uint8_t *output_stream, int *write_byte_index, RGBTRIPLE ***image
         }
         *write_byte_index += 1;
         for(j = start_x[pass]; j < png_info->width; j += step_x[pass]) {
-            c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
+            c = get_color(output_stream, write_byte_index, png_info, &k);
             if(png_info->bps != 16) {
                 (*image_data)[i][j].rgbtRed   = c.rgbtRed;
                 (*image_data)[i][j].rgbtGreen = c.rgbtGreen;
@@ -1410,7 +1410,7 @@ void filter(uint8_t *output_stream, int i, int *write_byte_index, PNG_INFO *png_
     }
 }
 
-void line(uint8_t *output_stream, int i, int *write_byte_index, RGBTRIPLE ***image_data, RGBTRIPLE *color_palette, PNG_INFO *png_info)
+void line(uint8_t *output_stream, int i, int *write_byte_index, RGBTRIPLE ***image_data, PNG_INFO *png_info)
 {
     int j;
     int k;
@@ -1421,7 +1421,7 @@ void line(uint8_t *output_stream, int i, int *write_byte_index, RGBTRIPLE ***ima
     k = 0;
     for(j = 0; j < png_info->width; j++) {
         printf("-[%d][%d]-\n", i, j);
-        c = get_color(color_palette, output_stream, write_byte_index, png_info, &k);
+        c = get_color(output_stream, write_byte_index, png_info, &k);
         if(png_info->bps != 16) {
             (*image_data)[i][j].rgbtRed   = c.rgbtRed;
             (*image_data)[i][j].rgbtGreen = c.rgbtGreen;
@@ -1616,7 +1616,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
         }
         write_byte_index = 0;
         for(i = 0; i < png_info.height; i++) {
-            line(output_stream, i, &write_byte_index, image_data, png_info.color_palette, &png_info);
+            line(output_stream, i, &write_byte_index, image_data, &png_info);
         }
     } else {
         write_byte_index = 0;
@@ -1626,11 +1626,13 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
         }
         write_byte_index = 0;
         for(i = 0; i < 7; i++) {
-            interlace(output_stream, &write_byte_index, image_data, png_info.color_palette, &png_info, i);
+            interlace(output_stream, &write_byte_index, image_data, &png_info, i);
         }
     }
 
     image_info->height   = png_info.height;
     image_info->width    = png_info.width;
     image_info->fileSize = png_info.height*png_info.width*3 + 54;
+
+    free((void *)output_stream);
 }
