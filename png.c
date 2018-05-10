@@ -77,9 +77,10 @@ void chunk_read_idat(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     uint32_t crc_32;
     uint32_t crc;
     uint8_t *tmp;
-    crc = 0xFFFFFFFF;
 
     png_info->idat_size += size;
+
+    crc = 0xFFFFFFFF;
     crc = crc32((uint8_t *)chunk, 4, crc);
     if(size == png_info->idat_size) {
         *png_image_data = (uint8_t *)malloc(sizeof(uint8_t) * size);
@@ -104,9 +105,7 @@ void chunk_read_idat(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
 void chunk_read_plte(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
     uint32_t crc_32;
-    uint32_t crc;
     int i;
-    crc = 0xFFFFFFFF;
 
     png_info->color_palette = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * size);
     png_info->palette_size = size;
