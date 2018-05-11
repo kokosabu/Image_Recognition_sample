@@ -332,9 +332,9 @@ void chunk_read_bkgd(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     } else if(png_info->color_type == 0 || png_info->color_type == 4) {
         background_color_gray = read_2bytes(input);
     } else if(png_info->color_type == 2 || png_info->color_type == 6) {
-        background_color_red = read_2bytes(input);
+        background_color_red   = read_2bytes(input);
         background_color_green = read_2bytes(input);
-        background_color_blue = read_2bytes(input);
+        background_color_blue  = read_2bytes(input);
     }
 
     crc_32 = read_4bytes(input);
@@ -492,11 +492,11 @@ void chunk_read_splt(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
         alpha_sample = (uint16_t *)malloc(sizeof(uint16_t) * (size - strlen(pallet_name) - 2) / 10);
         freq_sample  = (uint16_t *)malloc(sizeof(uint16_t) * (size - strlen(pallet_name) - 2) / 10);
         for(i = 0; i < ((size - strlen(pallet_name) - 2) / 10); i++) {
-            red_sample[i] = read_2bytes(input);
+            red_sample[i]   = read_2bytes(input);
             green_sample[i] = read_2bytes(input);
-            blue_sample[i] = read_2bytes(input);
+            blue_sample[i]  = read_2bytes(input);
             alpha_sample[i] = read_2bytes(input);
-            freq_sample[i] = read_2bytes(input);
+            freq_sample[i]  = read_2bytes(input);
         }
     } else {
         exit(0);
@@ -553,14 +553,14 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     };
 
     png_info->alpha_index = NULL;
-    png_info->alpha_gray = NULL;
-    png_info->alpha_red = NULL;
+    png_info->alpha_gray  = NULL;
+    png_info->alpha_red   = NULL;
     png_info->alpha_green = NULL;
-    png_info->alpha_blue = NULL;
-    png_info->tRNS_size = 0;
-    png_info->gamma = 100000;
-    png_info->idat_size = 0;
-    png_info->flag = 0;
+    png_info->alpha_blue  = NULL;
+    png_info->tRNS_size   = 0;
+    png_info->gamma       = 100000;
+    png_info->idat_size   = 0;
+    png_info->flag        = 0;
 
     *png_image_data = NULL;
 
@@ -937,6 +937,13 @@ RGBTRIPLE get_color(uint8_t *output_stream, int *write_byte_index, PNG_INFO *png
         c.rgbtBlue  = (uint8_t)(255.0 * pow((c.rgbtBlue  / 255.0), (100000.0/png_info->gamma)));
     }
 
+    if(png_info->bps == 16) {
+        c.rgbtRed   >>= 8;
+        c.rgbtGreen >>= 8;
+        c.rgbtBlue  >>= 8;
+        c.rgbtAlpha >>= 8;
+    }
+
     return c;
 }
 
@@ -1198,7 +1205,6 @@ void interlace(uint8_t *output_stream, int *write_byte_index, RGBTRIPLE ***image
     int i;
     int j;
     int k;
-    RGBTRIPLE c;
     uint8_t start_y[7] = {0, 0, 4, 0, 2, 0, 1};
     uint8_t start_x[7] = {0, 4, 0, 2, 0, 1, 0};
     uint8_t step_y[7]  = {8, 8, 8, 4, 4, 2, 2};
@@ -1212,18 +1218,7 @@ void interlace(uint8_t *output_stream, int *write_byte_index, RGBTRIPLE ***image
         }
         *write_byte_index += 1;
         for(j = start_x[pass]; j < png_info->width; j += step_x[pass]) {
-            c = get_color(output_stream, write_byte_index, png_info, &k);
-            if(png_info->bps != 16) {
-                (*image_data)[i][j].rgbtRed   = c.rgbtRed;
-                (*image_data)[i][j].rgbtGreen = c.rgbtGreen;
-                (*image_data)[i][j].rgbtBlue  = c.rgbtBlue;
-                (*image_data)[i][j].rgbtAlpha = c.rgbtAlpha;
-            } else {
-                (*image_data)[i][j].rgbtRed   = c.rgbtRed   >> 8;
-                (*image_data)[i][j].rgbtGreen = c.rgbtGreen >> 8;
-                (*image_data)[i][j].rgbtBlue  = c.rgbtBlue  >> 8;
-                (*image_data)[i][j].rgbtAlpha = c.rgbtAlpha >> 8;
-            }
+            (*image_data)[i][j] = get_color(output_stream, write_byte_index, png_info, &k);
         }
         if(k != 0) {
             *write_byte_index += 1;
@@ -1413,25 +1408,13 @@ void line(uint8_t *output_stream, int i, int *write_byte_index, RGBTRIPLE ***ima
 {
     int j;
     int k;
-    RGBTRIPLE c;
 
     printf("[%d] %d\n", i, output_stream[*write_byte_index]);
     *write_byte_index += 1;
     k = 0;
     for(j = 0; j < png_info->width; j++) {
         printf("-[%d][%d]-\n", i, j);
-        c = get_color(output_stream, write_byte_index, png_info, &k);
-        if(png_info->bps != 16) {
-            (*image_data)[i][j].rgbtRed   = c.rgbtRed;
-            (*image_data)[i][j].rgbtGreen = c.rgbtGreen;
-            (*image_data)[i][j].rgbtBlue  = c.rgbtBlue;
-            (*image_data)[i][j].rgbtAlpha = c.rgbtAlpha;
-        } else {
-            (*image_data)[i][j].rgbtRed   = c.rgbtRed   >> 8;
-            (*image_data)[i][j].rgbtGreen = c.rgbtGreen >> 8;
-            (*image_data)[i][j].rgbtBlue  = c.rgbtBlue  >> 8;
-            (*image_data)[i][j].rgbtAlpha = c.rgbtAlpha >> 8;
-        }
+        (*image_data)[i][j] = get_color(output_stream, write_byte_index, png_info, &k);
         printf("%d %d %d %d\n", (*image_data)[i][j].rgbtRed, (*image_data)[i][j].rgbtGreen, (*image_data)[i][j].rgbtBlue, (*image_data)[i][j].rgbtAlpha);
     }
     if(k != 0) {
