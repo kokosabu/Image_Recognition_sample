@@ -532,24 +532,25 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
     int i;
     struct chunk_read_info chunk_read_table[] =
     {
-        {"IHDR", chunk_read_ihdr},
-        {"IDAT", chunk_read_idat},
-        {"PLTE", chunk_read_plte},
-        {"IEND", chunk_read_iend},
-        {"gAMA", chunk_read_gama},
-        {"sRGB", chunk_read_srgb},
-        {"cHRM", chunk_read_chrm},
-        {"pHYs", chunk_read_phys},
-        {"vpAg", chunk_read_vpag},
-        {"tEXt", chunk_read_text},
-        {"tRNS", chunk_read_trns},
-        {"sBIT", chunk_read_sbit},
-        {"bKGD", chunk_read_bkgd},
-        {"hIST", chunk_read_hist},
-        {"eXIf", chunk_read_exif},
-        {"iTXt", chunk_read_itxt},
-        {"sPLT", chunk_read_splt},
-        {"zTXt", chunk_read_ztxt},
+        {"IHDR",      chunk_read_ihdr},
+        {"IDAT",      chunk_read_idat},
+        {"PLTE",      chunk_read_plte},
+        {"IEND",      chunk_read_iend},
+        {"gAMA",      chunk_read_gama},
+        {"sRGB",      chunk_read_srgb},
+        {"cHRM",      chunk_read_chrm},
+        {"pHYs",      chunk_read_phys},
+        {"vpAg",      chunk_read_vpag},
+        {"tEXt",      chunk_read_text},
+        {"tRNS",      chunk_read_trns},
+        {"sBIT",      chunk_read_sbit},
+        {"bKGD",      chunk_read_bkgd},
+        {"hIST",      chunk_read_hist},
+        {"eXIf",      chunk_read_exif},
+        {"iTXt",      chunk_read_itxt},
+        {"sPLT",      chunk_read_splt},
+        {"zTXt",      chunk_read_ztxt},
+        {&(chunk[0]), chunk_read_not_found},
     };
 
     png_info->alpha_index = NULL;
@@ -579,9 +580,6 @@ void chunk_read(FILE *input, uint8_t **output_stream, uint8_t **png_image_data, 
                 chunk_read_table[i].func(input, &(chunk[0]), output_stream, png_info, size, png_image_data);
                 break;
             }
-        }
-        if(i == sizeof(chunk_read_table)/sizeof(chunk_read_table[0])) {
-            chunk_read_not_found(input, &(chunk[0]), output_stream, png_info, size, png_image_data);
         }
     } while(png_info->flag == 0);
 
@@ -1573,7 +1571,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 
         /* read block header from input stream. */
         bfinal = bit_read(png_image_data, &byte_index, &bit_index, 1);
-        btype = bit_read(png_image_data, &byte_index, &bit_index, 2);
+        btype  = bit_read(png_image_data, &byte_index, &bit_index, 2);
         printf("bfinal %02x, btype %02x\n", bfinal, btype);
 
         if(btype == 0x00) {
