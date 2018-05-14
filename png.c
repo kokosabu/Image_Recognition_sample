@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <assert.h>
 
 enum {
     NONE    = 0,
@@ -369,9 +370,9 @@ void chunk_read_time(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     uint32_t crc_32;
 
     year = read_2bytes(input);
-    fread(&month, 1, 1, input);
-    fread(&day, 1, 1, input);
-    fread(&hour, 1, 1, input);
+    fread(&month,  1, 1, input);
+    fread(&day,    1, 1, input);
+    fread(&hour,   1, 1, input);
     fread(&minute, 1, 1, input);
     fread(&second, 1, 1, input);
     crc_32 = read_4bytes(input);
@@ -392,14 +393,14 @@ void chunk_read_exif(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
 
 void chunk_read_itxt(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO *png_info, uint32_t size, uint8_t **png_image_data)
 {
-    int k;
     char keyword_itxt[160+1];
-    uint8_t compress_flag;
-    int l;
-    uint8_t compress_type;
     char tag[160+1];
     char keyword[80];
     char text2[160+1];
+    uint8_t compress_flag;
+    uint8_t compress_type;
+    int k;
+    int l;
     uint32_t crc_32;
 
     k = 0;
@@ -471,21 +472,19 @@ void chunk_read_splt(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     fread(&sample, 1, 1, input);
     printf("%d\n", sample);
     if(sample == 8) {
-        /* 6 */
         red_sample   = (uint16_t *)malloc(sizeof(uint16_t) * (size - strlen(pallet_name) - 2) / 6);
         green_sample = (uint16_t *)malloc(sizeof(uint16_t) * (size - strlen(pallet_name) - 2) / 6);
         blue_sample  = (uint16_t *)malloc(sizeof(uint16_t) * (size - strlen(pallet_name) - 2) / 6);
         alpha_sample = (uint16_t *)malloc(sizeof(uint16_t) * (size - strlen(pallet_name) - 2) / 6);
         freq_sample  = (uint16_t *)malloc(sizeof(uint16_t) * (size - strlen(pallet_name) - 2) / 6);
         for(i = 0; i < ((size - strlen(pallet_name) - 2) / 6); i++) {
-            fread(&red_sample[i], 1, 1, input);
+            fread(&red_sample[i],   1, 1, input);
             fread(&green_sample[i], 1, 1, input);
-            fread(&blue_sample[i], 1, 1, input);
+            fread(&blue_sample[i],  1, 1, input);
             fread(&alpha_sample[i], 1, 1, input);
             freq_sample[i] = read_2bytes(input);
         }
     } else if(sample == 16) {
-        /* 10 */
         red_sample   = (uint16_t *)malloc(sizeof(uint16_t) * (size - strlen(pallet_name) - 2) / 10);
         green_sample = (uint16_t *)malloc(sizeof(uint16_t) * (size - strlen(pallet_name) - 2) / 10);
         blue_sample  = (uint16_t *)malloc(sizeof(uint16_t) * (size - strlen(pallet_name) - 2) / 10);
@@ -641,7 +640,8 @@ unsigned int decode_huffman(uint8_t *png_image_data, int *byte_index, int *bit_i
     code_len = 0;
     do {
         code <<= 1;
-        code |= huffman_bit_read(png_image_data, byte_index, bit_index, 1);
+        assert(*bit_index < 8);
+        code |= one_bit_read(png_image_data, byte_index, bit_index);
         code_len += 1;
         for(i = 0; i < len; i++) {
             if(huffman_tree[i].len == code_len && huffman_tree[i].code == code) {
@@ -1402,21 +1402,26 @@ void filter(uint8_t *output_stream, int i, int *write_byte_index, PNG_INFO *png_
     }
 }
 
-void line(uint8_t *output_stream, int i, int *write_byte_index, RGBTRIPLE ***image_data, PNG_INFO *png_info)
+void line(uint8_t *output_stream, RGBTRIPLE ***image_data, PNG_INFO *png_info)
 {
+    int i;
     int j;
-    int k;
+    int write_bit_index;
+    int write_byte_index;
 
-    printf("[%d] %d\n", i, output_stream[*write_byte_index]);
-    *write_byte_index += 1;
-    k = 0;
-    for(j = 0; j < png_info->width; j++) {
-        printf("-[%d][%d]-\n", i, j);
-        (*image_data)[i][j] = get_color(output_stream, write_byte_index, png_info, &k);
-        printf("%d %d %d %d\n", (*image_data)[i][j].rgbtRed, (*image_data)[i][j].rgbtGreen, (*image_data)[i][j].rgbtBlue, (*image_data)[i][j].rgbtAlpha);
-    }
-    if(k != 0) {
-        *write_byte_index += 1;
+    write_byte_index = 0;
+    for(i = 0; i < png_info->height; i++) {
+        printf("[%d] %d\n", i, output_stream[write_byte_index]);
+        write_byte_index += 1;
+        write_bit_index = 0;
+        for(j = 0; j < png_info->width; j++) {
+            printf("-[%d][%d]-\n", i, j);
+            (*image_data)[i][j] = get_color(output_stream, &write_byte_index, png_info, &write_bit_index);
+            printf("%d %d %d %d\n", (*image_data)[i][j].rgbtRed, (*image_data)[i][j].rgbtGreen, (*image_data)[i][j].rgbtBlue, (*image_data)[i][j].rgbtAlpha);
+        }
+        if(write_bit_index != 0) {
+            write_byte_index += 1;
+        }
     }
 }
 
@@ -1468,7 +1473,9 @@ void decode_huffman_codes(uint8_t *png_image_data, int *byte_index, int *bit_ind
         } else {/* (value = 257..285) */
             printf("len value = %d (%d)\n", value - 257, value);
 
+            assert(value >= 257 && value <= 285);
             len_bit = len_block_bit[value - 257];
+
             len_bit_value = 0;
             if(len_bit != 0) {
                 len_bit_value = bit_read(png_image_data, byte_index, bit_index, len_bit);
@@ -1481,7 +1488,9 @@ void decode_huffman_codes(uint8_t *png_image_data, int *byte_index, int *bit_ind
             value = decode_huffman(png_image_data, byte_index, bit_index, dtree, dist);
             printf("dist value = %d (%d)(%d)\n", value, *byte_index, *bit_index);
 
+            assert(value >= 0 && value <= 29);
             dist_bit = dist_block_bit[value];
+
             dist_bit_value = 0;
             if(dist_bit != 0) {
                 dist_bit_value = bit_read(png_image_data, byte_index, bit_index, dist_bit);
@@ -1492,7 +1501,7 @@ void decode_huffman_codes(uint8_t *png_image_data, int *byte_index, int *bit_ind
 
             /* move backwards distance bytes in the output stream, and copy length bytes from this position to the output stream. */
             for(i = 0; i < len; i++) {
-                printf("write_byte:%d = %d (%d-%d)\n", *write_byte_index, output_stream[*write_byte_index-dlen], *write_byte_index, dlen);
+                printf("write_byte:%d = %d (%d=%d-%d)\n", *write_byte_index, output_stream[*write_byte_index-dlen], *write_byte_index-dlen, *write_byte_index, dlen);
                 output_stream[*write_byte_index] = output_stream[*write_byte_index-dlen];
                 *write_byte_index += 1;
             }
@@ -1566,6 +1575,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     bit_index = 0;
     byte_index = 0;
     write_byte_index = 0;
+
     do {
         read_zlib_header(png_image_data, &byte_index, &bit_index);
 
@@ -1594,10 +1604,7 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
         for(i = 0; i < png_info.height; i++) {
             filter(output_stream, i, &write_byte_index, &png_info);
         }
-        write_byte_index = 0;
-        for(i = 0; i < png_info.height; i++) {
-            line(output_stream, i, &write_byte_index, image_data, &png_info);
-        }
+        line(output_stream, image_data, &png_info);
     } else {
         write_byte_index = 0;
         for(i = 0; i < 7; i++) {
