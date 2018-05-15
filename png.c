@@ -807,19 +807,6 @@ void decompress_dynamic_huffman_codes(uint8_t *png_image_data, int *byte_index, 
     calc_next_code(tree,  &(id[0]),    next_code, 288, *lit);
     calc_next_code(dtree, &(id[*lit]), next_code,  32, *dist);
 
-    printf("-- tree --\n");
-    for(i = 0; i < *lit; i++) {
-        if(tree[i].len != 0) {
-            printf("[%d] %d (%d)\n", i, tree[i].code, tree[i].len);
-        }
-    }
-    printf("-- dtree --\n");
-    for(i = 0; i < *dist; i++) {
-        if(dtree[i].len != 0) {
-            printf("[%d] %d (%d)\n", i, dtree[i].code, dtree[i].len);
-        }
-    }
-
     free((void *)id);
 }
 
@@ -837,22 +824,20 @@ int get_color_data(uint8_t *output_stream, int *write_byte_index, PNG_INFO *png_
             data |= image_bit_read(output_stream, write_byte_index, index, 1);
         }
 
-        printf("%d\n", data);
-
         if(png_info->color_type != 3) {
             switch(png_info->bps) {
                 case 1:
-                    data = data * 255 / (2-1);
+                    data *= 255 / (2-1);
                     break;
                 case 2:
-                    data = data * 255 / (4-1);
+                    data *= 255 / (4-1);
                     break;
                 case 4:
-                    data = data * 255 / (16-1);
+                    data *= 255 / (16-1);
                     break;
                 case 8:
                 default:
-                    data = data * 255 / (256-1);
+                    data *= 255 / (256-1);
                     break;
             }
         }
@@ -861,8 +846,6 @@ int get_color_data(uint8_t *output_stream, int *write_byte_index, PNG_INFO *png_
 
         data = bit_read(output_stream, write_byte_index, index, 8);
         data = data << 8 | bit_read(output_stream, write_byte_index, index, 8);
-
-        printf("%d\n", data);
     }
 
     return data;
@@ -888,12 +871,9 @@ RGBTRIPLE get_color(uint8_t *output_stream, int *write_byte_index, PNG_INFO *png
             c.rgbtAlpha = png_info->alpha_gray[data];
         }
     } else if(png_info->color_type == 2) {
-        data = get_color_data(output_stream, write_byte_index, png_info, index);
-        c.rgbtRed   = data;
-        data = get_color_data(output_stream, write_byte_index, png_info, index);
-        c.rgbtGreen = data;
-        data = get_color_data(output_stream, write_byte_index, png_info, index);
-        c.rgbtBlue  = data;
+        c.rgbtRed   = get_color_data(output_stream, write_byte_index, png_info, index);
+        c.rgbtGreen = get_color_data(output_stream, write_byte_index, png_info, index);
+        c.rgbtBlue  = get_color_data(output_stream, write_byte_index, png_info, index);
     } else if(png_info->color_type == 3) {
         data = get_color_data(output_stream, write_byte_index, png_info, index);
         c.rgbtRed   = (png_info->color_palette)[data].rgbtRed;
@@ -914,14 +894,10 @@ RGBTRIPLE get_color(uint8_t *output_stream, int *write_byte_index, PNG_INFO *png
         data = get_color_data(output_stream, write_byte_index, png_info, index);
         c.rgbtAlpha = data;
     } else if(png_info->color_type == 6) {
-        data = get_color_data(output_stream, write_byte_index, png_info, index);
-        c.rgbtRed   = data;
-        data = get_color_data(output_stream, write_byte_index, png_info, index);
-        c.rgbtGreen = data;
-        data = get_color_data(output_stream, write_byte_index, png_info, index);
-        c.rgbtBlue  = data;
-        data = get_color_data(output_stream, write_byte_index, png_info, index);
-        c.rgbtAlpha = data;
+        c.rgbtRed   = get_color_data(output_stream, write_byte_index, png_info, index);
+        c.rgbtGreen = get_color_data(output_stream, write_byte_index, png_info, index);
+        c.rgbtBlue  = get_color_data(output_stream, write_byte_index, png_info, index);
+        c.rgbtAlpha = get_color_data(output_stream, write_byte_index, png_info, index);
     } else {
         c.rgbtRed   = 0;
         c.rgbtGreen = 0;
