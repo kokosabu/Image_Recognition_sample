@@ -600,8 +600,7 @@ void read_zlib_header(uint8_t *png_image_data, int *byte_index, int *bit_index)
 
     cmf = png_image_data[*byte_index];
     *byte_index += 1;
-    printf("cmf %02xh\n", cmf);
-    cm = cmf & 0x0F;
+    cm    = cmf & 0x0F;
     cinfo = (cmf & 0xF0) >> 4;
     printf("cm %02xh, cinfo %02xh\n", cm, cinfo);
 
@@ -620,12 +619,19 @@ void read_zlib_header(uint8_t *png_image_data, int *byte_index, int *bit_index)
     fdict = (flg & 0x20) >> 5;
     printf("fdict %d\n", fdict);
 
+    if(((((uint16_t)cmf << 8) + flg) % 31) != 0) {
+        printf("zlib header broken\n");
+        exit(0);
+    }
+
     if(fdict == 1) {
         dictid =               png_image_data[*(byte_index  )];
         dictid = dictid << 8 | png_image_data[*(byte_index+1)];
         dictid = dictid << 8 | png_image_data[*(byte_index+2)];
         dictid = dictid << 8 | png_image_data[*(byte_index+3)];
         *byte_index += 4;
+        printf("dictid\n");
+        exit(0);
     }
 }
 
@@ -660,7 +666,6 @@ void calc_next_code(struct tree *tree, int *lens, int *next_code, size_t bl_coun
     int max_bits;
     int code;
     int bits;
-    int min_len;
     int len;
 
     for(i = 0; i < tree_size; i++) {
@@ -692,15 +697,11 @@ void calc_next_code(struct tree *tree, int *lens, int *next_code, size_t bl_coun
         next_code[bits] = code;
     }
 
-    min_len = INT32_MAX;
     for (i = 0; i < tree_size; i++) {
         len = tree[i].len;
         if (len != 0) {
             tree[i].code = next_code[len];
             next_code[len]++;
-            if(len < min_len) {
-                min_len = len;
-            }
         } else {
             tree[i].code = 0;
         }
@@ -1567,6 +1568,8 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
         } else if(btype == 0x02) {
             decode_dynamic_huffman_codes(png_image_data, byte_index, bit_index, output_stream, &write_byte_index);
         }
+
+        byte_index += 4;
     } while(bfinal == 0);
 
     printf("write_byte : %d\n", write_byte_index);
