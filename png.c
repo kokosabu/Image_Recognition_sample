@@ -1223,16 +1223,15 @@ void filter(uint8_t *output_stream, int i, int *write_byte_index, PNG_INFO *png_
             width = tmp;
         }
     } else {
+        ;
     }
 
     if(output_stream[*write_byte_index] == NONE) {
         *write_byte_index += 1;
-        for(j = 0; j < width; j++) {
-            if(png_info->bps != 16) {
-                *write_byte_index += w[png_info->color_type];
-            } else {
-                *write_byte_index += w[png_info->color_type] * 2;
-            }
+        if(png_info->bps != 16) {
+            *write_byte_index += w[png_info->color_type] * width;
+        } else {
+            *write_byte_index += w[png_info->color_type] * 2 * width;
         }
     } else if(output_stream[*write_byte_index] == SUB) {
         *write_byte_index += 1;
