@@ -25,7 +25,8 @@ void chunk_read_ihdr(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     uint32_t crc_32;
     uint32_t crc;
 
-    png_info->width = read_4bytes(input);
+    assert(size == (25-12)); /* 12 = Length, Chunk Type, CRS */
+    png_info->width  = read_4bytes(input);
     png_info->height = read_4bytes(input);
     fread(&(png_info->bps),            1, 1, input);
     fread(&(png_info->color_type),     1, 1, input);
@@ -49,7 +50,6 @@ void chunk_read_ihdr(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
         exit(0);
     }
 
-    printf("chunk:%s\n", chunk);
     printf("width:%d\n", png_info->width);
     printf("height:%d\n", png_info->height);
     printf("bps:%d\n", png_info->bps);
@@ -111,6 +111,7 @@ void chunk_read_plte(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     png_info->color_palette = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * size);
     png_info->palette_size = size;
 
+    assert((size%3) == 0);
     for(i = 0; i < size/3; i++) {
         (png_info->color_palette)[i].rgbtRed   = 0;
         (png_info->color_palette)[i].rgbtGreen = 0;
@@ -131,6 +132,7 @@ void chunk_read_iend(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     uint32_t crc_32;
     uint32_t crc;
 
+    assert(size == (12-12)); /* 12 = Length, Chunk Type, CRS */
     crc = 0xFFFFFFFF;
     crc = crc32((uint8_t *)chunk, 4, crc);
     crc ^= 0xFFFFFFFF;
@@ -1457,6 +1459,7 @@ void decode_huffman_codes(uint8_t *png_image_data, int *byte_index, int *bit_ind
                 len_bit_value = bit_read(png_image_data, byte_index, bit_index, len_bit);
                 printf("len_bit_vlaue = %d  (%d)(%d)\n", len_bit_value, *byte_index, *bit_index);
             }
+            assert(value >= 257 && value <= 285);
             len  = len_block[value-257];
             len += len_bit_value;
 
@@ -1472,6 +1475,7 @@ void decode_huffman_codes(uint8_t *png_image_data, int *byte_index, int *bit_ind
                 dist_bit_value = bit_read(png_image_data, byte_index, bit_index, dist_bit);
                 printf("dist_bit_value = %d  (%d)(%d)\n", dist_bit_value, *byte_index, *bit_index);
             }
+            assert(value >= 0 && value <= 29);
             dlen  = dist_block[value];
             dlen += dist_bit_value;
 
