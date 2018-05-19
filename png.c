@@ -54,9 +54,10 @@ void chunk_read_ihdr(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     printf("height:%d\n", png_info->height);
     printf("bps:%d\n", png_info->bps);
     printf("color type:%d\n", png_info->color_type);
-    printf("compress type:%d\n", png_info->compress_type);
-    printf("filter type:%d\n", png_info->filter_type);
     printf("interlace type:%d\n", png_info->interlace_type);
+
+    assert(png_info->compress_type == 0);
+    assert(png_info->filter_type == 0);
 
     if(png_info->bps == 1 || png_info->bps == 2 || png_info->bps == 4 || png_info->bps == 8 || png_info->bps == 16) {
     } else {
@@ -161,7 +162,6 @@ void chunk_read_srgb(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
 
     fread(&rendering_intent, 1, 1, input);
     crc_32 = read_4bytes(input);
-    printf("chunk:%s\n", chunk);
     printf("Rendering intent:%d\n", rendering_intent);
 }
 
@@ -186,7 +186,6 @@ void chunk_read_chrm(FILE *input, char *chunk, uint8_t **output_stream, PNG_INFO
     blue_x        = read_4bytes(input);
     blue_y        = read_4bytes(input);
     crc_32        = read_4bytes(input);
-    printf("chunk:%s\n", chunk);
     printf("white point x:%d\n", white_point_x);
     printf("white point y:%d\n", white_point_y);
     printf("red x:%d\n", red_x);
@@ -673,6 +672,10 @@ void calc_next_code(struct tree *tree, int *lens, int *next_code, size_t bl_coun
     for(i = 0; i < tree_size; i++) {
         tree[i].len = 0;
         tree[i].code = 0;
+    }
+
+    for(i = 0; i < 288; i++) {
+        next_code[i] = 0;
     }
 
     bl_count = (int *)malloc(sizeof(int)*bl_count_size);
@@ -1556,6 +1559,8 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     byte_index = 0;
     write_byte_index = 0;
 
+    printf("%d\n", png_info.idat_size);
+
     do {
         read_zlib_header(png_image_data, &byte_index, &bit_index);
 
@@ -1571,8 +1576,6 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
         } else if(btype == 0x02) {
             decode_dynamic_huffman_codes(png_image_data, byte_index, bit_index, output_stream, &write_byte_index);
         }
-
-        byte_index += 4;
     } while(bfinal == 0);
 
     printf("write_byte : %d\n", write_byte_index);
