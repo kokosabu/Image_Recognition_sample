@@ -1241,8 +1241,14 @@ void filter(uint8_t *output_stream, int i, int *write_byte_index, PNG_INFO *png_
     } else if(output_stream[*write_byte_index] == SUB) {
         *write_byte_index += 1;
         for(j = 0; j < width; j++) {
+            printf("[%d] %d : ", j, output_stream[*write_byte_index]);
             if(png_info->bps != 16) {
-                printf("[%d] %d : ", j, output_stream[*write_byte_index]);
+                tmp = 1;
+            } else {
+                tmp = 2;
+            }
+
+            if(png_info->bps != 16) {
                 for(k = 0; k < w[png_info->color_type]; k++) {
                     if(j == 0) {
                         output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + 0) % 256;
@@ -1253,7 +1259,6 @@ void filter(uint8_t *output_stream, int i, int *write_byte_index, PNG_INFO *png_
                 printf("%d\n", output_stream[*write_byte_index]);
                 *write_byte_index += w[png_info->color_type];
             } else {
-                printf("[%d] %d : ", j, output_stream[*write_byte_index]);
                 for(k = 0; k < w[png_info->color_type]*2; k++) {
                     if(j == 0) {
                         output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + 0) % 256;
@@ -1396,9 +1401,7 @@ void line(uint8_t *output_stream, RGBTRIPLE ***image_data, PNG_INFO *png_info)
         write_byte_index += 1;
         write_bit_index = 0;
         for(j = 0; j < png_info->width; j++) {
-            printf("-[%d][%d]-\n", i, j);
             (*image_data)[i][j] = get_color(output_stream, &write_byte_index, png_info, &write_bit_index);
-            printf("%d %d %d %d\n", (*image_data)[i][j].rgbtRed, (*image_data)[i][j].rgbtGreen, (*image_data)[i][j].rgbtBlue, (*image_data)[i][j].rgbtAlpha);
         }
         if(write_bit_index != 0) {
             write_byte_index += 1;
@@ -1561,9 +1564,8 @@ void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 
     printf("%d\n", png_info.idat_size);
 
+    read_zlib_header(png_image_data, &byte_index, &bit_index);
     do {
-        read_zlib_header(png_image_data, &byte_index, &bit_index);
-
         /* read block header from input stream. */
         bfinal = bit_read(png_image_data, &byte_index, &bit_index, 1);
         btype  = bit_read(png_image_data, &byte_index, &bit_index, 2);
