@@ -1231,69 +1231,39 @@ void filter(uint8_t *output_stream, int i, int *write_byte_index, PNG_INFO *png_
         ;
     }
 
+    if(png_info->bps != 16) {
+        tmp = 1;
+    } else {
+        tmp = 2;
+    }
+
     if(output_stream[*write_byte_index] == NONE) {
         *write_byte_index += 1;
-        if(png_info->bps != 16) {
-            *write_byte_index += w[png_info->color_type] * width;
-        } else {
-            *write_byte_index += w[png_info->color_type] * 2 * width;
-        }
+        *write_byte_index += w[png_info->color_type] * tmp * width;
     } else if(output_stream[*write_byte_index] == SUB) {
         *write_byte_index += 1;
         for(j = 0; j < width; j++) {
-            printf("[%d] %d : ", j, output_stream[*write_byte_index]);
-            if(png_info->bps != 16) {
-                tmp = 1;
-            } else {
-                tmp = 2;
-            }
-
-            if(png_info->bps != 16) {
-                for(k = 0; k < w[png_info->color_type]; k++) {
-                    if(j == 0) {
-                        output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + 0) % 256;
-                    } else {
-                        output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + output_stream[*write_byte_index+k-w[png_info->color_type]]) % 256;
-                    }
+            for(k = 0; k < w[png_info->color_type]*tmp; k++) {
+                if(j == 0) {
+                    output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + 0) % 256;
+                } else {
+                    output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + output_stream[*write_byte_index+k-w[png_info->color_type]*tmp]) % 256;
                 }
-                printf("%d\n", output_stream[*write_byte_index]);
-                *write_byte_index += w[png_info->color_type];
-            } else {
-                for(k = 0; k < w[png_info->color_type]*2; k++) {
-                    if(j == 0) {
-                        output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + 0) % 256;
-                    } else {
-                        output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + output_stream[*write_byte_index+k-w[png_info->color_type]*2]) % 256;
-                    }
-                }
-                printf("%d\n", output_stream[*write_byte_index]);
-                *write_byte_index += w[png_info->color_type] * 2;
             }
+            *write_byte_index += w[png_info->color_type] * tmp;
         }
     } else if(output_stream[*write_byte_index] == UP) {
         *write_byte_index += 1;
         for(j = 0; j < width; j++) {
-            if(png_info->bps != 16) {
-                for(k = 0; k < w[png_info->color_type]; k++) {
-                    if(i == 0) {
-                        up_byte = 0;
-                    } else {
-                        up_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]+1)];
-                    }
-                    output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + up_byte) % 256;
+            for(k = 0; k < w[png_info->color_type]*tmp; k++) {
+                if(i == 0) {
+                    up_byte = 0;
+                } else {
+                    up_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]*tmp+1)];
                 }
-                *write_byte_index += w[png_info->color_type];
-            } else {
-                for(k = 0; k < w[png_info->color_type]*2; k++) {
-                    if(i == 0) {
-                        up_byte = 0;
-                    } else {
-                        up_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]*2+1)];
-                    }
-                    output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + up_byte) % 256;
-                }
-                *write_byte_index += w[png_info->color_type] * 2;
+                output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + up_byte) % 256;
             }
+            *write_byte_index += w[png_info->color_type] * tmp;
         }
     } else if(output_stream[*write_byte_index] == AVERAGE) {
         *write_byte_index += 1;
