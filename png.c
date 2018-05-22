@@ -1268,89 +1268,45 @@ void filter(uint8_t *output_stream, int i, int *write_byte_index, PNG_INFO *png_
     } else if(output_stream[*write_byte_index] == AVERAGE) {
         *write_byte_index += 1;
         for(j = 0; j < width; j++) {
-            if(png_info->bps != 16) {
-                for(k = 0; k < w[png_info->color_type]; k++) {
-                    if(i == 0) {
-                        up_byte = 0;
-                    } else {
-                        up_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]+1)];
-                    }
-                    if(j == 0) {
-                        output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + (up_byte)/2) % 256;
-                    } else {
-                        output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + (output_stream[*write_byte_index+k-w[png_info->color_type]] + up_byte)/2) % 256;
-                    }
+            for(k = 0; k < w[png_info->color_type]*tmp; k++) {
+                if(i == 0) {
+                    up_byte = 0;
+                } else {
+                    up_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]*tmp+1)];
                 }
-                *write_byte_index += w[png_info->color_type];
-            } else {
-                for(k = 0; k < w[png_info->color_type]*2; k++) {
-                    if(i == 0) {
-                        up_byte = 0;
-                    } else {
-                        up_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]*2+1)];
-                    }
-                    if(j == 0) {
-                        output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + (up_byte)/2) % 256;
-                    } else {
-                        output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + (output_stream[*write_byte_index+k-w[png_info->color_type]*2] + up_byte)/2) % 256;
-                    }
+                if(j == 0) {
+                    output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + (up_byte)/2) % 256;
+                } else {
+                    output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + (output_stream[*write_byte_index+k-w[png_info->color_type]*tmp] + up_byte)/2) % 256;
                 }
-                *write_byte_index += w[png_info->color_type] * 2;
             }
+
+            *write_byte_index += w[png_info->color_type] * tmp;
         }
     } else if(output_stream[*write_byte_index] == PAETH) {
         *write_byte_index += 1;
 
         for(j = 0; j < width; j++) {
-            if(png_info->bps != 16) {
-                printf("[%d] ", j);
-                for(k = 0; k < w[png_info->color_type]; k++) {
-                    if(i == 0) {
-                        up_byte = 0;
-                    } else {
-                        up_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]+1)];
-                    }
-                    if(j == 0) {
-                        left_byte = 0;
-                    } else {
-                        left_byte = output_stream[*write_byte_index + k - w[png_info->color_type]];
-                    }
-                    if(i == 0 || j == 0) {
-                        upper_left_byte = 0;
-                    } else {
-                        upper_left_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]+1) - w[png_info->color_type]];
-                    }
-
-                    output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + paeth_predictor(left_byte, up_byte, upper_left_byte)) % 256;
-                    printf("%d\n", output_stream[*write_byte_index+k]);
+            for(k = 0; k < w[png_info->color_type]*tmp; k++) {
+                if(i == 0) {
+                    up_byte = 0;
+                } else {
+                    up_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]*tmp+1)];
                 }
-                printf("\n");
-                *write_byte_index += w[png_info->color_type];
-            } else {
-                printf("[%d] ", j);
-                for(k = 0; k < w[png_info->color_type]*2; k++) {
-                    if(i == 0) {
-                        up_byte = 0;
-                    } else {
-                        up_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]*2+1)];
-                    }
-                    if(j == 0) {
-                        left_byte = 0;
-                    } else {
-                        left_byte = output_stream[*write_byte_index + k - w[png_info->color_type]*2];
-                    }
-                    if(i == 0 || j == 0) {
-                        upper_left_byte = 0;
-                    } else {
-                        upper_left_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]*2+1) - w[png_info->color_type]*2];
-                    }
-
-                    output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + paeth_predictor(left_byte, up_byte, upper_left_byte)) % 256;
-                    printf("%d\n", output_stream[*write_byte_index+k]);
+                if(j == 0) {
+                    left_byte = 0;
+                } else {
+                    left_byte = output_stream[*write_byte_index + k - w[png_info->color_type]*tmp];
                 }
-                printf("\n");
-                *write_byte_index += w[png_info->color_type]*2;
+                if(i == 0 || j == 0) {
+                    upper_left_byte = 0;
+                } else {
+                    upper_left_byte = output_stream[*write_byte_index + k - (width*w[png_info->color_type]*tmp+1) - w[png_info->color_type]*tmp];
+                }
+
+                output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + paeth_predictor(left_byte, up_byte, upper_left_byte)) % 256;
             }
+            *write_byte_index += w[png_info->color_type]*tmp;
         }
     } else {
         printf("undefined filter type\n");
