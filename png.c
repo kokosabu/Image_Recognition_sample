@@ -1091,48 +1091,26 @@ void filter_interlace(uint8_t *output_stream, int *write_byte_index, PNG_INFO *p
                 if(((png_info->width-start_x[pass])%step_x[pass]) != 0) {
                     tmp += 1;
                 }
-                if(png_info->bps != 16) {
-                    for(k = 0; k < w[png_info->color_type]; k++) {
-                        if(i == start_y[pass]) {
-                            up_byte = 0;
-                        } else {
-                            up_byte = output_stream[*write_byte_index + k - (tmp*w[png_info->color_type]+1)];
-                        }
-                        if(j == start_x[pass]) {
-                            left_byte = 0;
-                        } else {
-                            left_byte = output_stream[*write_byte_index + k - w[png_info->color_type]];
-                        }
-                        if(i == start_y[pass] || j == start_x[pass]) {
-                            upper_left_byte = 0;
-                        } else {
-                            upper_left_byte = output_stream[*write_byte_index + k - (tmp*w[png_info->color_type]+1) - w[png_info->color_type]];
-                        }
-                        output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + paeth_predictor(left_byte, up_byte, upper_left_byte)) % 256;
+                for(k = 0; k < w[png_info->color_type]*bps; k++) {
+                    if(i == start_y[pass]) {
+                        up_byte = 0;
+                    } else {
+                        up_byte = output_stream[*write_byte_index + k - (tmp*w[png_info->color_type]*bps+1)];
                     }
-                    count += w[png_info->color_type];
-                } else {
-                    for(k = 0; k < w[png_info->color_type]*2; k++) {
-                        if(i == start_y[pass]) {
-                            up_byte = 0;
-                        } else {
-                            up_byte = output_stream[*write_byte_index + k - (tmp*w[png_info->color_type]*2+1)];
-                        }
-                        if(j == start_x[pass]) {
-                            left_byte = 0;
-                        } else {
-                            left_byte = output_stream[*write_byte_index + k - w[png_info->color_type]*2];
-                        }
-                        if(i == start_y[pass] || j == start_x[pass]) {
-                            upper_left_byte = 0;
-                        } else {
-                            upper_left_byte = output_stream[*write_byte_index + k - (tmp*w[png_info->color_type]*2+1) - w[png_info->color_type]*2];
-                        }
-
-                        output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + paeth_predictor(left_byte, up_byte, upper_left_byte)) % 256;
+                    if(j == start_x[pass]) {
+                        left_byte = 0;
+                    } else {
+                        left_byte = output_stream[*write_byte_index + k - w[png_info->color_type]*bps];
                     }
-                    count += w[png_info->color_type] * 2;
+                    if(i == start_y[pass] || j == start_x[pass]) {
+                        upper_left_byte = 0;
+                    } else {
+                        upper_left_byte = output_stream[*write_byte_index + k - (tmp*w[png_info->color_type]*bps+1) - w[png_info->color_type]*bps];
+                    }
+                    output_stream[*write_byte_index+k] = (output_stream[*write_byte_index+k] + paeth_predictor(left_byte, up_byte, upper_left_byte)) % 256;
                 }
+                count += w[png_info->color_type]*bps;
+
                 if(png_info->bps != 16) {
                     *write_byte_index += count / (8 / png_info->bps);
                     if((count % (8/png_info->bps)) != 0) {
