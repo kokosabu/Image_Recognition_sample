@@ -845,9 +845,7 @@ int get_color_data(uint8_t *output_stream, int *write_byte_index, PNG_INFO *png_
             }
         }
     } else {
-        printf("bps16 [%d][%d] : %3d, %3d : ", *write_byte_index, *index, output_stream[*write_byte_index], output_stream[*write_byte_index+1]);
-
-        data = bit_read(output_stream, write_byte_index, index, 8);
+        data =             bit_read(output_stream, write_byte_index, index, 8);
         data = data << 8 | bit_read(output_stream, write_byte_index, index, 8);
     }
 
@@ -953,7 +951,7 @@ void filter_interlace(uint8_t *output_stream, int *write_byte_index, PNG_INFO *p
     uint8_t up_byte;
     uint8_t left_byte;
     uint8_t upper_left_byte;
-    uint8_t w[] = {1, 0, 3, 1, 2, 0, 4};
+    uint8_t w[7]       = {1, 0, 3, 1, 2, 0, 4};
     uint8_t start_y[7] = {0, 0, 4, 0, 2, 0, 1};
     uint8_t start_x[7] = {0, 4, 0, 2, 0, 1, 0};
     uint8_t step_y[7]  = {8, 8, 8, 4, 4, 2, 2};
