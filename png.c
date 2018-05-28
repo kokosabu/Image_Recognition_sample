@@ -943,6 +943,18 @@ unsigned int paeth_predictor(int a, int b, int c)
     }
 }
 
+void skip_bit(int *write_byte_index, PNG_INFO *png_info, int count)
+{
+    if(png_info->bps != 16) {
+        *write_byte_index += count / (8 / png_info->bps);
+        if((count % (8/png_info->bps)) != 0) {
+            *write_byte_index += 1;
+        }
+    } else {
+        *write_byte_index += count;
+    }
+}
+
 void filter_interlace(uint8_t *output_stream, int *write_byte_index, PNG_INFO *png_info, int pass)
 {
     int i;
@@ -986,14 +998,7 @@ void filter_interlace(uint8_t *output_stream, int *write_byte_index, PNG_INFO *p
             for(j = start_x[pass]; j < png_info->width; j += step_x[pass]) {
                 count = 0;
                 count += w[png_info->color_type] * bps;
-                if(png_info->bps != 16) {
-                    *write_byte_index += count / (8 / png_info->bps);
-                    if((count % (8/png_info->bps)) != 0) {
-                        *write_byte_index += 1;
-                    }
-                } else {
-                    *write_byte_index += count;
-                }
+                skip_bit(write_byte_index, png_info, count);
             }
         } else if(output_stream[*write_byte_index] == SUB) {
             *write_byte_index += 1;
@@ -1009,18 +1014,9 @@ void filter_interlace(uint8_t *output_stream, int *write_byte_index, PNG_INFO *p
                 }
                 count += w[png_info->color_type] * bps;
 
-                if(png_info->bps != 16) {
-                    *write_byte_index += count / (8 / png_info->bps);
-                    if((count % (8/png_info->bps)) != 0) {
-                        *write_byte_index += 1;
-                    }
-                } else {
-                    *write_byte_index += count;
-                }
+                skip_bit(write_byte_index, png_info, count);
             }
-        }
-
-        else if(output_stream[*write_byte_index] == UP) {
+        } else if(output_stream[*write_byte_index] == UP) {
             *write_byte_index += 1;
             for(j = start_x[pass]; j < png_info->width; j += step_x[pass]) {
                 count = 0;
@@ -1039,14 +1035,7 @@ void filter_interlace(uint8_t *output_stream, int *write_byte_index, PNG_INFO *p
                 }
                 count += w[png_info->color_type] * bps;
 
-                if(png_info->bps != 16) {
-                    *write_byte_index += count / (8 / png_info->bps);
-                    if((count % (8/png_info->bps)) != 0) {
-                        *write_byte_index += 1;
-                    }
-                } else {
-                    *write_byte_index += count;
-                }
+                skip_bit(write_byte_index, png_info, count);
             }
         } else if(output_stream[*write_byte_index] == AVERAGE) {
             *write_byte_index += 1;
@@ -1071,14 +1060,7 @@ void filter_interlace(uint8_t *output_stream, int *write_byte_index, PNG_INFO *p
                 }
                 count += w[png_info->color_type]*bps;
 
-                if(png_info->bps != 16) {
-                    *write_byte_index += count / (8 / png_info->bps);
-                    if((count % (8/png_info->bps)) != 0) {
-                        *write_byte_index += 1;
-                    }
-                } else {
-                    *write_byte_index += count;
-                }
+                skip_bit(write_byte_index, png_info, count);
             }
         } else if(output_stream[*write_byte_index] == PAETH) {
             *write_byte_index += 1;
@@ -1109,14 +1091,7 @@ void filter_interlace(uint8_t *output_stream, int *write_byte_index, PNG_INFO *p
                 }
                 count += w[png_info->color_type]*bps;
 
-                if(png_info->bps != 16) {
-                    *write_byte_index += count / (8 / png_info->bps);
-                    if((count % (8/png_info->bps)) != 0) {
-                        *write_byte_index += 1;
-                    }
-                } else {
-                    *write_byte_index += count;
-                }
+                skip_bit(write_byte_index, png_info, count);
             }
         } else {
             printf("undefined filter type\n");
