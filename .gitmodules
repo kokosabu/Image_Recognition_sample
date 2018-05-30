@@ -1,0 +1,3 @@
+[submodule "cutter"]
+	path = cutter
+	url = https://github.com/clear-code/cutter.git
