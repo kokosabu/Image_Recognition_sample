@@ -8,6 +8,7 @@ AM_INIT_AUTOMAKE($PACKAGE_NAME, $PACKAGE_VERSION)
 
 AC_PROG_LIBTOOL
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile
+                 test/Makefile])
 
 AC_OUTPUT
