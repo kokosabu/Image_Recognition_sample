@@ -6,8 +6,5 @@ test_new_stack (void)
 {
     Stack *stack;
     stack = stack_new();
-    if (stack_is_empty(stack))
-        PASS;
-    else
-        FAIL;
+    cut_assert(stack_is_empty(stack));
 }
