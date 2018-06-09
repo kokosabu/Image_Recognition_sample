@@ -8,10 +8,13 @@ AM_INIT_AUTOMAKE($PACKAGE_NAME, $PACKAGE_VERSION)
 
 AC_PROG_LIBTOOL
 
-AC_CHECK_CUTTER
+m4_ifdef([AC_CHECK_CUTTER], [AC_CHECK_CUTTER], [ac_cv_use_cutter="no"])
+AM_CONDITIONAL([WITH_CUTTER], [test "$ac_cv_use_cutter" != "no"])
+
+m4_ifdef([AC_CHECK_COVERAGE], [AC_CHECK_COVERAGE])
 
 AC_CONFIG_FILES([Makefile
-                 test/Makefile
-                 src/Makefile])
+                 src/Makefile
+                 test/Makefile])
 
 AC_OUTPUT
