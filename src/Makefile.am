@@ -1,9 +1,5 @@
-lib_LTLIBRARIES = libstack.la\
-				  libdecoder.la
+lib_LTLIBRARIES = libdecoder.la
 bin_PROGRAMS = my_image_decoder
-
-libstack_la_LDFLAGS = -no-undefined
-libstack_la_SOURCES = stack.c
 
 libdecoder_la_LDFLAGS = -no-undefined
 libdecoder_la_SOURCES = bitmap.c\
