@@ -50,3 +50,31 @@ void test_one_bit_read(void)
     cut_assert(byte_pos == 1);
     cut_assert(bit_pos == 0);
 }
+
+void test_docompress_fixed_huffman_codes()
+{
+    int lit;
+    int dist;
+    struct tree tree[288];
+    struct tree dtree[32];
+    int byte_index;
+    int bit_index;
+    uint8_t *png_image_data;
+
+    decompress_fixed_huffman_codes(png_image_data, &byte_index, &bit_index, &lit, &dist, tree, dtree);
+
+    cut_assert(lit == 288);
+    cut_assert(tree[0].code == 0x30);
+    cut_assert(tree[0].len == 8);
+
+
+    cut_assert(dist == 32);
+    cut_assert(dtree[0].code == 0);
+    cut_assert(dtree[0].len == 5);
+    cut_assert(dtree[29].code == 29);
+    cut_assert(dtree[29].len == 5);
+    cut_assert(dtree[30].code == 30);
+    cut_assert(dtree[30].len == 5);
+    cut_assert(dtree[31].code == 31);
+    cut_assert(dtree[31].len == 5);
+}
