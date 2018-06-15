@@ -14,72 +14,6 @@
 #include "LoG_filter.h"
 #include "png.h"
 
-enum {
-    NONE,
-    BITMAP,
-    PNG,
-}; 
-
-int check_file_format(FILE *input)
-{
-    uint8_t read_byte;
-
-    fseek(input, 0, SEEK_SET);
-
-    fread(&read_byte, 1, 1, input);
-    if(read_byte == 'B') {
-        fread(&read_byte, 1, 1, input);
-        if(read_byte == 'M') {
-            fseek(input, 0, SEEK_SET);
-            return BITMAP;
-        } else {
-            fseek(input, 0, SEEK_SET);
-            return NONE;
-        }
-    } else if(read_byte == 0x89) {
-        fread(&read_byte, 1, 1, input);
-        if(read_byte != 'P') {
-            fseek(input, 0, SEEK_SET);
-            return NONE;
-        }
-        fread(&read_byte, 1, 1, input);
-        if(read_byte != 'N') {
-            fseek(input, 0, SEEK_SET);
-            return NONE;
-        }
-        fread(&read_byte, 1, 1, input);
-        if(read_byte != 'G') {
-            fseek(input, 0, SEEK_SET);
-            return NONE;
-        }
-        fread(&read_byte, 1, 1, input);
-        if(read_byte != '\r') {
-            fseek(input, 0, SEEK_SET);
-            return NONE;
-        }
-        fread(&read_byte, 1, 1, input);
-        if(read_byte != '\n') {
-            fseek(input, 0, SEEK_SET);
-            return NONE;
-        }
-        fread(&read_byte, 1, 1, input);
-        if(read_byte != 0x1a) {
-            fseek(input, 0, SEEK_SET);
-            return NONE;
-        }
-        fread(&read_byte, 1, 1, input);
-        if(read_byte != '\n') {
-            fseek(input, 0, SEEK_SET);
-            return NONE;
-        }
-        fseek(input, 0, SEEK_SET);
-        return PNG;
-    }
-
-    fseek(input, 0, SEEK_SET);
-    return NONE;
-}
-
 int main(int argc, char *argv[])
 {
     FILE *input;
@@ -102,7 +36,7 @@ int main(int argc, char *argv[])
     }
 
     file_format = check_file_format(input);
-    if(file_format == NONE) {
+    if(file_format == UNKOWN_FORMAT) {
         printf("unsupported file format\n");
         return 0;
     } else if(file_format == BITMAP) {

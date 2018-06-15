@@ -102,3 +102,63 @@ int image_bit_read(uint8_t *input_stream, int *byte_pos, int *bit_pos, int bit_l
 
     return byte;
 }
+
+int check_file_format(FILE *input)
+{
+    uint8_t read_byte;
+
+    fseek(input, 0, SEEK_SET);
+
+    fread(&read_byte, 1, 1, input);
+    if(read_byte == 'B') {
+        fread(&read_byte, 1, 1, input);
+        if(read_byte == 'M') {
+            fseek(input, 0, SEEK_SET);
+            return BITMAP;
+        } else {
+            fseek(input, 0, SEEK_SET);
+            return UNKOWN_FORMAT;
+        }
+    } else if(read_byte == 0x89) {
+        fread(&read_byte, 1, 1, input);
+        if(read_byte != 'P') {
+            fseek(input, 0, SEEK_SET);
+            return UNKOWN_FORMAT;
+        }
+        fread(&read_byte, 1, 1, input);
+        if(read_byte != 'N') {
+            fseek(input, 0, SEEK_SET);
+            return UNKOWN_FORMAT;
+        }
+        fread(&read_byte, 1, 1, input);
+        if(read_byte != 'G') {
+            fseek(input, 0, SEEK_SET);
+            return UNKOWN_FORMAT;
+        }
+        fread(&read_byte, 1, 1, input);
+        if(read_byte != '\r') {
+            fseek(input, 0, SEEK_SET);
+            return UNKOWN_FORMAT;
+        }
+        fread(&read_byte, 1, 1, input);
+        if(read_byte != '\n') {
+            fseek(input, 0, SEEK_SET);
+            return UNKOWN_FORMAT;
+        }
+        fread(&read_byte, 1, 1, input);
+        if(read_byte != 0x1a) {
+            fseek(input, 0, SEEK_SET);
+            return UNKOWN_FORMAT;
+        }
+        fread(&read_byte, 1, 1, input);
+        if(read_byte != '\n') {
+            fseek(input, 0, SEEK_SET);
+            return UNKOWN_FORMAT;
+        }
+        fseek(input, 0, SEEK_SET);
+        return PNG;
+    }
+
+    fseek(input, 0, SEEK_SET);
+    return UNKOWN_FORMAT;
+}
