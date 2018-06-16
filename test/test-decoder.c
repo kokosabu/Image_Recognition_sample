@@ -87,7 +87,7 @@ void test_check_file_format_gif(void)
     FILE *input;
     int file_format;
 
-    input = fopen("dummy.gif", "rb");
+    input = fopen("./test/dummy.gif", "rb");
     file_format = check_file_format(input);
     cut_assert(file_format == GIF);
 }

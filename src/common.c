@@ -157,6 +157,19 @@ int check_file_format(FILE *input)
         }
         fseek(input, 0, SEEK_SET);
         return PNG;
+    } else if(read_byte == 'G') {
+        fread(&read_byte, 1, 1, input);
+        if(read_byte != 'I') {
+            fseek(input, 0, SEEK_SET);
+            return UNKOWN_FORMAT;
+        }
+        fread(&read_byte, 1, 1, input);
+        if(read_byte != 'F') {
+            fseek(input, 0, SEEK_SET);
+            return UNKOWN_FORMAT;
+        }
+        fseek(input, 0, SEEK_SET);
+        return GIF;
     }
 
     fseek(input, 0, SEEK_SET);
