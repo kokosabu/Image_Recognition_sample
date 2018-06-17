@@ -94,6 +94,8 @@ void test_check_file_format_gif(void)
     cut_assert(file_format == GIF);
 
     decode_gif(input, &image_info, &image_data);
+    cut_assert(image_info.width == 1);
+    cut_assert(image_info.height == 1);
 
     fclose(input);
 }

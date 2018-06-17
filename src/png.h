@@ -34,4 +34,6 @@ typedef struct {
 
 void decode_png(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data);
 
+void decompress_fixed_huffman_codes(uint8_t *png_image_data, int *byte_index, int *bit_index, int *lit, int *dist, struct tree *tree, struct tree *dtree);
+
 #endif
