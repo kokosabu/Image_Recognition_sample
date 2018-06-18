@@ -15,6 +15,15 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     unsigned char size_of_global_color_table;
     unsigned char background_color_index;
     unsigned char pixel_aspect_ratio;
+    uint16_t image_left_position;
+    uint16_t image_top_position;
+    uint16_t image_width;
+    uint16_t image_height;
+    uint8_t local_color_table_flag;
+    uint8_t interlace_flag;
+    uint8_t soft_flag;
+    uint8_t reserved;
+    uint8_t size_of_local_color_table;
     RGBTRIPLE *global_color_table;
     int i;
 
@@ -59,6 +68,19 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     fread(&byte, 1, 1, input);
     if(byte == 0x2c) {
         /* Image Block */
+        fread(&byte, 1, 1, input);
+        image_left_position = byte;
+        fread(&byte, 1, 1, input);
+        image_left_position += ((unsigned int)byte) << 8;
+
+        // uint16_t image_top_position;
+        // uint16_t image_width;
+        // uint16_t image_height;
+        // uint8_t local_color_table_flag;
+        // uint8_t interlace_flag;
+        // uint8_t soft_flag;
+        // uint8_t reserved;
+        // uint8_t size_of_local_color_table;
     } else if(byte == 0x21) {
         /* Graphic Control Extension */
         /* Comment Extension */
