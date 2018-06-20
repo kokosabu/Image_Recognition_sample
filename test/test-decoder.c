@@ -82,7 +82,7 @@ void test_docompress_fixed_huffman_codes()
     cut_assert(dtree[31].len == 5);
 }
 
-void test_check_file_format_gif(void)
+void test_check_file_format_dummy_gif(void)
 {
     FILE *input;
     int file_format;
@@ -90,6 +90,24 @@ void test_check_file_format_gif(void)
     RGBTRIPLE **image_data;
 
     input = fopen("./test/dummy.gif", "rb");
+    file_format = check_file_format(input);
+    cut_assert(file_format == GIF);
+
+    decode_gif(input, &image_info, &image_data);
+    cut_assert(image_info.width == 1);
+    cut_assert(image_info.height == 1);
+
+    fclose(input);
+}
+
+void test_check_file_format_ok_gif(void)
+{
+    FILE *input;
+    int file_format;
+    IMAGEINFO image_info;
+    RGBTRIPLE **image_data;
+
+    input = fopen("./test/ok.gif", "rb");
     file_format = check_file_format(input);
     cut_assert(file_format == GIF);
 
