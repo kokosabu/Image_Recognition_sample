@@ -33,6 +33,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     uint8_t transparent_color_flag;
     uint16_t delay_time;
     uint8_t transparent_color_index;
+    uint8_t *comment_data;
     RGBTRIPLE *global_color_table;
     RGBTRIPLE *local_color_table;
     uint16_t dictionary[4096];
@@ -154,8 +155,24 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                     printf("Block: Graphic Control Extension error\n");
                     exit(1);
                 }
-            } else {
+            } else if(byte == 0xfe) {
                 /* Comment Extension */
+                fread(&byte, 1, 1, input);
+
+                if(byte != 0x00) {
+                    block_size = byte;
+
+                    comment_data = (uint8_t *)malloc(sizeof(uint8_t) * block_size);
+                    fread(comment_data, 1, block_size, input);
+
+                    fread(&byte, 1, 1, input);
+                }
+
+                if(byte != 0x00) {
+                    printf("Block: Comment Extension error\n");
+                    exit(1);
+                }
+            } else {
                 /* Plain Text Extension */
                 /* Application Extension */
             }
