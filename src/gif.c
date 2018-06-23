@@ -43,6 +43,9 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     uint8_t text_foreground_color_index;
     uint8_t text_background_color_index;
     uint8_t *plain_text_data;
+    uint8_t application_identifier[8];
+    uint8_t application_authentication_code[3];
+    uint8_t *application_data;
     RGBTRIPLE *global_color_table;
     RGBTRIPLE *local_color_table;
     uint16_t dictionary[4096];
@@ -213,17 +216,41 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                 fread(&character_cell_height, 1, 1, input);
                 fread(&text_foreground_color_index, 1, 1, input);
                 fread(&text_background_color_index, 1, 1, input);
-                fread(&block_size, 1, 1, input);
-                plain_text_data = (uint8_t *)malloc(sizeof(uint8_t) * block_size);
-                fread(plain_text_data, 1, block_size, input);
                 fread(&byte, 1, 1, input);
+                if(byte != 0x00) {
+                    plain_text_data = (uint8_t *)malloc(sizeof(uint8_t) * byte);
+                    fread(plain_text_data, 1, byte, input);
+                    fread(&byte, 1, 1, input);
+                }
 
                 if(byte != 0x00) {
                     printf("Block: Comment Extension error\n");
                     exit(1);
                 }
-            } else {
+            } else if(byte == 0xff) {
                 /* Application Extension */
+                fread(&block_size, 1, 1, input);
+                if(block_size != 0x0b) {
+                    printf("error\n");
+                    exit(1);
+                }
+
+                fread(application_identifier, 1, 8, input);
+                fread(application_authentication_code, 1, 3, input);
+                fread(&byte, 1, 1, input);
+                if(byte != 0x00) {
+                    application_data = (uint8_t *)malloc(sizeof(uint8_t) * byte);
+                    fread(application_data, 1, byte, input);
+                    fread(&byte, 1, 1, input);
+                }
+
+                if(byte != 0x00) {
+                    printf("error\n");
+                    exit(1);
+                }
+            } else {
+                printf("error\n");
+                exit(1);
             }
         } else if(byte == 0x3b) {
             /* Trailer(1B) = 0x3b */
