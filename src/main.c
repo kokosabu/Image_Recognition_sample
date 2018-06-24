@@ -67,7 +67,11 @@ int main(int argc, char *argv[])
         }
     }
 
-    output = fopen("test.bmp", "wb");
+    if(argc <= 1) {
+        output = fopen("test.bmp", "wb");
+    } else {
+        output = fopen(argv[2], "wb");
+    }
     if(output == NULL) {
         return 0;
     }
