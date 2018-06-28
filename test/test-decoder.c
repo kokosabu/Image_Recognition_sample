@@ -5,6 +5,7 @@
 void test_one_bit_read(void);
 void test_docompress_fixed_huffman_codes();
 void test_check_file_format_gif(void);
+void test_lzw(void);
 
 //static Stack *stack;
 
@@ -116,4 +117,10 @@ void test_check_file_format_ok_gif(void)
     cut_assert(image_info.height == 1);
 
     fclose(input);
+}
+
+void test_lzw(void)
+{
+    init_table();
+
 }

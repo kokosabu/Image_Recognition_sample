@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+static uint8_t *lzw_table[4096];
+
 void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 {
     char signature[4];
@@ -260,4 +262,13 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             exit(1);
         }
     } while(1);
+}
+
+void init_table(void)
+{
+    int i;
+    for(i = 0; i < 256; i++) {
+        lzw_table[i] = (uint8_t *)malloc(sizeof(uint8_t) * 1);
+        lzw_table[i][0] = i;
+    }
 }
