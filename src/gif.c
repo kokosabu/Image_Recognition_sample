@@ -271,4 +271,15 @@ void init_table(void)
         lzw_table[i] = (uint8_t *)malloc(sizeof(uint8_t) * 1);
         lzw_table[i][0] = i;
     }
+    lzw_table[0x100] = (uint8_t *)CLEAR;
+    lzw_table[0x101] = (uint8_t *)END;
+}
+
+uint8_t *get_data(int index)
+{
+    return lzw_table[index];
+}
+
+void compress(uint16_t *compress_data, int compress_data_size, uint16_t *original_data, int original_data_size)
+{
 }
