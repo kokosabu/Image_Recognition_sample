@@ -282,4 +282,5 @@ uint8_t *get_data(int index)
 
 void compress(uint16_t *compress_data, int compress_data_size, uint16_t *original_data, int original_data_size)
 {
+    uint16_t w;
 }
