@@ -5,6 +5,7 @@
 #include <math.h>
 
 static uint8_t *lzw_table[4096];
+static int lzw_table_size;
 
 void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 {
@@ -50,7 +51,6 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     uint8_t *application_data;
     RGBTRIPLE *global_color_table;
     RGBTRIPLE *local_color_table;
-    uint16_t dictionary[4096];
     int i;
 
     fread(signature, 1, 3, input);
@@ -273,6 +273,8 @@ void init_table(void)
     }
     lzw_table[0x100] = (uint8_t *)CLEAR;
     lzw_table[0x101] = (uint8_t *)END;
+
+    lzw_table_size = 0x102;
 }
 
 uint8_t *get_data(int index)
@@ -280,7 +282,26 @@ uint8_t *get_data(int index)
     return lzw_table[index];
 }
 
-void compress(uint16_t *compress_data, int compress_data_size, uint16_t *original_data, int original_data_size)
+void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_data, int original_data_size)
 {
-    uint16_t w;
+    uint8_t W;
+    uint8_t K;
+    int N;
+    int I;
+
+    int i;
+
+    W = original_data[0];
+
+    I = 1;
+
+    for(i = 0; i < lzw_table_size; i++) {
+        if(W == lzw_table[i][0]) {
+            N = i;
+        }
+    }
+
+    K = original_data[I];
+
+    I++;
 }
