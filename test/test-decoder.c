@@ -121,19 +121,29 @@ void test_check_file_format_ok_gif(void)
 
 void test_lzw(void)
 {
-    /* http://www.geocities.co.jp/NatureLand/2023/reference/Compression/lzw.html */
+    /* https://www.petitmonte.com/math_algorithm/lzw_gif.html */
     uint8_t original_data[11] =
-        { 0xA4, 0xA4, 0xA4, 0xA4, 0x10, 0x36, 0xB0, 0xA3, 0xC5, 0xC5, 0xC5 };
+        { 1, 0, 0, 1, 0, 0, 1, 0 };
     uint8_t compress_data[11] =
         { 0, };
 
-    init_table();
+    init_table(3);
 
-    cut_assert(get_data(0x00)[0] == 0x00);
-    cut_assert(get_data(0xff)[0] == 0xff);
-    cut_assert(get_data(0x100)   == (uint8_t *)CLEAR);
-    cut_assert(get_data(0x101)   == (uint8_t *)END);
+    cut_assert(get_data(0)[0] == 0);
+    cut_assert(get_data(1)[0] == 1);
+    cut_assert(get_data(2)[0] == 2);
+    cut_assert(get_data(3)[0] == 3);
+    cut_assert(get_data(4)    == (uint8_t *)CLEAR);
+    cut_assert(get_data(5)    == (uint8_t *)END);
 
     compress(compress_data, sizeof(compress_data), original_data, sizeof(original_data));
 
+    cut_assert(compress_data[0] == 4);
+    cut_assert(compress_data[1] == 1);
+    cut_assert(compress_data[2] == 0);
+    cut_assert(compress_data[3] == 0);
+    cut_assert(compress_data[4] == 6);
+    cut_assert(compress_data[5] == 8);
+    cut_assert(compress_data[6] == 0);
+    cut_assert(compress_data[7] == 5);
 }

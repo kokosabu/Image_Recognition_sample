@@ -264,15 +264,16 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     } while(1);
 }
 
-void init_table(void)
+void init_table(int bit)
 {
     int i;
-    for(i = 0; i < 256; i++) {
+    for(i = 0; i < pow(2, bit-1); i++) {
         lzw_table[i] = (uint8_t *)malloc(sizeof(uint8_t) * 1);
         lzw_table[i][0] = i;
     }
-    lzw_table[0x100] = (uint8_t *)CLEAR;
-    lzw_table[0x101] = (uint8_t *)END;
+    lzw_table[i] = (uint8_t *)CLEAR;
+    i += 1;
+    lzw_table[i] = (uint8_t *)END;
 
     lzw_table_size = 0x102;
 }
@@ -288,8 +289,28 @@ void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_
     uint8_t K;
     int N;
     int I;
-
     int i;
+
+    uint8_t prefix;
+    uint8_t suffix;
+    int compress_data_index;
+    int original_data_index;
+
+    compress_data_index = 0;
+    original_data_index = 0;
+
+    for(i = 0; i < lzw_table_size; i++) {
+        if(lzw_table[i] == (uint8_t *)CLEAR) {
+            compress_data[compress_data_index] = i;
+        }
+    }
+    compress_data_index += 1;
+
+    prefix = original_data[original_data_index];
+    original_data_index += 1;
+
+    suffix = original_data[original_data_index];
+
 
     W = original_data[0];
 
