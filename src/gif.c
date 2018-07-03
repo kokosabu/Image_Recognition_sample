@@ -285,20 +285,21 @@ uint8_t *get_data(int index)
 
 void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_data, int original_data_size)
 {
-    uint8_t W;
-    uint8_t K;
-    int N;
-    int I;
     int i;
 
-    uint8_t prefix;
-    uint8_t suffix;
+    uint8_t prefix[1024];
+    uint8_t suffix[1024];
+    uint8_t com1[1024];
     int compress_data_index;
     int original_data_index;
+    int prefix_size;
+    int suffix_size;
+    int com1_size;
 
     compress_data_index = 0;
     original_data_index = 0;
 
+    /* 1:クリアコードの出力 */
     for(i = 0; i < lzw_table_size; i++) {
         if(lzw_table[i] == (uint8_t *)CLEAR) {
             compress_data[compress_data_index] = i;
@@ -306,23 +307,30 @@ void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_
     }
     compress_data_index += 1;
 
-    prefix = original_data[original_data_index];
+    /* 2:圧縮対象の文字列(数字)から一文字を読み込みprefix変数に格納する */
+    prefix_size = 0;
+    prefix[prefix_size] = original_data[original_data_index];
     original_data_index += 1;
+    prefix_size += 1;
 
-    suffix = original_data[original_data_index];
+    /* 3:次の一文字を読み込んでsuffix変数に格納する */
+    suffix_size = 0;
+    suffix[suffix_size] = original_data[original_data_index];
+    original_data_index += 1;
+    suffix_size += 1;
 
-
-    W = original_data[0];
-
-    I = 1;
-
-    for(i = 0; i < lzw_table_size; i++) {
-        if(W == lzw_table[i][0]) {
-            N = i;
-        }
+    /* 4-1:prefix変数 + suffix変数を連結した文字列をcom1変数に格納する。 */
+    com1_size = 0;
+    for(i = 0; i < prefix_size; i++) {
+        com1[com1_size] = prefix[i];
+        com1_size += 1;
+    }
+    for(i = 0; i < suffix_size; i++) {
+        com1[com1_size] = suffix[i];
+        com1_size += 1;
     }
 
-    K = original_data[I];
-
-    I++;
+    /* 4-2:次にcom1の内容が辞書に登録されているかを確認をする */
+    for(i = 0; i < lzw_table_size; i++) {
+    }
 }
