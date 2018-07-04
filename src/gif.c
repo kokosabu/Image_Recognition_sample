@@ -5,6 +5,7 @@
 #include <math.h>
 
 static uint8_t *lzw_table[4096];
+static uint8_t lzw_table_data_size[4096];
 static int lzw_table_size;
 
 void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
@@ -267,15 +268,22 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 void init_table(int bit)
 {
     int i;
+
     for(i = 0; i < pow(2, bit-1); i++) {
         lzw_table[i] = (uint8_t *)malloc(sizeof(uint8_t) * 1);
         lzw_table[i][0] = i;
+        lzw_table_data_size[i] = 1;
     }
-    lzw_table[i] = (uint8_t *)CLEAR;
-    i += 1;
-    lzw_table[i] = (uint8_t *)END;
 
-    lzw_table_size = 0x102;
+    lzw_table[i] = (uint8_t *)CLEAR;
+    lzw_table_data_size[i] = 0;
+    i += 1;
+
+    lzw_table[i] = (uint8_t *)END;
+    lzw_table_data_size[i] = 0;
+    i += 1;
+
+    lzw_table_size = i;
 }
 
 uint8_t *get_data(int index)
@@ -286,6 +294,8 @@ uint8_t *get_data(int index)
 void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_data, int original_data_size)
 {
     int i;
+    int j;
+    int match;
 
     uint8_t prefix[1024];
     uint8_t suffix[1024];
@@ -331,6 +341,26 @@ void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_
     }
 
     /* 4-2:次にcom1の内容が辞書に登録されているかを確認をする */
+    match = 0;
     for(i = 0; i < lzw_table_size; i++) {
+        for(j = 0; j < lzw_table_data_size[i]; j++) {
+            if(com1[j] != lzw_table[i][j]) {
+                break;
+            }
+        }
+        if(j == lzw_table_data_size[i] && j == com1_size) {
+            match = 1;
+            break;
+        }
+    }
+
+    if(match == 1) {
+        /* [登録済] */
+
+        /* 5-1:次の一文字をsuffixに格納する。 */
+        /* 5-2:com1 + suffixを連結した文字列をcom2変数に格納する。 */
+        /* 5-3:次にcom2が辞書に登録されているかを確認をする */
+    } else {
+        /* [未登録] */
     }
 }
