@@ -300,11 +300,13 @@ void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_
     uint8_t prefix[1024];
     uint8_t suffix[1024];
     uint8_t com1[1024];
+    uint8_t com2[1024];
     int compress_data_index;
     int original_data_index;
     int prefix_size;
     int suffix_size;
     int com1_size;
+    int com2_size;
 
     compress_data_index = 0;
     original_data_index = 0;
@@ -324,6 +326,10 @@ void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_
     prefix_size += 1;
 
     /* 3:次の一文字を読み込んでsuffix変数に格納する */
+THREE:
+    if(original_data_index == original_data_size) {
+        goto EIGHT;
+    }
     suffix_size = 0;
     suffix[suffix_size] = original_data[original_data_index];
     original_data_index += 1;
@@ -356,11 +362,120 @@ void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_
 
     if(match == 1) {
         /* [登録済] */
+        do {
+            if(original_data_index == original_data_size) {
+                break;
+            }
+            /* 5-1:次の一文字をsuffixに格納する。 */
+            suffix_size = 0;
+            suffix[suffix_size] = original_data[original_data_index];
+            original_data_index += 1;
+            suffix_size += 1;
 
-        /* 5-1:次の一文字をsuffixに格納する。 */
-        /* 5-2:com1 + suffixを連結した文字列をcom2変数に格納する。 */
-        /* 5-3:次にcom2が辞書に登録されているかを確認をする */
+            /* 5-2:com1 + suffixを連結した文字列をcom2変数に格納する。 */
+            com2_size = 0;
+            for(i = 0; i < com1_size; i++) {
+                com2[com2_size] = com1[i];
+                com2_size += 1;
+            }
+            for(i = 0; i < suffix_size; i++) {
+                com2[com2_size] = suffix[i];
+                com2_size += 1;
+            }
+
+            /* 5-3:次にcom2が辞書に登録されているかを確認をする */
+            match = 0;
+            for(i = 0; i < lzw_table_size; i++) {
+                for(j = 0; j < lzw_table_data_size[i]; j++) {
+                    if(com2[j] != lzw_table[i][j]) {
+                        break;
+                    }
+                }
+                if(j == lzw_table_data_size[i] && j == com2_size) {
+                    match = 1;
+                    break;
+                }
+            }
+
+            if(match == 1) {
+                /* [登録済] */
+                /* 6:com2をcom1に格納して5に戻る */
+                for(i = 0; i < com2_size; i++) {
+                    com1[i] = com2[i];
+                }
+                com1_size = com2_size;
+                continue;
+            } else {
+                /* [未登録] */
+                /* 7-1:com2を辞書に登録する。 */
+                lzw_table[lzw_table_size] = (uint8_t *)malloc(sizeof(uint8_t) * com2_size);;
+                for(i = 0; i < com2_size; i++) {
+                    lzw_table[lzw_table_size][i] = com2[i];
+                }
+                lzw_table_data_size[lzw_table_size] = com2_size;
+                lzw_table_size += 1;
+
+                /* 7-2:com1の辞書番号を出力する。 */
+                for(i = 0; i < lzw_table_size; i++) {
+                    for(j = 0; j < lzw_table_data_size[i]; j++) {
+                        if(com1[j] != lzw_table[i][j]) {
+                            break;
+                        }
+                    }
+                    if(j == lzw_table_data_size[i] && j == com1_size) {
+                        compress_data[compress_data_index] = j;
+                        compress_data_index += 1;
+                        break;
+                    }
+                }
+
+                /* 7-3:prefixにsuffixを格納して3に戻る */
+                for(i = 0; i < suffix_size; i++) {
+                    prefix[i] = suffix[i];
+                }
+                prefix_size = suffix_size;
+                goto THREE;
+            }
+        } while(0);
     } else {
         /* [未登録] */
+        /* com1を辞書に登録して、prefixの辞書番号を出力する。 */
+        lzw_table[lzw_table_size] = (uint8_t *)malloc(sizeof(uint8_t) * com1_size);;
+        for(i = 0; i < com1_size; i++) {
+            lzw_table[lzw_table_size][i] = com1[i];
+        }
+        lzw_table_data_size[lzw_table_size] = com1_size;
+        lzw_table_size += 1;
+
+        for(i = 0; i < lzw_table_size; i++) {
+            for(j = 0; j < lzw_table_data_size[i]; j++) {
+                if(prefix[j] != lzw_table[i][j]) {
+                    break;
+                }
+            }
+            if(j == lzw_table_data_size[i] && j == prefix_size) {
+                compress_data[compress_data_index] = j;
+                compress_data_index += 1;
+                break;
+            }
+        }
+
+        /* suffixをprefixに格納して3に戻る */
+        for(i = 0; i < suffix_size; i++) {
+            prefix[i] = suffix[i];
+        }
+        prefix_size = suffix_size;
+        goto THREE;
     }
+
+    /* 8:全ての文字列を圧縮した後にエンドコードを出力する */
+EIGHT:
+    for(i = 0; i < lzw_table_size; i++) {
+        if(lzw_table[i] == (uint8_t *)END) {
+            compress_data[compress_data_index] = i;
+        }
+    }
+    compress_data_index += 1;
+
+    return;
 }
