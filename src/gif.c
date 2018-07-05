@@ -315,9 +315,10 @@ void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_
     for(i = 0; i < lzw_table_size; i++) {
         if(lzw_table[i] == (uint8_t *)CLEAR) {
             compress_data[compress_data_index] = i;
+            compress_data_index += 1;
+            break;
         }
     }
-    compress_data_index += 1;
 
     /* 2:圧縮対象の文字列(数字)から一文字を読み込みprefix変数に格納する */
     prefix_size = 0;
@@ -327,7 +328,18 @@ void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_
 
     /* 3:次の一文字を読み込んでsuffix変数に格納する */
 THREE:
-    if(original_data_index == original_data_size) {
+    if(original_data_index == (original_data_size-1)) {
+        for(i = 0; i < lzw_table_size; i++) {
+            if(lzw_table[i][0] == prefix[0]) {
+                printf("[%d] %d %d\n", i, lzw_table[i][0], compress_data_index);
+                compress_data[compress_data_index] = i;
+                compress_data_index += 1;
+                break;
+            }
+        }
+        for(i = 0; i < compress_data_index; i++) {
+            printf("[%d] %d\n", i, compress_data[i]);
+        }
         goto EIGHT;
     }
     suffix_size = 0;
@@ -423,7 +435,8 @@ THREE:
                         }
                     }
                     if(j == lzw_table_data_size[i] && j == com1_size) {
-                        compress_data[compress_data_index] = j;
+                        printf("[%d] 7-2\n", compress_data_index);
+                        compress_data[compress_data_index] = i;
                         compress_data_index += 1;
                         break;
                     }
@@ -454,7 +467,8 @@ THREE:
                 }
             }
             if(j == lzw_table_data_size[i] && j == prefix_size) {
-                compress_data[compress_data_index] = j;
+                printf("[%d] ?\n", compress_data_index);
+                compress_data[compress_data_index] = i;
                 compress_data_index += 1;
                 break;
             }
@@ -473,9 +487,10 @@ EIGHT:
     for(i = 0; i < lzw_table_size; i++) {
         if(lzw_table[i] == (uint8_t *)END) {
             compress_data[compress_data_index] = i;
+            compress_data_index += 1;
+            break;
         }
     }
-    compress_data_index += 1;
 
     return;
 }

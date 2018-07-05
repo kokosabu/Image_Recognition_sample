@@ -138,9 +138,20 @@ void test_lzw(void)
 
     compress(compress_data, sizeof(compress_data), original_data, sizeof(original_data));
 
-    cut_assert(compress_data[0] == 4);
     cut_assert(get_data(6)[0] == 1);
     cut_assert(get_data(6)[1] == 0);
+    cut_assert(get_data(7)[0] == 0);
+    cut_assert(get_data(7)[1] == 0);
+    cut_assert(get_data(8)[0] == 0);
+    cut_assert(get_data(8)[1] == 1);
+    cut_assert(get_data(9)[0] == 1);
+    cut_assert(get_data(9)[1] == 0);
+    cut_assert(get_data(9)[2] == 0);
+    cut_assert(get_data(10)[0] == 0);
+    cut_assert(get_data(10)[1] == 1);
+    cut_assert(get_data(10)[2] == 0);
+
+    cut_assert(compress_data[0] == 4);
     cut_assert(compress_data[1] == 1);
     cut_assert(compress_data[2] == 0);
     cut_assert(compress_data[3] == 0);
