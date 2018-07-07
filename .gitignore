@@ -11,3 +11,12 @@ config.h.in
 *.bmp
 *.png
 *.gif
+aclocal.m4
+autom4te.cache/
+config.log
+config.status
+config/
+configure
+libtool
+src/my_image_decoder
+src/stamp-h1
