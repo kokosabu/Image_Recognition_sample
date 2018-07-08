@@ -330,15 +330,12 @@ void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_
 THREE:
     if(original_data_index == (original_data_size-1)) {
         for(i = 0; i < lzw_table_size; i++) {
-            if(lzw_table[i][0] == prefix[0]) {
+            if(lzw_table[i][0] == original_data[original_data_index]) {
                 printf("[%d] %d %d\n", i, lzw_table[i][0], compress_data_index);
                 compress_data[compress_data_index] = i;
                 compress_data_index += 1;
                 break;
             }
-        }
-        for(i = 0; i < compress_data_index; i++) {
-            printf("[%d] %d\n", i, compress_data[i]);
         }
         goto EIGHT;
     }
@@ -428,6 +425,16 @@ THREE:
                 lzw_table_size += 1;
 
                 /* 7-2:com1の辞書番号を出力する。 */
+                if(original_data_index == (original_data_size-1)) {
+                    for(i = 0; i < lzw_table_size; i++) {
+                        if(lzw_table[i][0] == original_data[original_data_index]) {
+                            compress_data[compress_data_index] = i;
+                            compress_data_index += 1;
+                            break;
+                        }
+                    }
+                    goto EIGHT;
+                }
                 for(i = 0; i < lzw_table_size; i++) {
                     for(j = 0; j < lzw_table_data_size[i]; j++) {
                         if(com1[j] != lzw_table[i][j]) {
@@ -435,7 +442,6 @@ THREE:
                         }
                     }
                     if(j == lzw_table_data_size[i] && j == com1_size) {
-                        printf("[%d] 7-2\n", compress_data_index);
                         compress_data[compress_data_index] = i;
                         compress_data_index += 1;
                         break;
@@ -467,7 +473,6 @@ THREE:
                 }
             }
             if(j == lzw_table_data_size[i] && j == prefix_size) {
-                printf("[%d] ?\n", compress_data_index);
                 compress_data[compress_data_index] = i;
                 compress_data_index += 1;
                 break;
