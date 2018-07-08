@@ -123,7 +123,7 @@ void test_check_file_format_ok_gif(void)
 void test_lzw(void)
 {
     /* https://www.petitmonte.com/math_algorithm/lzw_gif.html */
-    uint8_t original_data[11] =
+    uint8_t original_data[] =
         { 1, 0, 0, 1, 0, 0, 1, 0 };
     uint8_t compress_data[11] =
         { 0, };
@@ -165,7 +165,7 @@ void test_lzw(void)
 void test_lzw2(void)
 {
     /* https://www.petitmonte.com/math_algorithm/lzw_gif.html */
-    uint8_t original_data[11] =
+    uint8_t original_data[] =
         { 0, 1, 0, 1, 0, 1, 0, 1, 0 };
     uint8_t compress_data[11] =
         { 0, };
