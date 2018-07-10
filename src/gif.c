@@ -416,9 +416,6 @@ FIVE:
             lzw_table_size += 1;
 
             /* 7-2:com1の辞書番号を出力する。 */
-            if(original_data_index >= 9) {
-                goto EIGHT;
-            }
             for(i = 0; i < lzw_table_size; i++) {
                 for(j = 0; j < lzw_table_data_size[i]; j++) {
                     if(com1[j] != lzw_table[i][j]) {
