@@ -291,7 +291,7 @@ uint8_t *get_data(int index)
     return lzw_table[index];
 }
 
-void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_data, int original_data_size)
+void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_data, int original_data_size, uint8_t *bit_lengths, int bit_lengths_size)
 {
     int i;
     int j;

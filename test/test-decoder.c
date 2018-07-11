@@ -128,6 +128,8 @@ void test_lzw(void)
         { 1, 0, 0, 1, 0, 0, 1, 0 };
     uint8_t compress_data[11] =
         { 0, };
+    uint8_t bit_lengths[11] =
+        { 0, };
 
     init_table(3);
 
@@ -138,7 +140,7 @@ void test_lzw(void)
     cut_assert(get_data(4)    == (uint8_t *)CLEAR);
     cut_assert(get_data(5)    == (uint8_t *)END);
 
-    compress(compress_data, sizeof(compress_data), original_data, sizeof(original_data));
+    compress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), bit_lengths, sizeof(bit_lengths));
 
     cut_assert(get_data(6)[0] == 1);
     cut_assert(get_data(6)[1] == 0);
@@ -170,6 +172,8 @@ void test_lzw2(void)
         { 0, 1, 0, 1, 0, 1, 0, 1, 0 };
     uint8_t compress_data[11] =
         { 0, };
+    uint8_t bit_lengths[11] =
+        { 0, };
 
     init_table(3);
 
@@ -180,7 +184,7 @@ void test_lzw2(void)
     cut_assert(get_data(4)    == (uint8_t *)CLEAR);
     cut_assert(get_data(5)    == (uint8_t *)END);
 
-    compress(compress_data, sizeof(compress_data), original_data, sizeof(original_data));
+    compress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), bit_lengths, sizeof(bit_lengths));
 
     cut_assert(get_data(6)[0] == 0);
     cut_assert(get_data(6)[1] == 1);
@@ -210,6 +214,8 @@ void test_lzw3(void)
         { 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0 };
     uint8_t compress_data[11] =
         { 0, };
+    uint8_t bit_lengths[11] =
+        { 0, };
 
     init_table(3);
 
@@ -220,7 +226,7 @@ void test_lzw3(void)
     cut_assert(get_data(4)    == (uint8_t *)CLEAR);
     cut_assert(get_data(5)    == (uint8_t *)END);
 
-    compress(compress_data, sizeof(compress_data), original_data, sizeof(original_data));
+    compress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), bit_lengths, sizeof(bit_lengths));
 
     cut_assert(get_data(6)[0] == 0);
     cut_assert(get_data(6)[1] == 0);
