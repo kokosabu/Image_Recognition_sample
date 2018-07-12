@@ -8,18 +8,25 @@ static uint8_t *lzw_table[4096];
 static uint8_t lzw_table_data_size[4096];
 static int lzw_table_size;
 
-static void output_compress_data(uint8_t *compress_data, int *compress_data_index);
+static void output_compress_data(uint8_t *compress_data, int *compress_data_index, int output_code);
+static int search_lzw_table(uint8_t *code);
 
-static void output_compress_data(uint8_t *compress_data, int *compress_data_index)
+static void output_compress_data(uint8_t *compress_data, int *compress_data_index, int output_code)
+{
+    compress_data[*compress_data_index] = output_code;
+    *compress_data_index += 1;
+}
+
+static int search_lzw_table(uint8_t *code)
 {
     int i;
     for(i = 0; i < lzw_table_size; i++) {
-        if(lzw_table[i] == (uint8_t *)CLEAR) {
-            compress_data[*compress_data_index] = i;
-            *compress_data_index += 1;
-            break;
+        if(lzw_table[i] == code) {
+            return i;
         }
     }
+
+    return -1;
 }
 
 void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
@@ -321,12 +328,14 @@ void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_
     int suffix_size;
     int com1_size;
     int com2_size;
+    int output_code;
 
     compress_data_index = 0;
     original_data_index = 0;
 
     /* 1:クリアコードの出力 */
-    output_compress_data(compress_data, &compress_data_index);
+    output_code = search_lzw_table((uint8_t *)CLEAR);
+    output_compress_data(compress_data, &compress_data_index, output_code);
 
     /* 2:圧縮対象の文字列(数字)から一文字を読み込みprefix変数に格納する */
     prefix_size = 0;
