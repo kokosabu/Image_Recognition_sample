@@ -378,8 +378,7 @@ THREE:
     if(match == 1) {
 FIVE:
         if(original_data_index == original_data_size) {
-            compress_data[compress_data_index] = i;
-            compress_data_index += 1;
+            output_compress_data(compress_data, &compress_data_index, i);
             goto EIGHT;
         }
         /* [登録済] */
@@ -440,16 +439,14 @@ FIVE:
                     }
                 }
                 if(j == lzw_table_data_size[i] && j == com1_size) {
-                    compress_data[compress_data_index] = i;
-                    compress_data_index += 1;
+                    output_compress_data(compress_data, &compress_data_index, i);
                     break;
                 }
             }
             if(original_data_index == original_data_size) {
                 for(i = 0; i < lzw_table_size; i++) {
                     if(lzw_table[i][0] == original_data[original_data_index-1]) {
-                        compress_data[compress_data_index] = i;
-                        compress_data_index += 1;
+                        output_compress_data(compress_data, &compress_data_index, i);
                         break;
                     }
                 }
@@ -480,8 +477,7 @@ FIVE:
                 }
             }
             if(j == lzw_table_data_size[i] && j == prefix_size) {
-                compress_data[compress_data_index] = i;
-                compress_data_index += 1;
+                output_compress_data(compress_data, &compress_data_index, i);
                 break;
             }
         }
@@ -496,12 +492,7 @@ FIVE:
 
     /* 8:全ての文字列を圧縮した後にエンドコードを出力する */
 EIGHT:
-    for(i = 0; i < lzw_table_size; i++) {
-        if(lzw_table[i] == (uint8_t *)END) {
-            compress_data[compress_data_index] = i;
-            compress_data_index += 1;
-            break;
-        }
-    }
+    output_code = search_lzw_table((uint8_t *)END);
+    output_compress_data(compress_data, &compress_data_index, output_code);
 }
 
