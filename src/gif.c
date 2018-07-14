@@ -13,6 +13,7 @@ static int search_lzw_table(uint8_t *code, int size);
 static void connect(uint8_t *connect, int *size, uint8_t *prefix, int prefix_size, uint8_t *suffix, int suffix_size);
 static void copy(uint8_t *prefix, int *prefix_size, uint8_t *suffix, int suffix_size);
 static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index);
+static void entry_dict(uint8_t *com2, int com2_size);
 
 static void output_compress_data(uint8_t *compress_data, int *compress_data_index, int output_code)
 {
@@ -75,6 +76,18 @@ static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index)
     to[*to_size] = data[*data_index];
     *data_index += 1;
     *to_size += 1;
+}
+
+static void entry_dict(uint8_t *com2, int com2_size)
+{
+    int i;
+
+    lzw_table[lzw_table_size] = (uint8_t *)malloc(sizeof(uint8_t) * com2_size);;
+    for(i = 0; i < com2_size; i++) {
+        lzw_table[lzw_table_size][i] = com2[i];
+    }
+    lzw_table_data_size[lzw_table_size] = com2_size;
+    lzw_table_size += 1;
 }
 
 void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
@@ -363,7 +376,6 @@ uint8_t *get_data(int index)
 void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_data, int original_data_size, uint8_t *bit_lengths, int bit_lengths_size)
 {
     int i;
-
     uint8_t prefix[1024];
     uint8_t suffix[1024];
     uint8_t com1[1024];
@@ -387,89 +399,77 @@ void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_
     prefix_size = 0;
     read_char(prefix, &prefix_size, original_data, &original_data_index);
 
-THREE:
-    /* 3:次の一文字を読み込んでsuffix変数に格納する */
-    suffix_size = 0;
-    read_char(suffix, &suffix_size, original_data, &original_data_index);
-
-    /* 4-1:prefix変数 + suffix変数を連結した文字列をcom1変数に格納する。 */
-    com1_size = 0;
-    connect(com1, &com1_size, prefix, prefix_size, suffix, suffix_size);
-
-    /* 4-2:次にcom1の内容が辞書に登録されているかを確認をする */
-    output_code = search_lzw_table(com1, com1_size);
-
-    if(output_code != -1) {
-        /* [登録済] */
-FIVE:
-        if(original_data_index == original_data_size) {
-            output_compress_data(compress_data, &compress_data_index, output_code);
-            goto EIGHT;
-        }
-        /* 5-1:次の一文字をsuffixに格納する。 */
+    do {
+        /* 3:次の一文字を読み込んでsuffix変数に格納する */
         suffix_size = 0;
         read_char(suffix, &suffix_size, original_data, &original_data_index);
 
-        /* 5-2:com1 + suffixを連結した文字列をcom2変数に格納する。 */
-        com2_size = 0;
-        connect(com2, &com2_size, com1, com1_size, suffix, suffix_size);
+        /* 4-1:prefix変数 + suffix変数を連結した文字列をcom1変数に格納する。 */
+        com1_size = 0;
+        connect(com1, &com1_size, prefix, prefix_size, suffix, suffix_size);
 
-        /* 5-3:次にcom2が辞書に登録されているかを確認をする */
-        output_code = search_lzw_table(com2, com2_size);
+        /* 4-2:次にcom1の内容が辞書に登録されているかを確認をする */
+        output_code = search_lzw_table(com1, com1_size);
 
         if(output_code != -1) {
             /* [登録済] */
-            /* 6:com2をcom1に格納して5に戻る */
-            copy(com1, &com1_size, com2, com2_size);
-            goto FIVE;
+FIVE:
+            if(original_data_index == original_data_size) {
+                output_compress_data(compress_data, &compress_data_index, output_code);
+                break;
+            }
+            /* 5-1:次の一文字をsuffixに格納する。 */
+            suffix_size = 0;
+            read_char(suffix, &suffix_size, original_data, &original_data_index);
+
+            /* 5-2:com1 + suffixを連結した文字列をcom2変数に格納する。 */
+            com2_size = 0;
+            connect(com2, &com2_size, com1, com1_size, suffix, suffix_size);
+
+            /* 5-3:次にcom2が辞書に登録されているかを確認をする */
+            output_code = search_lzw_table(com2, com2_size);
+
+            if(output_code != -1) {
+                /* [登録済] */
+                /* 6:com2をcom1に格納して5に戻る */
+                copy(com1, &com1_size, com2, com2_size);
+                goto FIVE;
+            } else {
+                /* [未登録] */
+                /* 7-1:com2を辞書に登録する。 */
+                entry_dict(com2, com2_size);
+
+                /* 7-2:com1の辞書番号を出力する。 */
+                output_code = search_lzw_table(com1, com1_size);
+                output_compress_data(compress_data, &compress_data_index, output_code);
+
+                if(original_data_index == original_data_size) {
+                    for(i = 0; i < lzw_table_size; i++) {
+                        if(lzw_table[i][0] == original_data[original_data_index-1]) {
+                            output_compress_data(compress_data, &compress_data_index, i);
+                            break;
+                        }
+                    }
+                    break;
+                }
+
+                /* 7-3:prefixにsuffixを格納して3に戻る */
+                copy(prefix, &prefix_size, suffix, suffix_size);
+            }
         } else {
             /* [未登録] */
-            /* 7-1:com2を辞書に登録する。 */
-            lzw_table[lzw_table_size] = (uint8_t *)malloc(sizeof(uint8_t) * com2_size);;
-            for(i = 0; i < com2_size; i++) {
-                lzw_table[lzw_table_size][i] = com2[i];
-            }
-            lzw_table_data_size[lzw_table_size] = com2_size;
-            lzw_table_size += 1;
+            /* com1を辞書に登録して、prefixの辞書番号を出力する。 */
+            entry_dict(com1, com1_size);
 
-            /* 7-2:com1の辞書番号を出力する。 */
-            output_code = search_lzw_table(com1, com1_size);
+            output_code = search_lzw_table(prefix, prefix_size);
             output_compress_data(compress_data, &compress_data_index, output_code);
 
-            if(original_data_index == original_data_size) {
-                for(i = 0; i < lzw_table_size; i++) {
-                    if(lzw_table[i][0] == original_data[original_data_index-1]) {
-                        output_compress_data(compress_data, &compress_data_index, i);
-                        break;
-                    }
-                }
-                goto EIGHT;
-            }
-
-            /* 7-3:prefixにsuffixを格納して3に戻る */
+            /* suffixをprefixに格納して3に戻る */
             copy(prefix, &prefix_size, suffix, suffix_size);
-            goto THREE;
         }
-    } else {
-        /* [未登録] */
-        /* com1を辞書に登録して、prefixの辞書番号を出力する。 */
-        lzw_table[lzw_table_size] = (uint8_t *)malloc(sizeof(uint8_t) * com1_size);;
-        for(i = 0; i < com1_size; i++) {
-            lzw_table[lzw_table_size][i] = com1[i];
-        }
-        lzw_table_data_size[lzw_table_size] = com1_size;
-        lzw_table_size += 1;
-
-        output_code = search_lzw_table(prefix, prefix_size);
-        output_compress_data(compress_data, &compress_data_index, output_code);
-
-        /* suffixをprefixに格納して3に戻る */
-        copy(prefix, &prefix_size, suffix, suffix_size);
-        goto THREE;
-    }
+    } while(1);
 
     /* 8:全ての文字列を圧縮した後にエンドコードを出力する */
-EIGHT:
     output_code = search_lzw_table((uint8_t *)END, 0);
     output_compress_data(compress_data, &compress_data_index, output_code);
 }
