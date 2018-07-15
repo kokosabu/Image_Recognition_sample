@@ -8,9 +8,10 @@ void test_docompress_fixed_huffman_codes();
 
 void test_check_file_format_dummy_gif(void);
 void test_check_file_format_ok_gif(void);
-void test_lzw(void);
-void test_lzw2(void);
-void test_lzw3(void);
+void test_lzw_compress(void);
+void test_lzw_compress2(void);
+void test_lzw_compress3(void);
+void test_lzw_decompress(void);
 
 void cut_setup (void)
 {
@@ -122,7 +123,7 @@ void test_check_file_format_ok_gif(void)
     fclose(input);
 }
 
-void test_lzw(void)
+void test_lzw_compress(void)
 {
     /* https://www.petitmonte.com/math_algorithm/lzw_gif.html */
     uint8_t original_data[] =
@@ -175,7 +176,7 @@ void test_lzw(void)
     cut_assert(bit_lengths[7] == 4);
 }
 
-void test_lzw2(void)
+void test_lzw_compress2(void)
 {
     /* https://www.petitmonte.com/math_algorithm/lzw_gif.html */
     uint8_t original_data[] =
@@ -225,7 +226,7 @@ void test_lzw2(void)
     cut_assert(bit_lengths[6] == 4);
 }
 
-void test_lzw3(void)
+void test_lzw_compress3(void)
 {
     /* https://www.petitmonte.com/math_algorithm/lzw_gif.html */
     uint8_t original_data[] =
@@ -282,5 +283,28 @@ void test_lzw3(void)
     cut_assert(bit_lengths[6] == 4);
     cut_assert(bit_lengths[7] == 4);
     cut_assert(bit_lengths[8] == 4);
+}
+
+void test_lzw_decompress(void)
+{
+    /* https://www.petitmonte.com/math_algorithm/lzw_gif.html */
+    uint8_t compress_data[11] =
+        { 4, 1, 0, 0, 6, 8, 0, 5 };
+    uint8_t original_data[] =
+        { 0, };
+    uint8_t bit_lengths[11] =
+        { 0, };
+
+    init_table(3);
+    decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), bit_lengths, sizeof(bit_lengths));
+
+    cut_assert(compress_data[0] == 1);
+    cut_assert(compress_data[1] == 0);
+    cut_assert(compress_data[2] == 0);
+    cut_assert(compress_data[3] == 1);
+    cut_assert(compress_data[4] == 0);
+    cut_assert(compress_data[5] == 0);
+    cut_assert(compress_data[6] == 1);
+    cut_assert(compress_data[7] == 0);
 }
 
