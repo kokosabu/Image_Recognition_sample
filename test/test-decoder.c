@@ -3,8 +3,11 @@
 #include "gif.h"
 
 void test_one_bit_read(void);
+
 void test_docompress_fixed_huffman_codes();
-void test_check_file_format_gif(void);
+
+void test_check_file_format_dummy_gif(void);
+void test_check_file_format_ok_gif(void);
 void test_lzw(void);
 void test_lzw2(void);
 void test_lzw3(void);
