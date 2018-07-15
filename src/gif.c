@@ -7,18 +7,24 @@
 static uint8_t *lzw_table[4096];
 static uint8_t lzw_table_data_size[4096];
 static int lzw_table_size;
+static uint8_t bit_length;
 
-static void output_compress_data(uint8_t *compress_data, int *compress_data_index, int output_code);
+static void output_compress_data(uint8_t *compress_data, uint8_t *bit_lengths, int *compress_data_index, int output_code);
 static int search_lzw_table(uint8_t *code, int size);
 static void connect(uint8_t *connect, int *size, uint8_t *prefix, int prefix_size, uint8_t *suffix, int suffix_size);
 static void copy(uint8_t *prefix, int *prefix_size, uint8_t *suffix, int suffix_size);
 static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index);
 static void entry_dict(uint8_t *com2, int com2_size);
 
-static void output_compress_data(uint8_t *compress_data, int *compress_data_index, int output_code)
+static void output_compress_data(uint8_t *compress_data, uint8_t *bit_lengths, int *compress_data_index, int output_code)
 {
     compress_data[*compress_data_index] = output_code;
+    bit_lengths[*compress_data_index] = bit_length;
     *compress_data_index += 1;
+
+    if((lzw_table_size-1) >= pow(2, bit_length)) {
+        bit_length += 1;
+    }
 }
 
 static int search_lzw_table(uint8_t *code, int size)
@@ -366,6 +372,7 @@ void init_table(int bit)
     i += 1;
 
     lzw_table_size = i;
+    bit_length = bit;
 }
 
 uint8_t *get_data(int index)
@@ -393,7 +400,7 @@ void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_
 
     /* 1:クリアコードの出力 */
     output_code = search_lzw_table((uint8_t *)CLEAR, 0);
-    output_compress_data(compress_data, &compress_data_index, output_code);
+    output_compress_data(compress_data, bit_lengths, &compress_data_index, output_code);
 
     /* 2:圧縮対象の文字列(数字)から一文字を読み込みprefix変数に格納する */
     prefix_size = 0;
@@ -415,7 +422,7 @@ void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_
             /* [登録済] */
 FIVE:
             if(original_data_index == original_data_size) {
-                output_compress_data(compress_data, &compress_data_index, output_code);
+                output_compress_data(compress_data, bit_lengths, &compress_data_index, output_code);
                 break;
             }
             /* 5-1:次の一文字をsuffixに格納する。 */
@@ -441,12 +448,12 @@ FIVE:
 
                 /* 7-2:com1の辞書番号を出力する。 */
                 output_code = search_lzw_table(com1, com1_size);
-                output_compress_data(compress_data, &compress_data_index, output_code);
+                output_compress_data(compress_data, bit_lengths, &compress_data_index, output_code);
 
                 if(original_data_index == original_data_size) {
                     for(i = 0; i < lzw_table_size; i++) {
                         if(lzw_table[i][0] == original_data[original_data_index-1]) {
-                            output_compress_data(compress_data, &compress_data_index, i);
+                            output_compress_data(compress_data, bit_lengths, &compress_data_index, i);
                             break;
                         }
                     }
@@ -462,7 +469,7 @@ FIVE:
             entry_dict(com1, com1_size);
 
             output_code = search_lzw_table(prefix, prefix_size);
-            output_compress_data(compress_data, &compress_data_index, output_code);
+            output_compress_data(compress_data, bit_lengths, &compress_data_index, output_code);
 
             /* suffixをprefixに格納して3に戻る */
             copy(prefix, &prefix_size, suffix, suffix_size);
@@ -471,6 +478,6 @@ FIVE:
 
     /* 8:全ての文字列を圧縮した後にエンドコードを出力する */
     output_code = search_lzw_table((uint8_t *)END, 0);
-    output_compress_data(compress_data, &compress_data_index, output_code);
+    output_compress_data(compress_data, bit_lengths, &compress_data_index, output_code);
 }
 

@@ -9,8 +9,6 @@ void test_lzw(void);
 void test_lzw2(void);
 void test_lzw3(void);
 
-//static Stack *stack;
-
 void cut_setup (void)
 {
 }
@@ -163,6 +161,15 @@ void test_lzw(void)
     cut_assert(compress_data[5] == 8);
     cut_assert(compress_data[6] == 0);
     cut_assert(compress_data[7] == 5);
+
+    cut_assert(bit_lengths[0] == 3);
+    cut_assert(bit_lengths[1] == 3);
+    cut_assert(bit_lengths[2] == 3);
+    cut_assert(bit_lengths[3] == 3);
+    cut_assert(bit_lengths[4] == 4);
+    cut_assert(bit_lengths[5] == 4);
+    cut_assert(bit_lengths[6] == 4);
+    cut_assert(bit_lengths[7] == 4);
 }
 
 void test_lzw2(void)
@@ -205,6 +212,14 @@ void test_lzw2(void)
     cut_assert(compress_data[4] == 8);
     cut_assert(compress_data[5] == 7);
     cut_assert(compress_data[6] == 5);
+
+    cut_assert(bit_lengths[0] == 3);
+    cut_assert(bit_lengths[1] == 3);
+    cut_assert(bit_lengths[2] == 3);
+    cut_assert(bit_lengths[3] == 3);
+    cut_assert(bit_lengths[4] == 4);
+    cut_assert(bit_lengths[5] == 4);
+    cut_assert(bit_lengths[6] == 4);
 }
 
 void test_lzw3(void)
@@ -254,5 +269,15 @@ void test_lzw3(void)
     cut_assert(compress_data[6] == 7);
     cut_assert(compress_data[7] == 0);
     cut_assert(compress_data[8] == 5);
+
+    cut_assert(bit_lengths[0] == 3);
+    cut_assert(bit_lengths[1] == 3);
+    cut_assert(bit_lengths[2] == 3);
+    cut_assert(bit_lengths[3] == 3);
+    cut_assert(bit_lengths[4] == 4);
+    cut_assert(bit_lengths[5] == 4);
+    cut_assert(bit_lengths[6] == 4);
+    cut_assert(bit_lengths[7] == 4);
+    cut_assert(bit_lengths[8] == 4);
 }
 
