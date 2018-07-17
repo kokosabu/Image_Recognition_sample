@@ -298,18 +298,6 @@ void test_lzw_decompress(void)
     init_table(3);
     decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), bit_lengths, sizeof(bit_lengths));
 
-    printf("%d\n", original_data[0]);
-    printf("%d\n", original_data[1]);
-    printf("%d\n", original_data[2]);
-    printf("%d\n", original_data[3]);
-    printf("%d\n", original_data[4]);
-    printf("%d\n", original_data[5]);
-    printf("%d\n", original_data[6]);
-    printf("%d\n", original_data[7]);
-
-    printf("[7][0]:%d\n", get_data(7)[0]);
-    printf("[7][1]:%d\n", get_data(7)[1]);
-
     cut_assert(get_data(6)[0] == 1);
     cut_assert(get_data(6)[1] == 0);
     cut_assert(get_data(7)[0] == 0);

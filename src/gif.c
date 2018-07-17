@@ -519,15 +519,15 @@ void decompress(uint8_t *compress_data, int compress_data_size, uint8_t *origina
 
     do {
         /* b.辞書の出力数のページの値と辞書の待機数のページにある値の最初の文字を並べた数を辞書の新しいページに書き込みます。 */
-        output_code1 = search_lzw_table(prefix, prefix_size);
-        output_code2 = search_lzw_table(suffix, suffix_size);
-        printf("[%d] 1 : %d, 2 : %d\n", lzw_table_size, output_code1, output_code2);
+        output_code1 = prefix[0];
+        output_code2 = suffix[0];
         copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
         if(output_code2 != -1) {
             copy(com2, &com2_size, lzw_table[output_code2], lzw_table_data_size[output_code2]);
         } else {
             com2[0] = com1[0];
         }
+        com3_size = 0;
         connect(com3, &com3_size, com1, com1_size, com2, 1);
         entry_dict(com3, com3_size);
 
