@@ -88,7 +88,7 @@ static void entry_dict(uint8_t *com2, int com2_size)
 {
     int i;
 
-    lzw_table[lzw_table_size] = (uint8_t *)malloc(sizeof(uint8_t) * com2_size);;
+    lzw_table[lzw_table_size] = (uint8_t *)malloc(sizeof(uint8_t) * com2_size);
     for(i = 0; i < com2_size; i++) {
         lzw_table[lzw_table_size][i] = com2[i];
     }
@@ -481,8 +481,71 @@ FIVE:
     output_compress_data(compress_data, bit_lengths, &compress_data_index, output_code);
 }
 
-
 void decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original_data, int original_data_size, uint8_t *bit_lengths, int bit_lengths_size)
 {
+    uint8_t prefix[1024];
+    uint8_t suffix[1024];
+    uint8_t com1[1024];
+    uint8_t com2[1024];
+    uint8_t com3[1024];
+    int prefix_size;
+    int suffix_size;
+    int com1_size;
+    int com2_size;
+    int com3_size;
+    int compress_data_index;
+    int original_data_index;
+    int output_code;
+    int output_code1;
+    int output_code2;
+    int i;
+
+    compress_data_index = 0;
+    original_data_index = 0;
+
+    output_code = search_lzw_table((uint8_t *)CLEAR, 0);
+    prefix_size = 0;
+    read_char(prefix, &prefix_size, compress_data, &compress_data_index);
+    if(output_code != prefix[0]) {
+        printf("format error\n");
+        exit(-1);
+    }
+
+    /* a.最初の数を出力数に、次の数を待機数に読み込みます。辞書を初期化します。 */
+    prefix_size = 0;
+    read_char(prefix, &prefix_size, compress_data, &compress_data_index);
+    suffix_size = 0;
+    read_char(suffix, &suffix_size, compress_data, &compress_data_index);
+
+    do {
+        /* b.辞書の出力数のページの値と辞書の待機数のページにある値の最初の文字を並べた数を辞書の新しいページに書き込みます。 */
+        output_code1 = search_lzw_table(prefix, prefix_size);
+        output_code2 = search_lzw_table(suffix, suffix_size);
+        printf("[%d] 1 : %d, 2 : %d\n", lzw_table_size, output_code1, output_code2);
+        copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
+        if(output_code2 != -1) {
+            copy(com2, &com2_size, lzw_table[output_code2], lzw_table_data_size[output_code2]);
+        } else {
+            com2[0] = com1[0];
+        }
+        connect(com3, &com3_size, com1, com1_size, com2, 1);
+        entry_dict(com3, com3_size);
+
+        /* c.辞書の出力数のページに書かれている値を書き出します。 */
+        for(i = 0; i < com1_size; i++) {
+            original_data[original_data_index] = com1[i];
+            original_data_index += 1;
+        }
+
+        /* d.待機数を出力数に、新しく一つ読み込んで待機数に入れます。 */
+        copy(prefix, &prefix_size, suffix, suffix_size);
+        suffix_size = 0;
+        read_char(suffix, &suffix_size, compress_data, &compress_data_index);
+
+        /* e.以下、b〜dの繰り返し */
+        if(suffix[0] == search_lzw_table((uint8_t *)END, 0)) {
+            break;
+        }
+    } while(1);
 }
 
