@@ -347,9 +347,6 @@ void test_lzw_decompress2(void)
     cut_assert(get_data(9)[2] == 0);
     cut_assert(get_data(9)[3] == 1);
 
-    for(int i = 0; i < 9; i++) {
-        printf("[%d] %d\n", i, original_data[i]);
-    }
     cut_assert(original_data[0] == 0);
     cut_assert(original_data[1] == 1);
     cut_assert(original_data[2] == 0);

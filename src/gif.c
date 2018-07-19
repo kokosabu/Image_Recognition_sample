@@ -544,6 +544,10 @@ void decompress(uint8_t *compress_data, int compress_data_size, uint8_t *origina
 
         /* e.以下、b〜dの繰り返し */
         if(suffix[0] == search_lzw_table((uint8_t *)END, 0)) {
+            for(i = 0; i < lzw_table_data_size[prefix[0]]; i++) {
+                original_data[original_data_index] = lzw_table[prefix[0]][i];
+                original_data_index += 1;
+            }
             break;
         }
     } while(1);
