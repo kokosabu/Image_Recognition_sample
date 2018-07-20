@@ -522,7 +522,7 @@ void decompress(uint8_t *compress_data, int compress_data_size, uint8_t *origina
         output_code1 = prefix[0];
         output_code2 = suffix[0];
         copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
-        if(output_code2 != -1) {
+        if(output_code2 < lzw_table_size) {
             copy(com2, &com2_size, lzw_table[output_code2], lzw_table_data_size[output_code2]);
         } else {
             com2[0] = com1[0];
