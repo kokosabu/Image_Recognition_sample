@@ -96,17 +96,53 @@ static void entry_dict(uint8_t *com2, int com2_size)
     lzw_table_size += 1;
 }
 
-void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
+void read_header(FILE *input)
 {
     char signature[4];
     char version[4];
+
+    fread(signature, 1, 3, input);
+    signature[3] = '\0';
+    assert(strcmp(signature, "GIF") == 0);
+
+    fread(version, 1, 3, input);
+    version[3] = '\0';
+    assert(strcmp(version, "89a") == 0);
+}
+
+void read_logical_screen_descriptor(FILE *input, IMAGEINFO *image_info, unsigned char *global_color_table_flag, unsigned char *size_of_global_color_table)
+{
     unsigned char byte;
-    unsigned char global_color_table_flag;
     unsigned char color_resolution;
     unsigned char sort_flag;
-    unsigned char size_of_global_color_table;
     unsigned char background_color_index;
     unsigned char pixel_aspect_ratio;
+
+    fread(&byte, 1, 1, input);
+    image_info->width = byte;
+    fread(&byte, 1, 1, input);
+    image_info->width += ((unsigned int)byte) << 8;
+
+    fread(&byte, 1, 1, input);
+    image_info->height = byte;
+    fread(&byte, 1, 1, input);
+    image_info->height += ((unsigned int)byte) << 8;
+
+    fread(&byte, 1, 1, input);
+    *global_color_table_flag    = (byte & 0x80) >> 7;
+    color_resolution            = (byte & 0x70) >> 4;
+    sort_flag                   = (byte & 0x08) >> 3;
+    *size_of_global_color_table = (byte & 0x07);
+
+    fread(&background_color_index, 1, 1, input);
+    fread(&pixel_aspect_ratio, 1, 1, input);
+}
+
+void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
+{
+    unsigned char byte;
+    unsigned char global_color_table_flag;
+    unsigned char size_of_global_color_table;
     uint16_t image_left_position;
     uint16_t image_top_position;
     uint16_t image_width;
@@ -142,32 +178,8 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     RGBTRIPLE *local_color_table;
     int i;
 
-    fread(signature, 1, 3, input);
-    signature[3] = '\0';
-    assert(strcmp(signature, "GIF") == 0);
-
-    fread(version, 1, 3, input);
-    version[3] = '\0';
-    assert(strcmp(version, "89a") == 0);
-
-    fread(&byte, 1, 1, input);
-    image_info->width = byte;
-    fread(&byte, 1, 1, input);
-    image_info->width += ((unsigned int)byte) << 8;
-
-    fread(&byte, 1, 1, input);
-    image_info->height = byte;
-    fread(&byte, 1, 1, input);
-    image_info->height += ((unsigned int)byte) << 8;
-
-    fread(&byte, 1, 1, input);
-    global_color_table_flag    = (byte & 0x80) >> 7;
-    color_resolution           = (byte & 0x70) >> 4;
-    sort_flag                  = (byte & 0x08) >> 3;
-    size_of_global_color_table = (byte & 0x07);
-
-    fread(&background_color_index, 1, 1, input);
-    fread(&pixel_aspect_ratio, 1, 1, input);
+    read_header(input);
+    read_logical_screen_descriptor(input, image_info, &global_color_table_flag, &size_of_global_color_table);
 
     if(global_color_table_flag == 1) {
         global_color_table  = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * (uint8_t)pow(2, size_of_global_color_table+1));
