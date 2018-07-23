@@ -138,6 +138,22 @@ void read_logical_screen_descriptor(FILE *input, IMAGEINFO *image_info, unsigned
     fread(&pixel_aspect_ratio, 1, 1, input);
 }
 
+void read_global_color_table(FILE *input, RGBTRIPLE **global_color_table, unsigned char global_color_table_flag, unsigned char size_of_global_color_table)
+{
+    int i;
+
+    if(global_color_table_flag == 1) {
+        *global_color_table  = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * (uint8_t)pow(2, size_of_global_color_table+1));
+        for(i = 0; i < (uint8_t)pow(2, size_of_global_color_table+1); i++) {
+            fread(&((*global_color_table)[i].rgbtRed),   1, 1, input);
+            fread(&((*global_color_table)[i].rgbtGreen), 1, 1, input);
+            fread(&((*global_color_table)[i].rgbtBlue),  1, 1, input);
+        }
+    } else {
+        *global_color_table = NULL;
+    }
+}
+
 void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 {
     unsigned char byte;
@@ -180,17 +196,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 
     read_header(input);
     read_logical_screen_descriptor(input, image_info, &global_color_table_flag, &size_of_global_color_table);
-
-    if(global_color_table_flag == 1) {
-        global_color_table  = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * (uint8_t)pow(2, size_of_global_color_table+1));
-        for(i = 0; i < (uint8_t)pow(2, size_of_global_color_table+1); i++) {
-            fread(&((global_color_table[i]).rgbtRed),   1, 1, input);
-            fread(&((global_color_table[i]).rgbtGreen), 1, 1, input);
-            fread(&((global_color_table[i]).rgbtBlue),  1, 1, input);
-        }
-    } else {
-        global_color_table = NULL;
-    }
+    read_global_color_table(input, &global_color_table, global_color_table_flag, size_of_global_color_table);
 
     do {
         fread(&byte, 1, 1, input);
