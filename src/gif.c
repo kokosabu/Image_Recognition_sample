@@ -154,11 +154,9 @@ void read_global_color_table(FILE *input, RGBTRIPLE **global_color_table, unsign
     }
 }
 
-void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
+void read_image_descriptor(FILE *input)
 {
     unsigned char byte;
-    unsigned char global_color_table_flag;
-    unsigned char size_of_global_color_table;
     uint16_t image_left_position;
     uint16_t image_top_position;
     uint16_t image_width;
@@ -168,6 +166,54 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     uint8_t local_sort_flag;
     uint8_t reserved;
     uint8_t size_of_local_color_table;
+    RGBTRIPLE *local_color_table;
+    int i;
+
+    fread(&byte, 1, 1, input);
+    image_left_position = byte;
+    fread(&byte, 1, 1, input);
+    image_left_position += ((unsigned int)byte) << 8;
+
+    fread(&byte, 1, 1, input);
+    image_top_position = byte;
+    fread(&byte, 1, 1, input);
+    image_top_position += ((unsigned int)byte) << 8;
+
+    fread(&byte, 1, 1, input);
+    image_width = byte;
+    fread(&byte, 1, 1, input);
+    image_width += ((unsigned int)byte) << 8;
+
+    fread(&byte, 1, 1, input);
+    image_height = byte;
+    fread(&byte, 1, 1, input);
+    image_height += ((unsigned int)byte) << 8;
+
+    fread(&byte, 1, 1, input);
+    local_color_table_flag    = (byte & 0x80) >> 7;
+    interlace_flag            = (byte & 0x40) >> 6;
+    local_sort_flag           = (byte & 0x20) >> 5;
+    reserved                  = (byte & 0x18) >> 3;
+    size_of_local_color_table = (byte & 0x07);
+
+    if(local_color_table_flag == 1) {
+        local_color_table  = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * pow(2, size_of_local_color_table));
+        for(i = 0; i < pow(2, size_of_local_color_table); i++) {
+            fread(&((local_color_table[i]).rgbtRed),   1, 1, input);
+            fread(&((local_color_table[i]).rgbtGreen), 1, 1, input);
+            fread(&((local_color_table[i]).rgbtBlue),  1, 1, input);
+        }
+    } else {
+        local_color_table = NULL;
+    }
+}
+
+void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
+{
+    unsigned char byte;
+    unsigned char global_color_table_flag;
+    unsigned char size_of_global_color_table;
+    uint8_t reserved;
     uint8_t LZW_minimum_code_size;
     uint8_t block_size;
     uint8_t block_image_data[255];
@@ -191,8 +237,6 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     uint8_t application_authentication_code[3];
     uint8_t *application_data;
     RGBTRIPLE *global_color_table;
-    RGBTRIPLE *local_color_table;
-    int i;
 
     read_header(input);
     read_logical_screen_descriptor(input, image_info, &global_color_table_flag, &size_of_global_color_table);
@@ -202,43 +246,8 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
         fread(&byte, 1, 1, input);
         if(byte == 0x2c) {
             /* Image Block */
-            fread(&byte, 1, 1, input);
-            image_left_position = byte;
-            fread(&byte, 1, 1, input);
-            image_left_position += ((unsigned int)byte) << 8;
+            read_image_descriptor(input);
 
-            fread(&byte, 1, 1, input);
-            image_top_position = byte;
-            fread(&byte, 1, 1, input);
-            image_top_position += ((unsigned int)byte) << 8;
-
-            fread(&byte, 1, 1, input);
-            image_width = byte;
-            fread(&byte, 1, 1, input);
-            image_width += ((unsigned int)byte) << 8;
-
-            fread(&byte, 1, 1, input);
-            image_height = byte;
-            fread(&byte, 1, 1, input);
-            image_height += ((unsigned int)byte) << 8;
-
-            fread(&byte, 1, 1, input);
-            local_color_table_flag    = (byte & 0x80) >> 7;
-            interlace_flag            = (byte & 0x40) >> 6;
-            local_sort_flag           = (byte & 0x20) >> 5;
-            reserved                  = (byte & 0x18) >> 3;
-            size_of_local_color_table = (byte & 0x07);
-
-            if(local_color_table_flag == 1) {
-                local_color_table  = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * pow(2, size_of_local_color_table));
-                for(i = 0; i < pow(2, size_of_local_color_table); i++) {
-                    fread(&((local_color_table[i]).rgbtRed),   1, 1, input);
-                    fread(&((local_color_table[i]).rgbtGreen), 1, 1, input);
-                    fread(&((local_color_table[i]).rgbtBlue),  1, 1, input);
-                }
-            } else {
-                local_color_table = NULL;
-            }
             fread(&LZW_minimum_code_size, 1, 1, input);
             fread(&block_size, 1, 1, input);
             fread(block_image_data, 1, block_size, input);
