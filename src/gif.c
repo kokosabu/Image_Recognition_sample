@@ -208,21 +208,52 @@ void read_image_descriptor(FILE *input)
     }
 }
 
+void read_graphic_control_extension(FILE *input)
+{
+    unsigned char byte;
+    uint8_t reserved;
+    uint8_t disposal_mothod;
+    uint8_t user_input_flag;
+    uint8_t transparent_color_flag;
+    uint8_t transparent_color_index;
+    uint16_t delay_time;
+    uint8_t block_terminator;
+
+    fread(&byte, 1, 1, input);
+    if(byte != 0x04) {
+        printf("error\n");
+        exit(1);
+    }
+
+    fread(&byte, 1, 1, input);
+    reserved               = (byte & 0xE0) >> 5;
+    disposal_mothod        = (byte & 0x1C) >> 2;
+    user_input_flag        = (byte & 0x02) >> 1;
+    transparent_color_flag = (byte & 0x01);
+
+    fread(&transparent_color_index, 1, 1, input);
+
+    fread(&byte, 1, 1, input);
+    delay_time = byte;
+    fread(&byte, 1, 1, input);
+    delay_time += ((unsigned int)byte) << 8;
+
+    fread(&block_terminator, 1, 1, input);
+    if(block_terminator != 0x00) {
+        printf("Block: Graphic Control Extension error\n");
+        exit(1);
+    }
+}
+
 void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 {
     unsigned char byte;
     unsigned char global_color_table_flag;
     unsigned char size_of_global_color_table;
-    uint8_t reserved;
     uint8_t LZW_minimum_code_size;
     uint8_t block_size;
     uint8_t block_image_data[255];
     uint8_t block_terminator;
-    uint8_t disposal_mothod;
-    uint8_t user_input_flag;
-    uint8_t transparent_color_flag;
-    uint16_t delay_time;
-    uint8_t transparent_color_index;
     uint8_t *comment_data;
     uint16_t text_grid_left_position;
     uint16_t text_grid_top_position;
@@ -261,30 +292,8 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 
             if(byte == 0xf9) {
                 /* Graphic Control Extension */
-                fread(&byte, 1, 1, input);
-                if(byte != 0x04) {
-                    printf("error\n");
-                    exit(1);
-                }
+                read_graphic_control_extension(input);
 
-                fread(&byte, 1, 1, input);
-                reserved               = (byte & 0xE0) >> 5;
-                disposal_mothod        = (byte & 0x1C) >> 2;
-                user_input_flag        = (byte & 0x02) >> 1;
-                transparent_color_flag = (byte & 0x01);
-
-                fread(&transparent_color_index, 1, 1, input);
-
-                fread(&byte, 1, 1, input);
-                delay_time = byte;
-                fread(&byte, 1, 1, input);
-                delay_time += ((unsigned int)byte) << 8;
-
-                fread(&block_terminator, 1, 1, input);
-                if(block_terminator != 0x00) {
-                    printf("Block: Graphic Control Extension error\n");
-                    exit(1);
-                }
             } else if(byte == 0xfe) {
                 /* Comment Extension */
                 fread(&byte, 1, 1, input);
