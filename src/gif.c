@@ -245,16 +245,33 @@ void read_graphic_control_extension(FILE *input)
     }
 }
 
-void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
+void read_comment_extension(FILE *input)
 {
     unsigned char byte;
-    unsigned char global_color_table_flag;
-    unsigned char size_of_global_color_table;
-    uint8_t LZW_minimum_code_size;
     uint8_t block_size;
-    uint8_t block_image_data[255];
-    uint8_t block_terminator;
     uint8_t *comment_data;
+
+    fread(&byte, 1, 1, input);
+
+    if(byte != 0x00) {
+        block_size = byte;
+
+        comment_data = (uint8_t *)malloc(sizeof(uint8_t) * block_size);
+        fread(comment_data, 1, block_size, input);
+
+        fread(&byte, 1, 1, input);
+    }
+
+    if(byte != 0x00) {
+        printf("Block: Comment Extension error\n");
+        exit(1);
+    }
+}
+
+void read_plain_text_extension(FILE *input)
+{
+    uint8_t block_size;
+    unsigned char byte;
     uint16_t text_grid_left_position;
     uint16_t text_grid_top_position;
     uint16_t text_grid_width;
@@ -264,6 +281,59 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     uint8_t text_foreground_color_index;
     uint8_t text_background_color_index;
     uint8_t *plain_text_data;
+
+    fread(&block_size, 1, 1, input);
+    if(block_size != 0x0c) {
+        printf("error\n");
+        exit(1);
+    }
+
+    fread(&byte, 1, 1, input);
+    text_grid_left_position = byte;
+    fread(&byte, 1, 1, input);
+    text_grid_left_position += ((unsigned int)byte) << 8;
+
+    fread(&byte, 1, 1, input);
+    text_grid_top_position = byte;
+    fread(&byte, 1, 1, input);
+    text_grid_top_position += ((unsigned int)byte) << 8;
+
+    fread(&byte, 1, 1, input);
+    text_grid_width = byte;
+    fread(&byte, 1, 1, input);
+    text_grid_width += ((unsigned int)byte) << 8;
+
+    fread(&byte, 1, 1, input);
+    text_grid_height = byte;
+    fread(&byte, 1, 1, input);
+    text_grid_height += ((unsigned int)byte) << 8;
+
+    fread(&character_cell_width, 1, 1, input);
+    fread(&character_cell_height, 1, 1, input);
+    fread(&text_foreground_color_index, 1, 1, input);
+    fread(&text_background_color_index, 1, 1, input);
+    fread(&byte, 1, 1, input);
+    if(byte != 0x00) {
+        plain_text_data = (uint8_t *)malloc(sizeof(uint8_t) * byte);
+        fread(plain_text_data, 1, byte, input);
+        fread(&byte, 1, 1, input);
+    }
+
+    if(byte != 0x00) {
+        printf("Block: Comment Extension error\n");
+        exit(1);
+    }
+}
+
+void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
+{
+    unsigned char byte;
+    unsigned char global_color_table_flag;
+    unsigned char size_of_global_color_table;
+    uint8_t LZW_minimum_code_size;
+    uint8_t block_size;
+    uint8_t block_image_data[255];
+    uint8_t block_terminator;
     uint8_t application_identifier[8];
     uint8_t application_authentication_code[3];
     uint8_t *application_data;
@@ -291,69 +361,11 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             fread(&byte, 1, 1, input);
 
             if(byte == 0xf9) {
-                /* Graphic Control Extension */
                 read_graphic_control_extension(input);
-
             } else if(byte == 0xfe) {
-                /* Comment Extension */
-                fread(&byte, 1, 1, input);
-
-                if(byte != 0x00) {
-                    block_size = byte;
-
-                    comment_data = (uint8_t *)malloc(sizeof(uint8_t) * block_size);
-                    fread(comment_data, 1, block_size, input);
-
-                    fread(&byte, 1, 1, input);
-                }
-
-                if(byte != 0x00) {
-                    printf("Block: Comment Extension error\n");
-                    exit(1);
-                }
+                read_comment_extension(input);
             } else if(byte == 0x01) {
-                /* Plain Text Extension */
-                fread(&block_size, 1, 1, input);
-                if(block_size != 0x0c) {
-                    printf("error\n");
-                    exit(1);
-                }
-
-                fread(&byte, 1, 1, input);
-                text_grid_left_position = byte;
-                fread(&byte, 1, 1, input);
-                text_grid_left_position += ((unsigned int)byte) << 8;
-
-                fread(&byte, 1, 1, input);
-                text_grid_top_position = byte;
-                fread(&byte, 1, 1, input);
-                text_grid_top_position += ((unsigned int)byte) << 8;
-
-                fread(&byte, 1, 1, input);
-                text_grid_width = byte;
-                fread(&byte, 1, 1, input);
-                text_grid_width += ((unsigned int)byte) << 8;
-
-                fread(&byte, 1, 1, input);
-                text_grid_height = byte;
-                fread(&byte, 1, 1, input);
-                text_grid_height += ((unsigned int)byte) << 8;
-
-                fread(&character_cell_width, 1, 1, input);
-                fread(&character_cell_height, 1, 1, input);
-                fread(&text_foreground_color_index, 1, 1, input);
-                fread(&text_background_color_index, 1, 1, input);
-                fread(&byte, 1, 1, input);
-                if(byte != 0x00) {
-                    plain_text_data = (uint8_t *)malloc(sizeof(uint8_t) * byte);
-                    fread(plain_text_data, 1, byte, input);
-                    fread(&byte, 1, 1, input);
-                }
-
-                if(byte != 0x00) {
-                    printf("Block: Comment Extension error\n");
-                    exit(1);
-                }
+                read_plain_text_extension(input);
             } else if(byte == 0xff) {
                 /* Application Extension */
                 fread(&block_size, 1, 1, input);
