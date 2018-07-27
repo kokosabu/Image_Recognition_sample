@@ -325,6 +325,35 @@ void read_plain_text_extension(FILE *input)
     }
 }
 
+void read_application_extension(FILE *input)
+{
+    uint8_t block_size;
+    uint8_t application_identifier[8];
+    uint8_t application_authentication_code[3];
+    unsigned char byte;
+    uint8_t *application_data;
+
+    fread(&block_size, 1, 1, input);
+    if(block_size != 0x0b) {
+        printf("error\n");
+        exit(1);
+    }
+
+    fread(application_identifier, 1, 8, input);
+    fread(application_authentication_code, 1, 3, input);
+    fread(&byte, 1, 1, input);
+    if(byte != 0x00) {
+        application_data = (uint8_t *)malloc(sizeof(uint8_t) * byte);
+        fread(application_data, 1, byte, input);
+        fread(&byte, 1, 1, input);
+    }
+
+    if(byte != 0x00) {
+        printf("error\n");
+        exit(1);
+    }
+}
+
 void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 {
     unsigned char byte;
@@ -334,9 +363,6 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     uint8_t block_size;
     uint8_t block_image_data[255];
     uint8_t block_terminator;
-    uint8_t application_identifier[8];
-    uint8_t application_authentication_code[3];
-    uint8_t *application_data;
     RGBTRIPLE *global_color_table;
 
     read_header(input);
@@ -367,26 +393,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             } else if(byte == 0x01) {
                 read_plain_text_extension(input);
             } else if(byte == 0xff) {
-                /* Application Extension */
-                fread(&block_size, 1, 1, input);
-                if(block_size != 0x0b) {
-                    printf("error\n");
-                    exit(1);
-                }
-
-                fread(application_identifier, 1, 8, input);
-                fread(application_authentication_code, 1, 3, input);
-                fread(&byte, 1, 1, input);
-                if(byte != 0x00) {
-                    application_data = (uint8_t *)malloc(sizeof(uint8_t) * byte);
-                    fread(application_data, 1, byte, input);
-                    fread(&byte, 1, 1, input);
-                }
-
-                if(byte != 0x00) {
-                    printf("error\n");
-                    exit(1);
-                }
+                read_application_extension(input);
             } else {
                 printf("error\n");
                 exit(1);
