@@ -376,13 +376,17 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             read_image_descriptor(input);
 
             fread(&LZW_minimum_code_size, 1, 1, input);
+            init_table(LZW_minimum_code_size);
             fread(&block_size, 1, 1, input);
-            fread(block_image_data, 1, block_size, input);
-            fread(&block_terminator, 1, 1, input);
-            if(block_terminator != 0x00) {
-                printf("Block: Image Block error\n");
-                exit(1);
-            }
+            do {
+                fread(block_image_data, 1, block_size, input);
+
+                fread(&block_terminator, 1, 1, input);
+                if(block_terminator == 0x00) {
+                    break;
+                }
+                block_size = block_terminator;
+            } while(1);
         } else if(byte == 0x21) {
             fread(&byte, 1, 1, input);
 
