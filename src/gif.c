@@ -13,7 +13,7 @@ static void output_compress_data(uint8_t *compress_data, uint8_t *bit_lengths, i
 static int search_lzw_table(uint8_t *code, int size);
 static void connect(uint8_t *connect, int *size, uint8_t *prefix, int prefix_size, uint8_t *suffix, int suffix_size);
 static void copy(uint8_t *prefix, int *prefix_size, uint8_t *suffix, int suffix_size);
-static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index);
+static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index, uint8_t *length, int *length_index, int *byte_pos, int *bit_pos);
 static void entry_dict(uint8_t *com2, int com2_size);
 
 static void output_compress_data(uint8_t *compress_data, uint8_t *bit_lengths, int *compress_data_index, int output_code)
@@ -77,11 +77,16 @@ static void copy(uint8_t *to, int *to_size, uint8_t *from, int from_size)
     *to_size = from_size;
 }
 
-static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index)
+static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index, uint8_t *length, int *length_index, int *byte_pos, int *bit_pos)
 {
-    to[*to_size] = data[*data_index];
+    int bits;
+
+    bits = bit_read(data, byte_pos, bit_pos, length[*length_index]);
+
+    to[*to_size] = bits;
     *data_index += 1;
     *to_size += 1;
+    *length_index += 1;
 }
 
 static void entry_dict(uint8_t *com2, int com2_size)
@@ -448,14 +453,22 @@ void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_
     uint8_t com2[1024];
     int compress_data_index;
     int original_data_index;
+    int bit_length_index;
     int prefix_size;
     int suffix_size;
     int com1_size;
     int com2_size;
     int output_code;
+    int byte_pos;
+    int bit_pos;
+    uint8_t bits;
 
     compress_data_index = 0;
     original_data_index = 0;
+    bit_length_index = 0;
+    byte_pos = 0;
+    bit_pos = 0;
+    bits = 8;
 
     /* 1:クリアコードの出力 */
     output_code = search_lzw_table((uint8_t *)CLEAR, 0);
@@ -463,12 +476,14 @@ void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_
 
     /* 2:圧縮対象の文字列(数字)から一文字を読み込みprefix変数に格納する */
     prefix_size = 0;
-    read_char(prefix, &prefix_size, original_data, &original_data_index);
+    read_char(prefix, &prefix_size, original_data, &original_data_index, &bits, &bit_length_index, &byte_pos, &bit_pos);
+    bit_length_index = 0;
 
     do {
         /* 3:次の一文字を読み込んでsuffix変数に格納する */
         suffix_size = 0;
-        read_char(suffix, &suffix_size, original_data, &original_data_index);
+        read_char(suffix, &suffix_size, original_data, &original_data_index, &bits, &bit_length_index, &byte_pos, &bit_pos);
+        bit_length_index = 0;
 
         /* 4-1:prefix変数 + suffix変数を連結した文字列をcom1変数に格納する。 */
         com1_size = 0;
@@ -486,7 +501,8 @@ FIVE:
             }
             /* 5-1:次の一文字をsuffixに格納する。 */
             suffix_size = 0;
-            read_char(suffix, &suffix_size, original_data, &original_data_index);
+            read_char(suffix, &suffix_size, original_data, &original_data_index, &bits, &bit_length_index, &byte_pos, &bit_pos);
+            bit_length_index = 0;
 
             /* 5-2:com1 + suffixを連結した文字列をcom2変数に格納する。 */
             com2_size = 0;
@@ -554,17 +570,23 @@ void decompress(uint8_t *compress_data, int compress_data_size, uint8_t *origina
     int com3_size;
     int compress_data_index;
     int original_data_index;
+    int bit_length_index;
     int output_code;
     int output_code1;
     int output_code2;
     int i;
+    int byte_pos;
+    int bit_pos;
 
     compress_data_index = 0;
     original_data_index = 0;
+    bit_length_index = 0;
+    byte_pos = 0;
+    bit_pos = 0;
 
     output_code = search_lzw_table((uint8_t *)CLEAR, 0);
     prefix_size = 0;
-    read_char(prefix, &prefix_size, compress_data, &compress_data_index);
+    read_char(prefix, &prefix_size, compress_data, &compress_data_index, bit_lengths, &bit_length_index, &byte_pos, &bit_pos);
     if(output_code != prefix[0]) {
         printf("format error\n");
         exit(-1);
@@ -572,9 +594,9 @@ void decompress(uint8_t *compress_data, int compress_data_size, uint8_t *origina
 
     /* a.最初の数を出力数に、次の数を待機数に読み込みます。辞書を初期化します。 */
     prefix_size = 0;
-    read_char(prefix, &prefix_size, compress_data, &compress_data_index);
+    read_char(prefix, &prefix_size, compress_data, &compress_data_index, bit_lengths, &bit_length_index, &byte_pos, &bit_pos);
     suffix_size = 0;
-    read_char(suffix, &suffix_size, compress_data, &compress_data_index);
+    read_char(suffix, &suffix_size, compress_data, &compress_data_index, bit_lengths, &bit_length_index, &byte_pos, &bit_pos);
 
     do {
         /* b.辞書の出力数のページの値と辞書の待機数のページにある値の最初の文字を並べた数を辞書の新しいページに書き込みます。 */
@@ -599,7 +621,7 @@ void decompress(uint8_t *compress_data, int compress_data_size, uint8_t *origina
         /* d.待機数を出力数に、新しく一つ読み込んで待機数に入れます。 */
         copy(prefix, &prefix_size, suffix, suffix_size);
         suffix_size = 0;
-        read_char(suffix, &suffix_size, compress_data, &compress_data_index);
+        read_char(suffix, &suffix_size, compress_data, &compress_data_index, bit_lengths, &bit_length_index, &byte_pos, &bit_pos);
 
         /* e.以下、b〜dの繰り返し */
         if(suffix[0] == search_lzw_table((uint8_t *)END, 0)) {

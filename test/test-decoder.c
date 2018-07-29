@@ -133,7 +133,7 @@ void test_lzw_compress(void)
     uint8_t compress_data[11] =
         { 0, };
     uint8_t bit_lengths[11] =
-        { 0, };
+        { 8, 8, 8, 8, 8, 8, 8, 8 };
 
     init_table(3);
 
@@ -186,7 +186,7 @@ void test_lzw_compress2(void)
     uint8_t compress_data[11] =
         { 0, };
     uint8_t bit_lengths[11] =
-        { 0, };
+        { 8, 8, 8, 8, 8, 8, 8, 8, 8 };
 
     init_table(3);
 
@@ -236,7 +236,7 @@ void test_lzw_compress3(void)
     uint8_t compress_data[11] =
         { 0, };
     uint8_t bit_lengths[11] =
-        { 0, };
+        { 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8 };
 
     init_table(3);
 
@@ -291,25 +291,11 @@ void test_lzw_decompress(void)
 {
     /* https://www.petitmonte.com/math_algorithm/lzw_gif.html */
     uint8_t compress_data[11] =
-        { 4, 1, 0, 0, 6, 8, 0, 5 };
-        // 0x04, 0x01, 0x00, 0x00, 0x06, 0x08, 0x00, 0x05
-        // 0000 0100, 0000 0001, 0000 0000, 0000 0000, 0000 0110, 0000 1000, 0000 0000, 0000 0101
-        // 100, 001, 000, 000, 0110, 1000, 0000, 0101
-        // 00001100, 01100000, 00001000, 00000101
+        { 0x0C, 0x60, 0x08, 0x05 };
     uint8_t original_data[11] =
         { 0, };
     uint8_t bit_lengths[11] =
         { 3, 3, 3, 3, 4, 4, 4, 4 };
-    /*
-       cut_assert(bit_lengths[0] == 3);
-       cut_assert(bit_lengths[1] == 3);
-       cut_assert(bit_lengths[2] == 3);
-       cut_assert(bit_lengths[3] == 3);
-       cut_assert(bit_lengths[4] == 4);
-       cut_assert(bit_lengths[5] == 4);
-       cut_assert(bit_lengths[6] == 4);
-       cut_assert(bit_lengths[7] == 4);
-    */
 
     init_table(3);
     decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), bit_lengths, sizeof(bit_lengths));
@@ -341,11 +327,11 @@ void test_lzw_decompress2(void)
 {
     /* https://www.petitmonte.com/math_algorithm/lzw_gif.html */
     uint8_t compress_data[11] =
-    { 4, 0, 1, 6, 8, 7, 5 };
+        { 0x44, 0x8C, 0x57 };
     uint8_t original_data[11] =
-    { 0, };
+        { 0, };
     uint8_t bit_lengths[11] =
-    { 0, };
+        { 3, 3, 3, 3, 4, 4, 4 };
 
     init_table(3);
     decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), bit_lengths, sizeof(bit_lengths));
@@ -377,11 +363,11 @@ void test_lzw_decompress3(void)
 {
     /* https://www.petitmonte.com/math_algorithm/lzw_gif.html */
     uint8_t compress_data[11] =
-    { 4, 0, 6, 0, 1, 9, 7, 0, 5 };
+    { 0x84, 0x11, 0x79, 0x50 };
     uint8_t original_data[11] =
     { 0, };
     uint8_t bit_lengths[11] =
-    { 0, };
+    { 3, 3, 3, 3, 4, 4, 4, 4, 4 };
 
     init_table(3);
     decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), bit_lengths, sizeof(bit_lengths));
