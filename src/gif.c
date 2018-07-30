@@ -15,6 +15,14 @@ static void connect(uint8_t *connect, int *size, uint8_t *prefix, int prefix_siz
 static void copy(uint8_t *prefix, int *prefix_size, uint8_t *suffix, int suffix_size);
 static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index, uint8_t *length, int *length_index, int *byte_pos, int *bit_pos);
 static void entry_dict(uint8_t *com2, int com2_size);
+static void update_bit_length(void);
+
+static void update_bit_length(void)
+{
+    if((lzw_table_size-1) >= pow(2, bit_length)) {
+        bit_length += 1;
+    }
+}
 
 static void output_compress_data(uint8_t *compress_data, uint8_t *bit_lengths, int *compress_data_index, int output_code)
 {
@@ -22,9 +30,7 @@ static void output_compress_data(uint8_t *compress_data, uint8_t *bit_lengths, i
     bit_lengths[*compress_data_index] = bit_length;
     *compress_data_index += 1;
 
-    if((lzw_table_size-1) >= pow(2, bit_length)) {
-        bit_length += 1;
-    }
+    update_bit_length();
 }
 
 static int search_lzw_table(uint8_t *code, int size)
@@ -81,6 +87,7 @@ static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index,
 {
     int bits;
 
+    //printf("%d %d\n", bit_length, length[*length_index]);
     bits = bit_read(data, byte_pos, bit_pos, length[*length_index]);
 
     to[*to_size] = bits;
@@ -611,6 +618,7 @@ void decompress(uint8_t *compress_data, int compress_data_size, uint8_t *origina
         com3_size = 0;
         connect(com3, &com3_size, com1, com1_size, com2, 1);
         entry_dict(com3, com3_size);
+        update_bit_length();
 
         /* c.辞書の出力数のページに書かれている値を書き出します。 */
         for(i = 0; i < com1_size; i++) {
