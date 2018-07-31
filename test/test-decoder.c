@@ -122,6 +122,9 @@ void test_check_file_format_ok_gif(void)
     decode_gif(input, &image_info, &image_data);
     cut_assert(image_info.width == 1);
     cut_assert(image_info.height == 1);
+    cut_assert(image_data[0][0].rgbtBlue == 0);
+    cut_assert(image_data[0][0].rgbtGreen == 0);
+    cut_assert(image_data[0][0].rgbtRed == 0);
 
     fclose(input);
 }

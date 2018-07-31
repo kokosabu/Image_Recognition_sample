@@ -390,6 +390,11 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     read_logical_screen_descriptor(input, image_info, &global_color_table_flag, &size_of_global_color_table);
     read_global_color_table(input, &global_color_table, global_color_table_flag, size_of_global_color_table);
 
+    *image_data = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE **) * image_info->height);
+    for(int i = 0; i < image_info->width; i++) {
+        (*image_data)[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * image_info->width);
+    }
+
     do {
         fread(&byte, 1, 1, input);
         if(byte == 0x2c) {
@@ -408,6 +413,14 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                     printf("[%d] %d\n", i, original_data[i]);
                 }
 #endif
+                for(int i = 0; i < image_info->height; i++) {
+                    for(int j = 0; j < image_info->width; j++) {
+                        (*image_data)[i][j].rgbtRed   = global_color_table[original_data[i*image_info->height + j]].rgbtRed;
+                        (*image_data)[i][j].rgbtGreen = global_color_table[original_data[i*image_info->height + j]].rgbtGreen;
+                        (*image_data)[i][j].rgbtBlue  = global_color_table[original_data[i*image_info->height + j]].rgbtBlue;
+                        //fprintf(stderr, "[%d][%d] %d %d %d\n", i, j, (*image_data)[i][j].rgbtRed, (*image_data)[i][j].rgbtGreen, (*image_data)[i][j].rgbtBlue);
+                    }
+                }
 
                 fread(&block_terminator, 1, 1, input);
                 if(block_terminator == 0x00) {
