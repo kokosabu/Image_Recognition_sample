@@ -8,6 +8,7 @@ void test_docompress_fixed_huffman_codes();
 
 void test_check_file_format_dummy_gif(void);
 void test_check_file_format_ok_gif(void);
+void test_check_file_format_lzw1_gif(void);
 void test_lzw_compress(void);
 void test_lzw_compress2(void);
 void test_lzw_compress3(void);
@@ -121,6 +122,24 @@ void test_check_file_format_ok_gif(void)
     decode_gif(input, &image_info, &image_data);
     cut_assert(image_info.width == 1);
     cut_assert(image_info.height == 1);
+
+    fclose(input);
+}
+
+void test_check_file_format_lzw1_gif(void)
+{
+    FILE *input;
+    int file_format;
+    IMAGEINFO image_info;
+    RGBTRIPLE **image_data;
+
+    input = fopen("./test/lzw_gif_1.gif", "rb");
+    file_format = check_file_format(input);
+    cut_assert(file_format == GIF);
+
+    decode_gif(input, &image_info, &image_data);
+    cut_assert(image_info.width == 3);
+    cut_assert(image_info.height == 3);
 
     fclose(input);
 }
@@ -294,11 +313,9 @@ void test_lzw_decompress(void)
         { 0x0C, 0x60, 0x08, 0x05 };
     uint8_t original_data[11] =
         { 0, };
-    uint8_t bit_lengths[11] =
-        { 3, 3, 3, 3, 4, 4, 4, 4 };
 
     init_table(3);
-    decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), bit_lengths, sizeof(bit_lengths));
+    decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data));
 
     cut_assert(get_data(6)[0] == 1);
     cut_assert(get_data(6)[1] == 0);
@@ -330,11 +347,9 @@ void test_lzw_decompress2(void)
         { 0x44, 0x8C, 0x57 };
     uint8_t original_data[11] =
         { 0, };
-    uint8_t bit_lengths[11] =
-        { 3, 3, 3, 3, 4, 4, 4 };
 
     init_table(3);
-    decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), bit_lengths, sizeof(bit_lengths));
+    decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data));
 
     cut_assert(get_data(6)[0] == 0);
     cut_assert(get_data(6)[1] == 1);
@@ -366,11 +381,9 @@ void test_lzw_decompress3(void)
     { 0x84, 0x11, 0x79, 0x50 };
     uint8_t original_data[11] =
     { 0, };
-    uint8_t bit_lengths[11] =
-    { 3, 3, 3, 3, 4, 4, 4, 4, 4 };
 
     init_table(3);
-    decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), bit_lengths, sizeof(bit_lengths));
+    decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data));
 
     cut_assert(get_data(6)[0] == 0);
     cut_assert(get_data(6)[1] == 0);
