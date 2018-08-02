@@ -104,6 +104,9 @@ void test_check_file_format_dummy_gif(void)
     decode_gif(input, &image_info, &image_data);
     cut_assert(image_info.width == 1);
     cut_assert(image_info.height == 1);
+    cut_assert(image_data[0][0].rgbtBlue  == 0);
+    cut_assert(image_data[0][0].rgbtGreen == 0);
+    cut_assert(image_data[0][0].rgbtRed   == 0);
 
     fclose(input);
 }
@@ -122,9 +125,9 @@ void test_check_file_format_ok_gif(void)
     decode_gif(input, &image_info, &image_data);
     cut_assert(image_info.width == 1);
     cut_assert(image_info.height == 1);
-    cut_assert(image_data[0][0].rgbtBlue == 0);
+    cut_assert(image_data[0][0].rgbtBlue  == 0);
     cut_assert(image_data[0][0].rgbtGreen == 0);
-    cut_assert(image_data[0][0].rgbtRed == 0);
+    cut_assert(image_data[0][0].rgbtRed   == 0);
 
     fclose(input);
 }
@@ -143,6 +146,24 @@ void test_check_file_format_lzw1_gif(void)
     decode_gif(input, &image_info, &image_data);
     cut_assert(image_info.width == 3);
     cut_assert(image_info.height == 3);
+    cut_assert(image_data[0][0].rgbtBlue  ==   0);
+    cut_assert(image_data[0][0].rgbtGreen ==   0);
+    cut_assert(image_data[0][0].rgbtRed   ==   0);
+    cut_assert(image_data[0][1].rgbtBlue  ==   0);
+    cut_assert(image_data[0][1].rgbtGreen ==   0);
+    cut_assert(image_data[0][1].rgbtRed   ==   0);
+    cut_assert(image_data[0][2].rgbtBlue  ==   0);
+    cut_assert(image_data[0][2].rgbtGreen ==   0);
+    cut_assert(image_data[0][2].rgbtRed   ==   0);
+    cut_assert(image_data[1][0].rgbtBlue  == 255);
+    cut_assert(image_data[1][0].rgbtGreen == 255);
+    cut_assert(image_data[1][0].rgbtRed   == 255);
+    cut_assert(image_data[1][1].rgbtBlue  ==   0);
+    cut_assert(image_data[1][1].rgbtGreen ==   0);
+    cut_assert(image_data[1][1].rgbtRed   ==   0);
+    cut_assert(image_data[1][2].rgbtBlue  == 255);
+    cut_assert(image_data[1][2].rgbtGreen == 255);
+    cut_assert(image_data[1][2].rgbtRed   == 255);
 
     fclose(input);
 }

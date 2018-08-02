@@ -149,6 +149,7 @@ void read_logical_screen_descriptor(FILE *input, IMAGEINFO *image_info, unsigned
     image_info->height += ((unsigned int)byte) << 8;
 
     fread(&byte, 1, 1, input);
+    printf("id : %d\n", byte);
     *global_color_table_flag    = (byte & 0x80) >> 7;
     color_resolution            = (byte & 0x70) >> 4;
     sort_flag                   = (byte & 0x08) >> 3;
@@ -407,18 +408,22 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             do {
                 fread(block_image_data, 1, block_size, input);
                 decompress(block_image_data, block_size, original_data, sizeof(original_data));
-#if 0
+#if 1
                 printf("width: %d, height: %d\n", image_info->width, image_info->height);
                 for(int i = 0; i < image_info->width * image_info->height; i++) {
                     printf("[%d] %d\n", i, original_data[i]);
                 }
 #endif
+                for(int i = 0; i < size_of_global_color_table; i++) {
+                    fprintf(stderr, "%d %d %d\n", global_color_table[i].rgbtRed, global_color_table[i].rgbtGreen, global_color_table[i].rgbtBlue);
+                }
+                fprintf(stderr, "%d %d %d\n", global_color_table[0].rgbtRed, global_color_table[0].rgbtGreen, global_color_table[0].rgbtBlue);
                 for(int i = 0; i < image_info->height; i++) {
                     for(int j = 0; j < image_info->width; j++) {
                         (*image_data)[i][j].rgbtRed   = global_color_table[original_data[i*image_info->height + j]].rgbtRed;
                         (*image_data)[i][j].rgbtGreen = global_color_table[original_data[i*image_info->height + j]].rgbtGreen;
                         (*image_data)[i][j].rgbtBlue  = global_color_table[original_data[i*image_info->height + j]].rgbtBlue;
-                        //fprintf(stderr, "[%d][%d] %d %d %d\n", i, j, (*image_data)[i][j].rgbtRed, (*image_data)[i][j].rgbtGreen, (*image_data)[i][j].rgbtBlue);
+                        fprintf(stderr, "[%d][%d] %d %d %d\n", i, j, (*image_data)[i][j].rgbtRed, (*image_data)[i][j].rgbtGreen, (*image_data)[i][j].rgbtBlue);
                     }
                 }
 
