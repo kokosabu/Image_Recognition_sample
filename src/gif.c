@@ -149,7 +149,6 @@ void read_logical_screen_descriptor(FILE *input, IMAGEINFO *image_info, unsigned
     image_info->height += ((unsigned int)byte) << 8;
 
     fread(&byte, 1, 1, input);
-    printf("id : %d\n", byte);
     *global_color_table_flag    = (byte & 0x80) >> 7;
     color_resolution            = (byte & 0x70) >> 4;
     sort_flag                   = (byte & 0x08) >> 3;
@@ -166,6 +165,9 @@ void read_global_color_table(FILE *input, RGBTRIPLE **global_color_table, unsign
     if(global_color_table_flag == 1) {
         *global_color_table  = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * (uint8_t)pow(2, size_of_global_color_table+1));
         for(i = 0; i < (uint8_t)pow(2, size_of_global_color_table+1); i++) {
+            (*global_color_table)[i].rgbtRed = 0;
+            (*global_color_table)[i].rgbtGreen = 0;
+            (*global_color_table)[i].rgbtBlue = 0;
             fread(&((*global_color_table)[i].rgbtRed),   1, 1, input);
             fread(&((*global_color_table)[i].rgbtGreen), 1, 1, input);
             fread(&((*global_color_table)[i].rgbtBlue),  1, 1, input);
@@ -408,22 +410,17 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             do {
                 fread(block_image_data, 1, block_size, input);
                 decompress(block_image_data, block_size, original_data, sizeof(original_data));
-#if 1
+#if 0
                 printf("width: %d, height: %d\n", image_info->width, image_info->height);
                 for(int i = 0; i < image_info->width * image_info->height; i++) {
                     printf("[%d] %d\n", i, original_data[i]);
                 }
 #endif
-                for(int i = 0; i < size_of_global_color_table; i++) {
-                    fprintf(stderr, "%d %d %d\n", global_color_table[i].rgbtRed, global_color_table[i].rgbtGreen, global_color_table[i].rgbtBlue);
-                }
-                fprintf(stderr, "%d %d %d\n", global_color_table[0].rgbtRed, global_color_table[0].rgbtGreen, global_color_table[0].rgbtBlue);
                 for(int i = 0; i < image_info->height; i++) {
                     for(int j = 0; j < image_info->width; j++) {
                         (*image_data)[i][j].rgbtRed   = global_color_table[original_data[i*image_info->height + j]].rgbtRed;
                         (*image_data)[i][j].rgbtGreen = global_color_table[original_data[i*image_info->height + j]].rgbtGreen;
                         (*image_data)[i][j].rgbtBlue  = global_color_table[original_data[i*image_info->height + j]].rgbtBlue;
-                        fprintf(stderr, "[%d][%d] %d %d %d\n", i, j, (*image_data)[i][j].rgbtRed, (*image_data)[i][j].rgbtGreen, (*image_data)[i][j].rgbtBlue);
                     }
                 }
 
@@ -456,6 +453,8 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             exit(1);
         }
     } while(1);
+
+    image_info->fileSize = image_info->height*image_info->width*3 + 54;
 }
 
 void init_table(int bit)

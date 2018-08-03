@@ -13,6 +13,7 @@
 #include "canny_edge_detector.h"
 #include "LoG_filter.h"
 #include "png.h"
+#include "gif.h"
 
 int main(int argc, char *argv[])
 {
@@ -44,6 +45,9 @@ int main(int argc, char *argv[])
         printf("%d %d %d\n", image_info.fileSize, image_info.width, image_info.height);
     } else if(file_format == PNG) {
         decode_png(input, &image_info, &image_data);
+        printf("%d %d %d\n", image_info.fileSize, image_info.width, image_info.height);
+    } else if(file_format == GIF) {
+        decode_gif(input, &image_info, &image_data);
         printf("%d %d %d\n", image_info.fileSize, image_info.width, image_info.height);
     }
     fclose(input);
