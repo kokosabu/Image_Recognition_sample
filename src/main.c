@@ -65,13 +65,7 @@ int main(int argc, char *argv[])
     //canny_edge_detector(&output_image_data, &image_data, &image_info, 0.8, 7, 3);
     //LoG_filter(&output_image_data, &image_data, &image_info, 1.4, 9);
 
-    for(i = 0; i < image_info.height; i++) {
-        for(int j = 0; j < image_info.width; j++) {
-            output_image_data[i][j] = image_data[i][j];
-        }
-    }
-
-    if(argc <= 1) {
+    if(argc <= 2) {
         output = fopen("test.bmp", "wb");
     } else {
         output = fopen(argv[2], "wb");

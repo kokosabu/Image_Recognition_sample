@@ -410,17 +410,12 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             do {
                 fread(block_image_data, 1, block_size, input);
                 decompress(block_image_data, block_size, original_data, sizeof(original_data));
-#if 0
-                printf("width: %d, height: %d\n", image_info->width, image_info->height);
-                for(int i = 0; i < image_info->width * image_info->height; i++) {
-                    printf("[%d] %d\n", i, original_data[i]);
-                }
-#endif
                 for(int i = 0; i < image_info->height; i++) {
                     for(int j = 0; j < image_info->width; j++) {
                         (*image_data)[i][j].rgbtRed   = global_color_table[original_data[i*image_info->height + j]].rgbtRed;
                         (*image_data)[i][j].rgbtGreen = global_color_table[original_data[i*image_info->height + j]].rgbtGreen;
                         (*image_data)[i][j].rgbtBlue  = global_color_table[original_data[i*image_info->height + j]].rgbtBlue;
+                        (*image_data)[i][j].rgbtAlpha = 255;
                     }
                 }
 
