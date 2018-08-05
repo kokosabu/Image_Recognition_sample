@@ -23,6 +23,7 @@ int main(int argc, char *argv[])
     RGBTRIPLE **image_data;
     RGBTRIPLE **output_image_data;
     int i;
+    int j;
     int file_format;
 
     if(argc <= 1) {
@@ -42,6 +43,11 @@ int main(int argc, char *argv[])
         return 0;
     } else if(file_format == BITMAP) {
         decode_bitmap(input, &image_info, &image_data);
+        for(i = 0; i < image_info.height; i++) {
+            for(j = 0; j < image_info.width; j++) {
+                image_data[i][j].rgbtAlpha = 255;
+            }
+        }
         printf("%d %d %d\n", image_info.fileSize, image_info.width, image_info.height);
     } else if(file_format == PNG) {
         decode_png(input, &image_info, &image_data);
@@ -63,7 +69,22 @@ int main(int argc, char *argv[])
     //prewitt_filter(&output_image_data, &image_data, &image_info, 3);
     //sobel_filter(&output_image_data, &image_data, &image_info, 3);
     //canny_edge_detector(&output_image_data, &image_data, &image_info, 0.8, 7, 3);
-    //LoG_filter(&output_image_data, &image_data, &image_info, 1.4, 9);
+    //LoG_filter(&output_image_data, &image_data, &image_info, 2.0, 9);
+   
+#if 1
+    for(i = 0; i < image_info.height; i++) {
+        for(j = 0; j < image_info.width; j++) {
+            output_image_data[i][j] = image_data[i][j];
+        }
+    }
+#endif
+#if 0
+    for(i = 0; i < image_info.height; i++) {
+        for(j = 0; j < image_info.width; j++) {
+            output_image_data[i][j].rgbtAlpha = 255; 
+        }
+    }
+#endif
 
     if(argc <= 2) {
         output = fopen("test.bmp", "wb");
