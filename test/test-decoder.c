@@ -333,23 +333,21 @@ void test_lzw_compress3(void)
 void test_lzw_decompress(void)
 {
     /* https://www.petitmonte.com/math_algorithm/lzw_gif.html */
-    uint8_t compress_data[11] =
-        { 0x0C, 0x60, 0x08, 0x05 };
-    uint8_t original_data[11] =
-        { 0, };
+    uint8_t compress_data[4] = { 0x0C, 0x60, 0x08, 0x05 };
+    uint8_t original_data[8] = { 0, };
 
     init_table(3);
     decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data));
 
-    cut_assert(get_data(6)[0] == 1);
-    cut_assert(get_data(6)[1] == 0);
-    cut_assert(get_data(7)[0] == 0);
-    cut_assert(get_data(7)[1] == 0);
-    cut_assert(get_data(8)[0] == 0);
-    cut_assert(get_data(8)[1] == 1);
-    cut_assert(get_data(9)[0] == 1);
-    cut_assert(get_data(9)[1] == 0);
-    cut_assert(get_data(9)[2] == 0);
+    cut_assert(get_data(6)[0]  == 1);
+    cut_assert(get_data(6)[1]  == 0);
+    cut_assert(get_data(7)[0]  == 0);
+    cut_assert(get_data(7)[1]  == 0);
+    cut_assert(get_data(8)[0]  == 0);
+    cut_assert(get_data(8)[1]  == 1);
+    cut_assert(get_data(9)[0]  == 1);
+    cut_assert(get_data(9)[1]  == 0);
+    cut_assert(get_data(9)[2]  == 0);
     cut_assert(get_data(10)[0] == 0);
     cut_assert(get_data(10)[1] == 1);
     cut_assert(get_data(10)[2] == 0);
@@ -367,10 +365,8 @@ void test_lzw_decompress(void)
 void test_lzw_decompress2(void)
 {
     /* https://www.petitmonte.com/math_algorithm/lzw_gif.html */
-    uint8_t compress_data[11] =
-        { 0x44, 0x8C, 0x57 };
-    uint8_t original_data[11] =
-        { 0, };
+    uint8_t compress_data[3] = { 0x44, 0x8C, 0x57 };
+    uint8_t original_data[9] = { 0, };
 
     init_table(3);
     decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data));
@@ -401,23 +397,21 @@ void test_lzw_decompress2(void)
 void test_lzw_decompress3(void)
 {
     /* https://www.petitmonte.com/math_algorithm/lzw_gif.html */
-    uint8_t compress_data[11] =
-    { 0x84, 0x11, 0x79, 0x50 };
-    uint8_t original_data[11] =
-    { 0, };
+    uint8_t compress_data[4]  = { 0x84, 0x11, 0x79, 0x50 };
+    uint8_t original_data[11] = { 0, };
 
     init_table(3);
     decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data));
 
-    cut_assert(get_data(6)[0] == 0);
-    cut_assert(get_data(6)[1] == 0);
-    cut_assert(get_data(7)[0] == 0);
-    cut_assert(get_data(7)[1] == 0);
-    cut_assert(get_data(7)[2] == 0);
-    cut_assert(get_data(8)[0] == 0);
-    cut_assert(get_data(8)[1] == 1);
-    cut_assert(get_data(9)[0] == 1);
-    cut_assert(get_data(9)[1] == 1);
+    cut_assert(get_data(6)[0]  == 0);
+    cut_assert(get_data(6)[1]  == 0);
+    cut_assert(get_data(7)[0]  == 0);
+    cut_assert(get_data(7)[1]  == 0);
+    cut_assert(get_data(7)[2]  == 0);
+    cut_assert(get_data(8)[0]  == 0);
+    cut_assert(get_data(8)[1]  == 1);
+    cut_assert(get_data(9)[0]  == 1);
+    cut_assert(get_data(9)[1]  == 1);
     cut_assert(get_data(10)[0] == 1);
     cut_assert(get_data(10)[1] == 1);
     cut_assert(get_data(10)[2] == 0);
@@ -426,16 +420,16 @@ void test_lzw_decompress3(void)
     cut_assert(get_data(11)[2] == 0);
     cut_assert(get_data(11)[3] == 0);
 
-    cut_assert(original_data[0] == 0);
-    cut_assert(original_data[1] == 0);
-    cut_assert(original_data[2] == 0);
-    cut_assert(original_data[3] == 0);
-    cut_assert(original_data[4] == 1);
-    cut_assert(original_data[5] == 1);
-    cut_assert(original_data[6] == 1);
-    cut_assert(original_data[7] == 0);
-    cut_assert(original_data[8] == 0);
-    cut_assert(original_data[9] == 0);
+    cut_assert(original_data[0]  == 0);
+    cut_assert(original_data[1]  == 0);
+    cut_assert(original_data[2]  == 0);
+    cut_assert(original_data[3]  == 0);
+    cut_assert(original_data[4]  == 1);
+    cut_assert(original_data[5]  == 1);
+    cut_assert(original_data[6]  == 1);
+    cut_assert(original_data[7]  == 0);
+    cut_assert(original_data[8]  == 0);
+    cut_assert(original_data[9]  == 0);
     cut_assert(original_data[10] == 0);
 }
 
