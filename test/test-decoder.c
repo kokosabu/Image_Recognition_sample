@@ -3,9 +3,7 @@
 #include "gif.h"
 
 void test_one_bit_read(void);
-
 void test_docompress_fixed_huffman_codes();
-
 void test_check_file_format_dummy_gif(void);
 void test_check_file_format_ok_gif(void);
 void test_check_file_format_lzw1_gif(void);
@@ -171,12 +169,9 @@ void test_check_file_format_lzw1_gif(void)
 void test_lzw_compress(void)
 {
     /* https://www.petitmonte.com/math_algorithm/lzw_gif.html */
-    uint8_t original_data[] =
-        { 1, 0, 0, 1, 0, 0, 1, 0 };
-    uint8_t compress_data[11] =
-        { 0, };
-    uint8_t bit_lengths[11] =
-        { 8, 8, 8, 8, 8, 8, 8, 8 };
+    uint8_t original_data[]  = { 1, 0, 0, 1, 0, 0, 1, 0 };
+    uint8_t compress_data[8] = { 0, };
+    uint8_t bit_lengths[8]   = { 0, };
 
     init_table(3);
 
