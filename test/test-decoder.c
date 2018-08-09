@@ -184,15 +184,15 @@ void test_lzw_compress(void)
 
     compress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), bit_lengths, sizeof(bit_lengths));
 
-    cut_assert(get_data(6)[0] == 1);
-    cut_assert(get_data(6)[1] == 0);
-    cut_assert(get_data(7)[0] == 0);
-    cut_assert(get_data(7)[1] == 0);
-    cut_assert(get_data(8)[0] == 0);
-    cut_assert(get_data(8)[1] == 1);
-    cut_assert(get_data(9)[0] == 1);
-    cut_assert(get_data(9)[1] == 0);
-    cut_assert(get_data(9)[2] == 0);
+    cut_assert(get_data(6)[0]  == 1);
+    cut_assert(get_data(6)[1]  == 0);
+    cut_assert(get_data(7)[0]  == 0);
+    cut_assert(get_data(7)[1]  == 0);
+    cut_assert(get_data(8)[0]  == 0);
+    cut_assert(get_data(8)[1]  == 1);
+    cut_assert(get_data(9)[0]  == 1);
+    cut_assert(get_data(9)[1]  == 0);
+    cut_assert(get_data(9)[2]  == 0);
     cut_assert(get_data(10)[0] == 0);
     cut_assert(get_data(10)[1] == 1);
     cut_assert(get_data(10)[2] == 0);
@@ -219,9 +219,9 @@ void test_lzw_compress(void)
 void test_lzw_compress2(void)
 {
     /* https://www.petitmonte.com/math_algorithm/lzw_gif.html */
-    uint8_t original_data[]   = { 0, 1, 0, 1, 0, 1, 0, 1, 0 };
-    uint8_t compress_data[11] = { 0, };
-    uint8_t bit_lengths[11]   = { 0, };
+    uint8_t original_data[] = { 0, 1, 0, 1, 0, 1, 0, 1, 0 };
+    uint8_t compress_data[7] = { 0, };
+    uint8_t bit_lengths[7]   = { 0, };
 
     init_table(3);
 
