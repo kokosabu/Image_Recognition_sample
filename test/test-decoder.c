@@ -219,7 +219,7 @@ void test_lzw_compress(void)
 void test_lzw_compress2(void)
 {
     /* https://www.petitmonte.com/math_algorithm/lzw_gif.html */
-    uint8_t original_data[] = { 0, 1, 0, 1, 0, 1, 0, 1, 0 };
+    uint8_t original_data[]  = { 0, 1, 0, 1, 0, 1, 0, 1, 0 };
     uint8_t compress_data[7] = { 0, };
     uint8_t bit_lengths[7]   = { 0, };
 
@@ -266,9 +266,9 @@ void test_lzw_compress2(void)
 void test_lzw_compress3(void)
 {
     /* https://www.petitmonte.com/math_algorithm/lzw_gif.html */
-    uint8_t original_data[]   = { 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0 };
-    uint8_t compress_data[11] = { 0, };
-    uint8_t bit_lengths[11]   = { 0, };
+    uint8_t original_data[]  = { 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0 };
+    uint8_t compress_data[9] = { 0, };
+    uint8_t bit_lengths[9]   = { 0, };
 
     init_table(3);
 
