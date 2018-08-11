@@ -22,6 +22,7 @@ void LoG_filter(RGBTRIPLE ***output_image_data, RGBTRIPLE ***image_data, IMAGEIN
         filter[k+(kernel_size-1)/2] = (double *)malloc(sizeof(double)*kernel_size);
         for(l = -(kernel_size-1)/2; l <= (kernel_size-1)/2; l++) {
             filter[k+(kernel_size-1)/2][l+(kernel_size-1)/2] = -1.0 * (1.0 / (M_PI * pow(sigma, 4))) * (1.0 - (((k*k)+(l*l)) / (2.0 * sigma * sigma))) * exp(-1.0 * ((k*k)+(l*l)) / (2.0 * sigma * sigma));
+            //filter[k+(kernel_size-1)/2][l+(kernel_size-1)/2] = (((k*k)+(l*l)-(2*sigma*sigma)) / (M_PI * pow(sigma, 6))) * exp(-1.0 * ((k*k)+(l*l)) / (2.0 * sigma * sigma));
             filter_sum += filter[k+(kernel_size-1)/2][l+(kernel_size-1)/2];
         }
     }
