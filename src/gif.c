@@ -8,6 +8,7 @@ static uint8_t *lzw_table[4096];
 static uint8_t lzw_table_data_size[4096];
 static int lzw_table_size;
 static uint8_t bit_length;
+static int initial_bit;
 
 static void update_bit_length(void);
 static void update_bit_length_for_decompress(void);
@@ -108,12 +109,14 @@ static void entry_dict(uint8_t *com2, int com2_size)
 {
     int i;
 
-    lzw_table[lzw_table_size] = (uint8_t *)malloc(sizeof(uint8_t) * com2_size);
-    for(i = 0; i < com2_size; i++) {
-        lzw_table[lzw_table_size][i] = com2[i];
+    if(lzw_table_size < 0xFFF) {
+        lzw_table[lzw_table_size] = (uint8_t *)malloc(sizeof(uint8_t) * com2_size);
+        for(i = 0; i < com2_size; i++) {
+            lzw_table[lzw_table_size][i] = com2[i];
+        }
+        lzw_table_data_size[lzw_table_size] = com2_size;
+        lzw_table_size += 1;
     }
-    lzw_table_data_size[lzw_table_size] = com2_size;
-    lzw_table_size += 1;
 }
 
 void read_header(FILE *input)
@@ -472,6 +475,8 @@ void init_table(int bit)
 
     lzw_table_size = i;
     bit_length = bit;
+
+    initial_bit = bit;
 }
 
 uint8_t *get_data(int index)
@@ -494,6 +499,7 @@ void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_
     int com1_size;
     int com2_size;
     int output_code;
+    int clear_code;
     int byte_pos;
     int bit_pos;
     uint8_t bits;
@@ -507,6 +513,7 @@ void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_
 
     /* 1:クリアコードの出力 */
     output_code = search_lzw_table((uint8_t *)CLEAR, 0);
+    clear_code = output_code;
     output_compress_data(compress_data, bit_lengths, &compress_data_index, output_code);
 
     /* 2:圧縮対象の文字列(数字)から一文字を読み込みprefix変数に格納する */
@@ -526,6 +533,9 @@ void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_
 
         /* 4-2:次にcom1の内容が辞書に登録されているかを確認をする */
         output_code = search_lzw_table(com1, com1_size);
+        if(output_code == clear_code) {
+            init_table(initial_bit);
+        }
 
         if(output_code != -1) {
             /* [登録済] */
@@ -545,6 +555,9 @@ FIVE:
 
             /* 5-3:次にcom2が辞書に登録されているかを確認をする */
             output_code = search_lzw_table(com2, com2_size);
+            if(output_code == clear_code) {
+                init_table(initial_bit);
+            }
 
             if(output_code != -1) {
                 /* [登録済] */
@@ -558,6 +571,9 @@ FIVE:
 
                 /* 7-2:com1の辞書番号を出力する。 */
                 output_code = search_lzw_table(com1, com1_size);
+                if(output_code == clear_code) {
+                    init_table(initial_bit);
+                }
                 output_compress_data(compress_data, bit_lengths, &compress_data_index, output_code);
 
                 if(original_data_index == original_data_size) {
@@ -579,6 +595,9 @@ FIVE:
             entry_dict(com1, com1_size);
 
             output_code = search_lzw_table(prefix, prefix_size);
+            if(output_code == clear_code) {
+                init_table(initial_bit);
+            }
             output_compress_data(compress_data, bit_lengths, &compress_data_index, output_code);
 
             /* suffixをprefixに格納して3に戻る */
@@ -588,6 +607,9 @@ FIVE:
 
     /* 8:全ての文字列を圧縮した後にエンドコードを出力する */
     output_code = search_lzw_table((uint8_t *)END, 0);
+    if(output_code == clear_code) {
+        init_table(initial_bit);
+    }
     output_compress_data(compress_data, bit_lengths, &compress_data_index, output_code);
 }
 
