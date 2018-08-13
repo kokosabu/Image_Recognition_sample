@@ -130,7 +130,7 @@ void read_header(FILE *input)
 
     fread(version, 1, 3, input);
     version[3] = '\0';
-    assert(strcmp(version, "89a") == 0);
+    assert(strcmp(version, "89a") == 0 || strcmp(version, "87a") == 0);
 }
 
 void read_logical_screen_descriptor(FILE *input, IMAGEINFO *image_info, unsigned char *global_color_table_flag, unsigned char *size_of_global_color_table)
