@@ -234,14 +234,13 @@ void read_image_descriptor(FILE *input)
     }
 }
 
-void read_graphic_control_extension(FILE *input)
+void read_graphic_control_extension(FILE *input, GIF_INFO *gif_info)
 {
     unsigned char byte;
     uint8_t reserved;
     uint8_t disposal_mothod;
     uint8_t user_input_flag;
     uint8_t transparent_color_flag;
-    uint8_t transparent_color_index;
     uint16_t delay_time;
     uint8_t block_terminator;
 
@@ -257,12 +256,14 @@ void read_graphic_control_extension(FILE *input)
     user_input_flag        = (byte & 0x02) >> 1;
     transparent_color_flag = (byte & 0x01);
 
-    fread(&transparent_color_index, 1, 1, input);
-
     fread(&byte, 1, 1, input);
     delay_time = byte;
     fread(&byte, 1, 1, input);
     delay_time += ((unsigned int)byte) << 8;
+
+    if(transparent_color_flag == 1) {
+        fread(&(gif_info->transparent_color_index), 1, 1, input);
+    }
 
     fread(&block_terminator, 1, 1, input);
     if(block_terminator != 0x00) {
@@ -391,6 +392,9 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     uint8_t block_terminator;
     uint8_t original_data[2048];
     RGBTRIPLE *global_color_table;
+    GIF_INFO gif_info;
+
+    gif_info.transparent_color_index = 255;
 
     read_header(input);
     read_logical_screen_descriptor(input, image_info, &global_color_table_flag, &size_of_global_color_table);
@@ -418,7 +422,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                         (*image_data)[i][j].rgbtRed   = global_color_table[original_data[i*image_info->height + j]].rgbtRed;
                         (*image_data)[i][j].rgbtGreen = global_color_table[original_data[i*image_info->height + j]].rgbtGreen;
                         (*image_data)[i][j].rgbtBlue  = global_color_table[original_data[i*image_info->height + j]].rgbtBlue;
-                        (*image_data)[i][j].rgbtAlpha = 255;
+                        (*image_data)[i][j].rgbtAlpha = gif_info.transparent_color_index;
                     }
                 }
 
@@ -432,7 +436,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             fread(&byte, 1, 1, input);
 
             if(byte == 0xf9) {
-                read_graphic_control_extension(input);
+                read_graphic_control_extension(input, &gif_info);
             } else if(byte == 0xfe) {
                 read_comment_extension(input);
             } else if(byte == 0x01) {

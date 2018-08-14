@@ -16,4 +16,8 @@ enum {
     END   = 0x02,
 };
 
+typedef struct {
+    uint8_t transparent_color_index;
+} GIF_INFO;
+
 #endif /* GIF_H */
