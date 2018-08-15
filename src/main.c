@@ -69,16 +69,16 @@ int main(int argc, char *argv[])
     //prewitt_filter(&output_image_data, &image_data, &image_info, 3);
     //sobel_filter(&output_image_data, &image_data, &image_info, 3);
     //canny_edge_detector(&output_image_data, &image_data, &image_info, 0.8, 7, 3);
-    LoG_filter(&output_image_data, &image_data, &image_info, 0.5, 9);
+    //LoG_filter(&output_image_data, &image_data, &image_info, 0.5, 9);
    
-#if 0
+#if 1
     for(i = 0; i < image_info.height; i++) {
         for(j = 0; j < image_info.width; j++) {
             output_image_data[i][j] = image_data[i][j];
         }
     }
 #endif
-#if 1
+#if 0
     for(i = 0; i < image_info.height; i++) {
         for(j = 0; j < image_info.width; j++) {
             output_image_data[i][j].rgbtAlpha = 255; 

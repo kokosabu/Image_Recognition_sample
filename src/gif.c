@@ -246,7 +246,7 @@ void read_graphic_control_extension(FILE *input, GIF_INFO *gif_info)
 
     fread(&byte, 1, 1, input);
     if(byte != 0x04) {
-        printf("error\n");
+        printf("error:%d\n", byte);
         exit(1);
     }
 
@@ -311,7 +311,7 @@ void read_plain_text_extension(FILE *input)
 
     fread(&block_size, 1, 1, input);
     if(block_size != 0x0c) {
-        printf("error\n");
+        printf("plain text error:%d\n", block_size);
         exit(1);
     }
 
@@ -362,7 +362,7 @@ void read_application_extension(FILE *input)
 
     fread(&block_size, 1, 1, input);
     if(block_size != 0x0b) {
-        printf("error\n");
+        printf("application error:%d\n", block_size);
         exit(1);
     }
 
@@ -376,7 +376,7 @@ void read_application_extension(FILE *input)
     }
 
     if(byte != 0x00) {
-        printf("error\n");
+        printf("application error2:%d\n", byte);
         exit(1);
     }
 }
@@ -444,14 +444,14 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             } else if(byte == 0xff) {
                 read_application_extension(input);
             } else {
-                printf("error\n");
+                printf("error:%d\n", byte);
                 exit(1);
             }
         } else if(byte == 0x3b) {
             /* Trailer(1B) = 0x3b */
             break;
         } else {
-            printf("error\n");
+            printf("error2:%d\n", byte);
             exit(1);
         }
     } while(1);
