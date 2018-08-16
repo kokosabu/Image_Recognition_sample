@@ -17,6 +17,7 @@ enum {
 };
 
 typedef struct {
+    uint8_t transparent_color_flag;
     uint8_t transparent_color_index;
 } GIF_INFO;
 
