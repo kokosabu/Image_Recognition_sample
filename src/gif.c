@@ -174,6 +174,7 @@ void read_global_color_table(FILE *input, RGBTRIPLE **global_color_table, unsign
             fread(&((*global_color_table)[i].rgbtRed),   1, 1, input);
             fread(&((*global_color_table)[i].rgbtGreen), 1, 1, input);
             fread(&((*global_color_table)[i].rgbtBlue),  1, 1, input);
+            printf("[%d] %x %x %x\n", i, (*global_color_table)[i].rgbtRed, (*global_color_table)[i].rgbtGreen, (*global_color_table)[i].rgbtBlue);
         }
     } else {
         *global_color_table = NULL;
@@ -260,9 +261,7 @@ void read_graphic_control_extension(FILE *input, GIF_INFO *gif_info)
     fread(&byte, 1, 1, input);
     delay_time += ((unsigned int)byte) << 8;
 
-    if(gif_info->transparent_color_flag == 1) {
-        fread(&(gif_info->transparent_color_index), 1, 1, input);
-    }
+    fread(&(gif_info->transparent_color_index), 1, 1, input);
 
     fread(&block_terminator, 1, 1, input);
     if(block_terminator != 0x00) {
@@ -354,10 +353,12 @@ void read_plain_text_extension(FILE *input)
 void read_application_extension(FILE *input)
 {
     uint8_t block_size;
-    uint8_t application_identifier[8];
+    uint8_t application_identifier[8+1];
     uint8_t application_authentication_code[3];
     unsigned char byte;
     uint8_t *application_data;
+    uint16_t loop_count;
+    uint8_t netscape_extension_code;
 
     fread(&block_size, 1, 1, input);
     if(block_size != 0x0b) {
@@ -366,14 +367,40 @@ void read_application_extension(FILE *input)
     }
 
     fread(application_identifier, 1, 8, input);
+    application_identifier[8] = '\0';
+    printf("%s\n", application_identifier);
     fread(application_authentication_code, 1, 3, input);
+    printf("%c%c%c\n", application_authentication_code[0], application_authentication_code[1], application_authentication_code[2]);
     fread(&byte, 1, 1, input);
-    if(byte != 0x00) {
-        application_data = (uint8_t *)malloc(sizeof(uint8_t) * byte);
-        fread(application_data, 1, byte, input);
+
+    /* NETSCAPE 2.0 */
+    if(strcmp((char *)application_identifier, "NETSCAPE") == 0) {
+        if(byte == 3) {
+            fread(&netscape_extension_code, 1, 1, input);
+            netscape_extension_code &= 0x07;
+            if(netscape_extension_code != 1) {
+                printf("application error2:%d\n", netscape_extension_code);
+                exit(1);
+            }
+
+            fread(&byte, 1, 1, input);
+            loop_count = byte;
+            fread(&byte, 1, 1, input);
+            loop_count += ((unsigned int)byte) << 8;
+            printf("loop_count %d\n", loop_count);
+        } else {
+            printf("%d\n", byte);
+        }
         fread(&byte, 1, 1, input);
+    } else if(strcmp((char *)application_identifier, "XMP Data") == 0) {
+        do {
+            fseek(input, byte, SEEK_CUR);
+            fread(&byte, 1, 1, input);
+            printf("%d\n", byte);
+        } while(byte != 0);
     }
 
+    printf("%d\n", byte);
     if(byte != 0x00) {
         printf("application error2:%d\n", byte);
         exit(1);
@@ -407,18 +434,26 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 
     do {
         fread(&byte, 1, 1, input);
+        printf("%x\n", byte);
         if(byte == 0x2c) {
             /* Image Block */
             read_image_descriptor(input);
+
+            printf("read_image_descriptor\n");
 
             fread(&LZW_minimum_code_size, 1, 1, input);
             init_table(LZW_minimum_code_size+1);
             fread(&block_size, 1, 1, input);
             do {
                 fread(block_image_data, 1, block_size, input);
+                printf("block_image_data\n");
                 decompress(block_image_data, block_size, original_data, sizeof(original_data));
+                printf("decompress\n");
+
+                printf("height: %d, width: %d\n", image_info->height, image_info->width);
                 for(int i = 0; i < image_info->height; i++) {
                     for(int j = 0; j < image_info->width; j++) {
+                        printf("%d\n", original_data[i*image_info->height + j]);
                         (*image_data)[i][j].rgbtRed   = global_color_table[original_data[i*image_info->height + j]].rgbtRed;
                         (*image_data)[i][j].rgbtGreen = global_color_table[original_data[i*image_info->height + j]].rgbtGreen;
                         (*image_data)[i][j].rgbtBlue  = global_color_table[original_data[i*image_info->height + j]].rgbtBlue;
@@ -430,7 +465,9 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                     }
                 }
 
+                printf("----------\n");
                 fread(&block_terminator, 1, 1, input);
+                printf("----------\n");
                 if(block_terminator == 0x00) {
                     break;
                 }
@@ -438,6 +475,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             } while(1);
         } else if(byte == 0x21) {
             fread(&byte, 1, 1, input);
+            printf("21h %x\n", byte);
 
             if(byte == 0xf9) {
                 read_graphic_control_extension(input, &gif_info);
@@ -455,7 +493,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             /* Trailer(1B) = 0x3b */
             break;
         } else {
-            printf("error2:%d\n", byte);
+            printf("error2:%x\n", byte);
             exit(1);
         }
     } while(1);
@@ -660,6 +698,7 @@ void decompress(uint8_t *compress_data, int compress_data_size, uint8_t *origina
     }
 
     /* a.最初の数を出力数に、次の数を待機数に読み込みます。辞書を初期化します。 */
+    printf("a\n");
     prefix_size = 0;
     read_char(prefix, &prefix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
     bit_length_index = 0;
@@ -670,6 +709,7 @@ PASS:
 
     do {
         /* b.辞書の出力数のページの値と辞書の待機数のページにある値の最初の文字を並べた数を辞書の新しいページに書き込みます。 */
+        printf("b\n");
         output_code1 = prefix[0];
         output_code2 = suffix[0];
         copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
@@ -684,21 +724,31 @@ PASS:
         update_bit_length_for_decompress();
 
         /* c.辞書の出力数のページに書かれている値を書き出します。 */
+        printf("c\n");
         for(i = 0; i < com1_size; i++) {
             original_data[original_data_index] = com1[i];
+            if(original_data_index == (original_data_size-1)) {
+                return;
+            }
             original_data_index += 1;
         }
 
         /* d.待機数を出力数に、新しく一つ読み込んで待機数に入れます。 */
+        printf("d\n");
         copy(prefix, &prefix_size, suffix, suffix_size);
         suffix_size = 0;
         read_char(suffix, &suffix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
         bit_length_index = 0;
 
         /* e.以下、b〜dの繰り返し */
+        printf("e\n");
+        copy(prefix, &prefix_size, suffix, suffix_size);
         if(suffix[0] == search_lzw_table((uint8_t *)END, 0)) {
             for(i = 0; i < lzw_table_data_size[prefix[0]]; i++) {
                 original_data[original_data_index] = lzw_table[prefix[0]][i];
+                if(original_data_index == (original_data_size-1)) {
+                    return;
+                }
                 original_data_index += 1;
             }
             break;
