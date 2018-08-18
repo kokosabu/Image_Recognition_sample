@@ -166,8 +166,10 @@ void read_global_color_table(FILE *input, RGBTRIPLE **global_color_table, unsign
     int i;
 
     if(global_color_table_flag == 1) {
+        printf("ON\n");
+        printf("%d\n", size_of_global_color_table);
         *global_color_table  = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * (uint8_t)pow(2, size_of_global_color_table+1));
-        for(i = 0; i < (uint8_t)pow(2, size_of_global_color_table+1); i++) {
+        for(i = 0; i < (uint16_t)pow(2, size_of_global_color_table+1); i++) {
             (*global_color_table)[i].rgbtRed = 0;
             (*global_color_table)[i].rgbtGreen = 0;
             (*global_color_table)[i].rgbtBlue = 0;
@@ -260,6 +262,7 @@ void read_graphic_control_extension(FILE *input, GIF_INFO *gif_info)
     delay_time = byte;
     fread(&byte, 1, 1, input);
     delay_time += ((unsigned int)byte) << 8;
+    printf("delay time:%d\n", delay_time);
 
     fread(&(gif_info->transparent_color_index), 1, 1, input);
 
@@ -435,6 +438,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     do {
         fread(&byte, 1, 1, input);
         printf("%x\n", byte);
+
         if(byte == 0x2c) {
             /* Image Block */
             read_image_descriptor(input);
@@ -453,7 +457,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                 printf("height: %d, width: %d\n", image_info->height, image_info->width);
                 for(int i = 0; i < image_info->height; i++) {
                     for(int j = 0; j < image_info->width; j++) {
-                        printf("%d\n", original_data[i*image_info->height + j]);
+                        printf("-%d", original_data[i*image_info->height + j]);
                         (*image_data)[i][j].rgbtRed   = global_color_table[original_data[i*image_info->height + j]].rgbtRed;
                         (*image_data)[i][j].rgbtGreen = global_color_table[original_data[i*image_info->height + j]].rgbtGreen;
                         (*image_data)[i][j].rgbtBlue  = global_color_table[original_data[i*image_info->height + j]].rgbtBlue;
@@ -463,11 +467,11 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                             (*image_data)[i][j].rgbtAlpha = 255;
                         }
                     }
+                    printf("\n");
                 }
 
                 printf("----------\n");
                 fread(&block_terminator, 1, 1, input);
-                printf("----------\n");
                 if(block_terminator == 0x00) {
                     break;
                 }
