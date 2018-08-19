@@ -166,8 +166,6 @@ void read_global_color_table(FILE *input, RGBTRIPLE **global_color_table, unsign
     int i;
 
     if(global_color_table_flag == 1) {
-        printf("ON\n");
-        printf("%d\n", size_of_global_color_table);
         *global_color_table  = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * (uint8_t)pow(2, size_of_global_color_table+1));
         for(i = 0; i < (uint16_t)pow(2, size_of_global_color_table+1); i++) {
             (*global_color_table)[i].rgbtRed = 0;
@@ -176,7 +174,6 @@ void read_global_color_table(FILE *input, RGBTRIPLE **global_color_table, unsign
             fread(&((*global_color_table)[i].rgbtRed),   1, 1, input);
             fread(&((*global_color_table)[i].rgbtGreen), 1, 1, input);
             fread(&((*global_color_table)[i].rgbtBlue),  1, 1, input);
-            printf("[%d] %x %x %x\n", i, (*global_color_table)[i].rgbtRed, (*global_color_table)[i].rgbtGreen, (*global_color_table)[i].rgbtBlue);
         }
     } else {
         *global_color_table = NULL;
@@ -262,9 +259,10 @@ void read_graphic_control_extension(FILE *input, GIF_INFO *gif_info)
     delay_time = byte;
     fread(&byte, 1, 1, input);
     delay_time += ((unsigned int)byte) << 8;
-    printf("delay time:%d\n", delay_time);
 
-    fread(&(gif_info->transparent_color_index), 1, 1, input);
+    if(gif_info->transparent_color_flag == 1) {
+        fread(&(gif_info->transparent_color_index), 1, 1, input);
+    }
 
     fread(&block_terminator, 1, 1, input);
     if(block_terminator != 0x00) {
@@ -403,7 +401,6 @@ void read_application_extension(FILE *input)
         } while(byte != 0);
     }
 
-    printf("%d\n", byte);
     if(byte != 0x00) {
         printf("application error2:%d\n", byte);
         exit(1);
@@ -417,14 +414,19 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     unsigned char size_of_global_color_table;
     uint8_t LZW_minimum_code_size;
     uint8_t block_size;
-    uint8_t block_image_data[255];
+    uint8_t block_image_data[256];
     uint8_t block_terminator;
-    uint8_t original_data[2048];
+    uint8_t original_data[4096];
+    int original_data_index;
+    int past_size;
     RGBTRIPLE *global_color_table;
     GIF_INFO gif_info;
 
     gif_info.transparent_color_flag  = 0;
     gif_info.transparent_color_index = 255;
+
+    original_data_index = 0;
+    past_size = 0;
 
     read_header(input);
     read_logical_screen_descriptor(input, image_info, &global_color_table_flag, &size_of_global_color_table);
@@ -450,25 +452,22 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             fread(&block_size, 1, 1, input);
             do {
                 fread(block_image_data, 1, block_size, input);
-                printf("block_image_data\n");
-                decompress(block_image_data, block_size, original_data, sizeof(original_data));
+                printf("block_image_data:%d\n", block_size);
+                original_data_index = decompress(block_image_data, block_size, original_data, sizeof(original_data));
                 printf("decompress\n");
 
                 printf("height: %d, width: %d\n", image_info->height, image_info->width);
-                for(int i = 0; i < image_info->height; i++) {
-                    for(int j = 0; j < image_info->width; j++) {
-                        printf("-%d", original_data[i*image_info->height + j]);
-                        (*image_data)[i][j].rgbtRed   = global_color_table[original_data[i*image_info->height + j]].rgbtRed;
-                        (*image_data)[i][j].rgbtGreen = global_color_table[original_data[i*image_info->height + j]].rgbtGreen;
-                        (*image_data)[i][j].rgbtBlue  = global_color_table[original_data[i*image_info->height + j]].rgbtBlue;
-                        if(gif_info.transparent_color_flag == 1 && gif_info.transparent_color_index == original_data[i*image_info->height + j]) {
-                            (*image_data)[i][j].rgbtAlpha = 0;
-                        } else {
-                            (*image_data)[i][j].rgbtAlpha = 255;
-                        }
+                for(int i = 0; i < original_data_index; i++) {
+                    (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtRed   = global_color_table[original_data[i]].rgbtRed;
+                    (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtGreen = global_color_table[original_data[i]].rgbtGreen;
+                    (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtBlue  = global_color_table[original_data[i]].rgbtBlue;
+                    if(gif_info.transparent_color_flag == 1 && gif_info.transparent_color_index == original_data[i]) {
+                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtAlpha = 0;
+                    } else {
+                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtAlpha = 255;
                     }
-                    printf("\n");
                 }
+                past_size += original_data_index;
 
                 printf("----------\n");
                 fread(&block_terminator, 1, 1, input);
@@ -663,7 +662,7 @@ FIVE:
     output_compress_data(compress_data, bit_lengths, &compress_data_index, output_code);
 }
 
-void decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original_data, int original_data_size)
+int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original_data, int original_data_size)
 {
     uint8_t prefix[1024];
     uint8_t suffix[1024];
@@ -702,7 +701,6 @@ void decompress(uint8_t *compress_data, int compress_data_size, uint8_t *origina
     }
 
     /* a.最初の数を出力数に、次の数を待機数に読み込みます。辞書を初期化します。 */
-    printf("a\n");
     prefix_size = 0;
     read_char(prefix, &prefix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
     bit_length_index = 0;
@@ -713,7 +711,6 @@ PASS:
 
     do {
         /* b.辞書の出力数のページの値と辞書の待機数のページにある値の最初の文字を並べた数を辞書の新しいページに書き込みます。 */
-        printf("b\n");
         output_code1 = prefix[0];
         output_code2 = suffix[0];
         copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
@@ -728,12 +725,8 @@ PASS:
         update_bit_length_for_decompress();
 
         /* c.辞書の出力数のページに書かれている値を書き出します。 */
-        printf("c\n");
         for(i = 0; i < com1_size; i++) {
             original_data[original_data_index] = com1[i];
-            if(original_data_index == (original_data_size-1)) {
-                return;
-            }
             original_data_index += 1;
         }
 
@@ -741,22 +734,23 @@ PASS:
         printf("d\n");
         copy(prefix, &prefix_size, suffix, suffix_size);
         suffix_size = 0;
+        if(byte_pos == (compress_data_size)) {
+            return original_data_index;
+        }
         read_char(suffix, &suffix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
         bit_length_index = 0;
 
         /* e.以下、b〜dの繰り返し */
         printf("e\n");
-        copy(prefix, &prefix_size, suffix, suffix_size);
         if(suffix[0] == search_lzw_table((uint8_t *)END, 0)) {
             for(i = 0; i < lzw_table_data_size[prefix[0]]; i++) {
                 original_data[original_data_index] = lzw_table[prefix[0]][i];
-                if(original_data_index == (original_data_size-1)) {
-                    return;
-                }
                 original_data_index += 1;
             }
             break;
         }
     } while(1);
+
+    return original_data_index;
 }
 
