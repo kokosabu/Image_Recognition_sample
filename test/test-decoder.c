@@ -326,7 +326,7 @@ void test_lzw_decompress(void)
     uint8_t original_data[8] = { 0, };
 
     init_table(3);
-    decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data));
+    decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), 1);
 
     cut_assert(get_data(6)[0]  == 1);
     cut_assert(get_data(6)[1]  == 0);
@@ -358,7 +358,7 @@ void test_lzw_decompress2(void)
     uint8_t original_data[9] = { 0, };
 
     init_table(3);
-    decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data));
+    decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), 1);
 
     cut_assert(get_data(6)[0] == 0);
     cut_assert(get_data(6)[1] == 1);
@@ -390,7 +390,7 @@ void test_lzw_decompress3(void)
     uint8_t original_data[11] = { 0, };
 
     init_table(3);
-    decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data));
+    decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), 1);
 
     cut_assert(get_data(6)[0]  == 0);
     cut_assert(get_data(6)[1]  == 0);

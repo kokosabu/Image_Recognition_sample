@@ -421,12 +421,14 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     int past_size;
     RGBTRIPLE *global_color_table;
     GIF_INFO gif_info;
+    int flag;
 
     gif_info.transparent_color_flag  = 0;
     gif_info.transparent_color_index = 255;
 
     original_data_index = 0;
     past_size = 0;
+    flag = 1;
 
     read_header(input);
     read_logical_screen_descriptor(input, image_info, &global_color_table_flag, &size_of_global_color_table);
@@ -453,7 +455,8 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             do {
                 fread(block_image_data, 1, block_size, input);
                 printf("block_image_data:%d\n", block_size);
-                original_data_index = decompress(block_image_data, block_size, original_data, sizeof(original_data));
+                original_data_index = decompress(block_image_data, block_size, original_data, sizeof(original_data), flag);
+                flag = 0;
                 printf("decompress\n");
 
                 printf("height: %d, width: %d\n", image_info->height, image_info->width);
@@ -662,7 +665,7 @@ FIVE:
     output_compress_data(compress_data, bit_lengths, &compress_data_index, output_code);
 }
 
-int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original_data, int original_data_size)
+int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original_data, int original_data_size, int first_flag)
 {
     uint8_t prefix[1024];
     uint8_t suffix[1024];
@@ -690,24 +693,28 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
     byte_pos = 0;
     bit_pos = 0;
 
-    output_code = search_lzw_table((uint8_t *)CLEAR, 0);
-    prefix_size = 0;
-    read_char(prefix, &prefix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
-    bit_length_index = 0;
-    if(output_code != prefix[0]) {
-        goto PASS;
-        printf("format error\n");
-        exit(-1);
-    }
+    if(first_flag == 1) {
 
-    /* a.最初の数を出力数に、次の数を待機数に読み込みます。辞書を初期化します。 */
-    prefix_size = 0;
-    read_char(prefix, &prefix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
-    bit_length_index = 0;
+        output_code = search_lzw_table((uint8_t *)CLEAR, 0);
+        prefix_size = 0;
+        read_char(prefix, &prefix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+        bit_length_index = 0;
+        if(output_code != prefix[0]) {
+            goto PASS;
+            printf("format error\n");
+            exit(-1);
+        }
+
+        /* a.最初の数を出力数に、次の数を待機数に読み込みます。辞書を初期化します。 */
+        prefix_size = 0;
+        read_char(prefix, &prefix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+        bit_length_index = 0;
 PASS:
-    suffix_size = 0;
-    read_char(suffix, &suffix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
-    bit_length_index = 0;
+        suffix_size = 0;
+        read_char(suffix, &suffix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+        bit_length_index = 0;
+
+    }
 
     do {
         /* b.辞書の出力数のページの値と辞書の待機数のページにある値の最初の文字を並べた数を辞書の新しいページに書き込みます。 */
