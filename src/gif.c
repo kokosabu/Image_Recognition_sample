@@ -357,7 +357,6 @@ void read_application_extension(FILE *input)
     uint8_t application_identifier[8+1];
     uint8_t application_authentication_code[3];
     unsigned char byte;
-    uint8_t *application_data;
     uint16_t loop_count;
     uint8_t netscape_extension_code;
 
@@ -454,10 +453,10 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             fread(&block_size, 1, 1, input);
             do {
                 fread(block_image_data, 1, block_size, input);
-                printf("block_image_data:%d\n", block_size);
+                fprintf(stderr, "block_image_data:%d\n", block_size);
                 original_data_index = decompress(block_image_data, block_size, original_data, sizeof(original_data), flag);
                 flag = 0;
-                printf("decompress\n");
+                fprintf(stderr, "decompress\n");
 
                 printf("height: %d, width: %d\n", image_info->height, image_info->width);
                 for(int i = 0; i < original_data_index; i++) {
@@ -667,12 +666,12 @@ FIVE:
 
 int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original_data, int original_data_size, int first_flag)
 {
-    uint8_t prefix[1024];
+    static uint8_t prefix[1024];
     uint8_t suffix[1024];
     uint8_t com1[1024];
     uint8_t com2[1024];
     uint8_t com3[1024];
-    int prefix_size;
+    static int prefix_size;
     int suffix_size;
     int com1_size;
     int com2_size;
@@ -693,28 +692,26 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
     byte_pos = 0;
     bit_pos = 0;
 
-    if(first_flag == 1) {
-
-        output_code = search_lzw_table((uint8_t *)CLEAR, 0);
-        prefix_size = 0;
-        read_char(prefix, &prefix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
-        bit_length_index = 0;
-        if(output_code != prefix[0]) {
-            goto PASS;
-            printf("format error\n");
-            exit(-1);
-        }
-
-        /* a.最初の数を出力数に、次の数を待機数に読み込みます。辞書を初期化します。 */
-        prefix_size = 0;
-        read_char(prefix, &prefix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
-        bit_length_index = 0;
-PASS:
-        suffix_size = 0;
-        read_char(suffix, &suffix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
-        bit_length_index = 0;
-
+    if(first_flag == 0) {
+        goto PASS;
     }
+
+    output_code = search_lzw_table((uint8_t *)CLEAR, 0);
+    prefix_size = 0;
+    read_char(prefix, &prefix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+    bit_length_index = 0;
+    if(output_code != prefix[0]) {
+        goto PASS;
+    }
+
+    /* a.最初の数を出力数に、次の数を待機数に読み込みます。辞書を初期化します。 */
+    prefix_size = 0;
+    read_char(prefix, &prefix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+    bit_length_index = 0;
+PASS:
+    suffix_size = 0;
+    read_char(suffix, &suffix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+    bit_length_index = 0;
 
     do {
         /* b.辞書の出力数のページの値と辞書の待機数のページにある値の最初の文字を並べた数を辞書の新しいページに書き込みます。 */
@@ -738,17 +735,16 @@ PASS:
         }
 
         /* d.待機数を出力数に、新しく一つ読み込んで待機数に入れます。 */
-        printf("d\n");
         copy(prefix, &prefix_size, suffix, suffix_size);
         suffix_size = 0;
-        if(byte_pos == (compress_data_size)) {
+        printf("bytepos:%d, bitpos:%d, bit_length:%d, compress_data_size:%d\n", byte_pos, bit_pos, bit_length, compress_data_size);
+        if((byte_pos + (bit_pos+bit_length)/8) >= (compress_data_size)) {
             return original_data_index;
         }
         read_char(suffix, &suffix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
         bit_length_index = 0;
 
         /* e.以下、b〜dの繰り返し */
-        printf("e\n");
         if(suffix[0] == search_lzw_table((uint8_t *)END, 0)) {
             for(i = 0; i < lzw_table_data_size[prefix[0]]; i++) {
                 original_data[original_data_index] = lzw_table[prefix[0]][i];
