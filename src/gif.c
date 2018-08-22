@@ -685,20 +685,29 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
     int i;
     int byte_pos;
     int bit_pos;
+    static uint8_t comp[256+2];
 
     compress_data_index = 0;
     original_data_index = 0;
     bit_length_index = 0;
-    byte_pos = 0;
-    bit_pos = 0;
 
     if(first_flag == 0) {
+        for(i = byte_pos; i < (compress_data_size+byte_pos); i++) {
+            comp[i] = compress_data[i];
+        }
+        byte_pos = 0;
         goto PASS;
+    } else {
+        byte_pos = 0;
+        bit_pos = 0;
+        for(i = 0; i < compress_data_size; i++) {
+            comp[i] = compress_data[i];
+        }
     }
 
     output_code = search_lzw_table((uint8_t *)CLEAR, 0);
     prefix_size = 0;
-    read_char(prefix, &prefix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+    read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
     bit_length_index = 0;
     if(output_code != prefix[0]) {
         goto PASS;
@@ -706,11 +715,11 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
 
     /* a.最初の数を出力数に、次の数を待機数に読み込みます。辞書を初期化します。 */
     prefix_size = 0;
-    read_char(prefix, &prefix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+    read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
     bit_length_index = 0;
 PASS:
     suffix_size = 0;
-    read_char(suffix, &suffix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+    read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
     bit_length_index = 0;
 
     do {
@@ -739,9 +748,13 @@ PASS:
         suffix_size = 0;
         printf("bytepos:%d, bitpos:%d, bit_length:%d, compress_data_size:%d\n", byte_pos, bit_pos, bit_length, compress_data_size);
         if((byte_pos + (bit_pos+bit_length)/8) >= (compress_data_size)) {
+            for(i = 0; i < (compress_data_size-byte_pos); i++) {
+                comp[i] = comp[i+byte_pos];
+            }
+            byte_pos = i;
             return original_data_index;
         }
-        read_char(suffix, &suffix_size, compress_data, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+        read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
         bit_length_index = 0;
 
         /* e.以下、b〜dの繰り返し */
