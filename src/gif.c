@@ -456,7 +456,6 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                 fprintf(stderr, "block_image_data:%d\n", block_size);
                 original_data_index = decompress(block_image_data, block_size, original_data, sizeof(original_data), flag);
                 flag = 0;
-                fprintf(stderr, "decompress\n");
 
                 printf("height: %d, width: %d\n", image_info->height, image_info->width);
                 for(int i = 0; i < original_data_index; i++) {
@@ -471,6 +470,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                 }
                 past_size += original_data_index;
 
+                printf("past size : %d\n", past_size);
                 printf("----------\n");
                 fread(&block_terminator, 1, 1, input);
                 if(block_terminator == 0x00) {
@@ -683,8 +683,8 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
     int output_code1;
     int output_code2;
     int i;
-    int byte_pos;
-    int bit_pos;
+    static int byte_pos;
+    static int bit_pos;
     static uint8_t comp[256+2];
 
     compress_data_index = 0;
@@ -695,6 +695,7 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
         for(i = byte_pos; i < (compress_data_size+byte_pos); i++) {
             comp[i] = compress_data[i];
         }
+        compress_data_size += byte_pos;
         byte_pos = 0;
         goto PASS;
     } else {
@@ -746,12 +747,14 @@ PASS:
         /* d.待機数を出力数に、新しく一つ読み込んで待機数に入れます。 */
         copy(prefix, &prefix_size, suffix, suffix_size);
         suffix_size = 0;
-        printf("bytepos:%d, bitpos:%d, bit_length:%d, compress_data_size:%d\n", byte_pos, bit_pos, bit_length, compress_data_size);
+        //printf("byte_pos:%d, bitpos:%d, bit_length:%d, compress_data_size:%d\n", byte_pos, bit_pos, bit_length, compress_data_size);
+        //printf("%d >= %d\n", byte_pos+(bit_pos+bit_length)/8, compress_data_size);
         if((byte_pos + (bit_pos+bit_length)/8) >= (compress_data_size)) {
             for(i = 0; i < (compress_data_size-byte_pos); i++) {
                 comp[i] = comp[i+byte_pos];
             }
             byte_pos = i;
+            printf("%d, %d\n", byte_pos, original_data_index);
             return original_data_index;
         }
         read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
@@ -763,10 +766,12 @@ PASS:
                 original_data[original_data_index] = lzw_table[prefix[0]][i];
                 original_data_index += 1;
             }
+            printf("END\n");
             break;
         }
     } while(1);
 
+    printf("END\n");
     return original_data_index;
 }
 
