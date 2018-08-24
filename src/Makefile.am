@@ -25,7 +25,9 @@ libdecoder_la_SOURCES = bitmap.c\
 						crc.c\
 						crc.h\
 						gif.c\
-						gif.h
+						gif.h\
+						jpeg.c\
+						jpeg.h
 
 # Cコンパイラへ渡すオプション(ここではコメントアウトしています)
 # test_CFLAGS = -g
@@ -56,4 +58,7 @@ my_image_decoder_SOURCES = main.c\
 						   crc.c\
 						   crc.h\
 						   gif.c\
-						   gif.h
+						   gif.h\
+						   jpeg.c\
+						   jpeg.h
+
