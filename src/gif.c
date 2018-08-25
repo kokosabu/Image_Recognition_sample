@@ -174,6 +174,7 @@ void read_global_color_table(FILE *input, RGBTRIPLE **global_color_table, unsign
             fread(&((*global_color_table)[i].rgbtRed),   1, 1, input);
             fread(&((*global_color_table)[i].rgbtGreen), 1, 1, input);
             fread(&((*global_color_table)[i].rgbtBlue),  1, 1, input);
+            printf("[%d] %d, %d, %d\n", i, (*global_color_table)[i].rgbtRed, (*global_color_table)[i].rgbtGreen, (*global_color_table)[i].rgbtBlue);
         }
     } else {
         *global_color_table = NULL;
@@ -467,6 +468,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                     } else {
                         (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtAlpha = 255;
                     }
+                    printf("[%d][%d] %d,%d,%d\n", (i+past_size)/image_info->width, (i+past_size)%image_info->width, global_color_table[original_data[i]].rgbtRed, global_color_table[original_data[i]].rgbtBlue, global_color_table[original_data[i]].rgbtGreen);
                 }
                 past_size += original_data_index;
 
@@ -740,6 +742,7 @@ PASS:
 
         /* c.辞書の出力数のページに書かれている値を書き出します。 */
         for(i = 0; i < com1_size; i++) {
+            printf("[%d] = %d\n", original_data_index, com1[i]);
             original_data[original_data_index] = com1[i];
             original_data_index += 1;
         }
@@ -747,8 +750,10 @@ PASS:
         /* d.待機数を出力数に、新しく一つ読み込んで待機数に入れます。 */
         copy(prefix, &prefix_size, suffix, suffix_size);
         suffix_size = 0;
-        //printf("byte_pos:%d, bitpos:%d, bit_length:%d, compress_data_size:%d\n", byte_pos, bit_pos, bit_length, compress_data_size);
-        //printf("%d >= %d\n", byte_pos+(bit_pos+bit_length)/8, compress_data_size);
+        printf("byte_pos:%d, bitpos:%d, bit_length:%d, compress_data_size:%d\n", byte_pos, bit_pos, bit_length, compress_data_size);
+        printf("%d >= %d\n", byte_pos+(bit_pos+bit_length)/8, compress_data_size);
+        printf("%d >= %d\n", byte_pos*8+bit_pos+bit_length, compress_data_size*8);
+        // bitposがきれいに0で繰り上がる
         if((byte_pos + (bit_pos+bit_length)/8) >= (compress_data_size)) {
             for(i = 0; i < (compress_data_size-byte_pos); i++) {
                 comp[i] = comp[i+byte_pos];
@@ -763,6 +768,7 @@ PASS:
         /* e.以下、b〜dの繰り返し */
         if(suffix[0] == search_lzw_table((uint8_t *)END, 0)) {
             for(i = 0; i < lzw_table_data_size[prefix[0]]; i++) {
+                printf("[%d] = %d\n", original_data_index, lzw_table[prefix[0]][i]);
                 original_data[original_data_index] = lzw_table[prefix[0]][i];
                 original_data_index += 1;
             }
