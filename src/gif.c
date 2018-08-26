@@ -16,7 +16,7 @@ static void output_compress_data(uint8_t *compress_data, uint8_t *bit_lengths, i
 static int search_lzw_table(uint8_t *code, int size);
 static void connect(uint8_t *connect, int *size, uint8_t *prefix, int prefix_size, uint8_t *suffix, int suffix_size);
 static void copy(uint8_t *prefix, int *prefix_size, uint8_t *suffix, int suffix_size);
-static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index, uint8_t *length, int *length_index, int *byte_pos, int *bit_pos);
+static void read_char(uint16_t *to, int *to_size, uint8_t *data, int *data_index, uint8_t *length, int *length_index, int *byte_pos, int *bit_pos);
 static void entry_dict(uint8_t *com2, int com2_size);
 static void update_bit_length(void);
 
@@ -93,13 +93,14 @@ static void copy(uint8_t *to, int *to_size, uint8_t *from, int from_size)
     *to_size = from_size;
 }
 
-static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index, uint8_t *length, int *length_index, int *byte_pos, int *bit_pos)
+static void read_char(uint16_t *to, int *to_size, uint8_t *data, int *data_index, uint8_t *length, int *length_index, int *byte_pos, int *bit_pos)
 {
     int bits;
 
     bits = bit_read(data, byte_pos, bit_pos, length[*length_index]);
 
     to[*to_size] = bits;
+    printf("bits:%d, to:%d\n", bits, to[*to_size]);
     *data_index += 1;
     *to_size += 1;
     *length_index += 1;
@@ -540,8 +541,8 @@ uint8_t *get_data(int index)
 void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_data, int original_data_size, uint8_t *bit_lengths, int bit_lengths_size)
 {
     int i;
-    uint8_t prefix[1024];
-    uint8_t suffix[1024];
+    uint16_t prefix[1024];
+    uint16_t suffix[1024];
     uint8_t com1[1024];
     uint8_t com2[1024];
     int compress_data_index;
@@ -668,8 +669,8 @@ FIVE:
 
 int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original_data, int original_data_size, int first_flag)
 {
-    static uint8_t prefix[1024];
-    uint8_t suffix[1024];
+    static uint16_t prefix[1024];
+    uint16_t suffix[1024];
     uint8_t com1[1024];
     uint8_t com2[1024];
     uint8_t com3[1024];
@@ -751,17 +752,22 @@ PASS:
         copy(prefix, &prefix_size, suffix, suffix_size);
         suffix_size = 0;
         printf("byte_pos:%d, bitpos:%d, bit_length:%d, compress_data_size:%d\n", byte_pos, bit_pos, bit_length, compress_data_size);
-        printf("%d >= %d\n", byte_pos+(bit_pos+bit_length)/8, compress_data_size);
         printf("%d >= %d\n", byte_pos*8+bit_pos+bit_length, compress_data_size*8);
-        // bitposがきれいに0で繰り上がる
-        if((byte_pos + (bit_pos+bit_length)/8) >= (compress_data_size)) {
+#if 1
+        if((byte_pos*8+bit_pos+bit_length) > (compress_data_size*8)) {
             for(i = 0; i < (compress_data_size-byte_pos); i++) {
                 comp[i] = comp[i+byte_pos];
             }
             byte_pos = i;
             printf("%d, %d\n", byte_pos, original_data_index);
-            return original_data_index;
+            return original_data_index - 1;
         }
+#else
+        if(byte_pos == compress_data_size) {
+            printf("!%d, %d\n", byte_pos, original_data_index);
+            return original_data_index - 1;
+        }
+#endif
         read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
         bit_length_index = 0;
 
