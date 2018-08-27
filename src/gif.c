@@ -16,7 +16,7 @@ static void output_compress_data(uint8_t *compress_data, uint8_t *bit_lengths, i
 static int search_lzw_table(uint8_t *code, int size);
 static void connect(uint8_t *connect, int *size, uint8_t *prefix, int prefix_size, uint8_t *suffix, int suffix_size);
 static void copy(uint8_t *prefix, int *prefix_size, uint8_t *suffix, int suffix_size);
-static void read_char(uint16_t *to, int *to_size, uint8_t *data, int *data_index, uint8_t *length, int *length_index, int *byte_pos, int *bit_pos);
+static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index, uint8_t *length, int *length_index, int *byte_pos, int *bit_pos);
 static void entry_dict(uint8_t *com2, int com2_size);
 static void update_bit_length(void);
 
@@ -93,17 +93,28 @@ static void copy(uint8_t *to, int *to_size, uint8_t *from, int from_size)
     *to_size = from_size;
 }
 
-static void read_char(uint16_t *to, int *to_size, uint8_t *data, int *data_index, uint8_t *length, int *length_index, int *byte_pos, int *bit_pos)
+static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index, uint8_t *length, int *length_index, int *byte_pos, int *bit_pos)
 {
     int bits;
 
     bits = bit_read(data, byte_pos, bit_pos, length[*length_index]);
 
-    to[*to_size] = bits;
-    printf("bits:%d, to:%d\n", bits, to[*to_size]);
-    *data_index += 1;
-    *to_size += 1;
-    *length_index += 1;
+    if(length[*length_index] <= 8) {
+        *data_index += 1;
+        *length_index += 1;
+
+        to[*to_size] = bits;
+        *to_size += 1;
+    } else {
+        *data_index += 1;
+        *length_index += 1;
+
+        to[*to_size] = bits % 256;
+        *to_size += 1;
+
+        to[*to_size] = (bits >> 8) % 256;
+        *to_size += 1;
+    }
 }
 
 static void entry_dict(uint8_t *com2, int com2_size)
@@ -469,7 +480,15 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                     } else {
                         (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtAlpha = 255;
                     }
+
+
                     printf("[%d][%d] %d,%d,%d\n", (i+past_size)/image_info->width, (i+past_size)%image_info->width, global_color_table[original_data[i]].rgbtRed, global_color_table[original_data[i]].rgbtBlue, global_color_table[original_data[i]].rgbtGreen);
+                    printf("%d, %d -> %d  %d\n", i, past_size, i+past_size, 256*256-1);
+                    if((i+past_size) == (256*256)) {
+                        printf("EEEE\n");
+                        image_info->fileSize = image_info->height*image_info->width*3 + 54;
+                        return;
+                    }
                 }
                 past_size += original_data_index;
 
@@ -541,8 +560,8 @@ uint8_t *get_data(int index)
 void compress(uint8_t *compress_data, int compress_data_size, uint8_t *original_data, int original_data_size, uint8_t *bit_lengths, int bit_lengths_size)
 {
     int i;
-    uint16_t prefix[1024];
-    uint16_t suffix[1024];
+    uint8_t prefix[1024];
+    uint8_t suffix[1024];
     uint8_t com1[1024];
     uint8_t com2[1024];
     int compress_data_index;
@@ -669,8 +688,8 @@ FIVE:
 
 int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original_data, int original_data_size, int first_flag)
 {
-    static uint16_t prefix[1024];
-    uint16_t suffix[1024];
+    static uint8_t prefix[1024];
+    uint8_t suffix[1024];
     uint8_t com1[1024];
     uint8_t com2[1024];
     uint8_t com3[1024];
@@ -728,8 +747,18 @@ PASS:
 
     do {
         /* b.辞書の出力数のページの値と辞書の待機数のページにある値の最初の文字を並べた数を辞書の新しいページに書き込みます。 */
-        output_code1 = prefix[0];
-        output_code2 = suffix[0];
+        if(prefix_size == 1) {
+            output_code1 = prefix[0];
+        } else {
+            output_code1 = prefix[0] + (prefix[1] << 8);
+        }
+
+        if(suffix_size == 1) {
+            output_code2 = suffix[0];
+        } else {
+            output_code2 = suffix[0] + (suffix[1] << 8);
+        }
+
         copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
         if(output_code2 < lzw_table_size) {
             copy(com2, &com2_size, lzw_table[output_code2], lzw_table_data_size[output_code2]);
