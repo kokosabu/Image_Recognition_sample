@@ -98,6 +98,9 @@ static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index,
     int bits;
 
     bits = bit_read(data, byte_pos, bit_pos, length[*length_index]);
+    if(bits == search_lzw_table((uint8_t *)CLEAR, 0)) {
+        printf("[%d]-------\n", bits);
+    }
 
     if(length[*length_index] <= 8) {
         *data_index += 1;
@@ -484,7 +487,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 
                     printf("[%d][%d] %d,%d,%d\n", (i+past_size)/image_info->width, (i+past_size)%image_info->width, global_color_table[original_data[i]].rgbtRed, global_color_table[original_data[i]].rgbtBlue, global_color_table[original_data[i]].rgbtGreen);
                     printf("%d, %d -> %d  %d\n", i, past_size, i+past_size, 256*256-1);
-                    if((i+past_size) == (256*256)) {
+                    if((i+past_size) == (image_info->width*image_info->height-1)) {
                         printf("EEEE\n");
                         image_info->fileSize = image_info->height*image_info->width*3 + 54;
                         return;
