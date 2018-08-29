@@ -533,7 +533,14 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 
 void init_table(int bit)
 {
+    static int _bit;
     int i;
+
+    if(bit == -1) {
+        bit = _bit;
+    } else {
+        _bit = bit;
+    }
 
     for(i = 0; i < pow(2, bit-1); i++) {
         lzw_table[i] = (uint8_t *)malloc(sizeof(uint8_t) * 1);
@@ -707,6 +714,7 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
     int output_code;
     int output_code1;
     int output_code2;
+    int clear_code;
     int i;
     static int byte_pos;
     static int bit_pos;
@@ -731,21 +739,42 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
         }
     }
 
-    output_code = search_lzw_table((uint8_t *)CLEAR, 0);
+    clear_code = search_lzw_table((uint8_t *)CLEAR, 0);
     prefix_size = 0;
     read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
     bit_length_index = 0;
-    if(output_code != prefix[0]) {
+    if(prefix_size == 1) {
+        output_code1 = prefix[0];
+    } else {
+        output_code1 = prefix[0] + (prefix[1] << 8);
+    }
+    if(clear_code != output_code1) {
         goto PASS;
     }
 
     /* a.最初の数を出力数に、次の数を待機数に読み込みます。辞書を初期化します。 */
     prefix_size = 0;
     read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+    if(prefix_size == 1) {
+        output_code1 = prefix[0];
+    } else {
+        output_code1 = prefix[0] + (prefix[1] << 8);
+    }
+    if(clear_code == output_code1) {
+        init_table(-1);
+    }
     bit_length_index = 0;
 PASS:
     suffix_size = 0;
     read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+    if(suffix_size == 1) {
+        output_code2 = suffix[0];
+    } else {
+        output_code2 = suffix[0] + (suffix[1] << 8);
+    }
+    if(clear_code == output_code2) {
+        init_table(-1);
+    }
     bit_length_index = 0;
 
     do {
@@ -801,6 +830,14 @@ PASS:
         }
 #endif
         read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+        if(suffix_size == 1) {
+            output_code2 = suffix[0];
+        } else {
+            output_code2 = suffix[0] + (suffix[1] << 8);
+        }
+        if(clear_code == output_code2) {
+            init_table(-1);
+        }
         bit_length_index = 0;
 
         /* e.以下、b〜dの繰り返し */
