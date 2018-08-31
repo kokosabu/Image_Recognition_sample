@@ -123,12 +123,29 @@ static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index,
 static void entry_dict(uint8_t *com2, int com2_size)
 {
     int i;
+    int j;
+
+    for(i = 0; i < lzw_table_size; i++) {
+        if(com2_size == lzw_table_data_size[i]) {
+            for(j = 0; j < lzw_table_data_size[i]; j++) {
+                if(com2[j] != lzw_table[i][j]) {
+                    break;
+                }
+            }
+            if(j == lzw_table_data_size[i]) {
+                return;
+            }
+        }
+    }
 
     if(lzw_table_size < 0xFFF) {
+        printf("entry %d: ", lzw_table_size);
         lzw_table[lzw_table_size] = (uint8_t *)malloc(sizeof(uint8_t) * com2_size);
         for(i = 0; i < com2_size; i++) {
             lzw_table[lzw_table_size][i] = com2[i];
+            printf("%d, ", com2[i]);
         }
+        printf("\n");
         lzw_table_data_size[lzw_table_size] = com2_size;
         lzw_table_size += 1;
     }
@@ -739,6 +756,7 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
 
     prefix_size = 0;
     read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+    printf("%d, %d, byte_pos:%d, bitpos:%d, bit_length:%d, compress_data_size:%d\n", prefix[0], prefix[1], byte_pos, bit_pos, bit_length, compress_data_size);
     bit_length_index = 0;
     if(prefix_size == 1) {
         output_code1 = prefix[0];
@@ -752,6 +770,7 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
     /* a.最初の数を出力数に、次の数を待機数に読み込みます。辞書を初期化します。 */
     prefix_size = 0;
     read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+    printf("%d, %d, byte_pos:%d, bitpos:%d, bit_length:%d, compress_data_size:%d\n", prefix[0], prefix[1], byte_pos, bit_pos, bit_length, compress_data_size);
     if(prefix_size == 1) {
         output_code1 = prefix[0];
     } else {
@@ -764,6 +783,7 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
 PASS:
     suffix_size = 0;
     read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+    printf("%d, %d, byte_pos:%d, bitpos:%d, bit_length:%d, compress_data_size:%d\n", suffix[0], suffix[1], byte_pos, bit_pos, bit_length, compress_data_size);
     if(suffix_size == 1) {
         output_code2 = suffix[0];
     } else {
@@ -789,11 +809,15 @@ PASS:
         }
 
         copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
+#if 0
+        copy(com2, &com2_size, lzw_table[output_code2], lzw_table_data_size[output_code2]);
+#else
         if(output_code2 < lzw_table_size) {
             copy(com2, &com2_size, lzw_table[output_code2], lzw_table_data_size[output_code2]);
         } else {
             com2[0] = com1[0];
         }
+#endif
         com3_size = 0;
         connect(com3, &com3_size, com1, com1_size, com2, 1);
         entry_dict(com3, com3_size);
@@ -809,9 +833,8 @@ PASS:
         /* d.待機数を出力数に、新しく一つ読み込んで待機数に入れます。 */
         copy(prefix, &prefix_size, suffix, suffix_size);
         suffix_size = 0;
-        printf("byte_pos:%d, bitpos:%d, bit_length:%d, compress_data_size:%d\n", byte_pos, bit_pos, bit_length, compress_data_size);
-        printf("%d >= %d\n", byte_pos*8+bit_pos+bit_length, compress_data_size*8);
 #if 1
+        printf("%d >= %d\n", byte_pos*8+bit_pos+bit_length, compress_data_size*8);
         if((byte_pos*8+bit_pos+bit_length) > (compress_data_size*8)) {
             for(i = 0; i < (compress_data_size-byte_pos); i++) {
                 comp[i] = comp[i+byte_pos];
@@ -827,6 +850,7 @@ PASS:
         }
 #endif
         read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+        printf("%d, %d, byte_pos:%d, bitpos:%d, bit_length:%d, compress_data_size:%d\n", suffix[0], suffix[1], byte_pos, bit_pos, bit_length, compress_data_size);
         if(suffix_size == 1) {
             output_code2 = suffix[0];
         } else {
