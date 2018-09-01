@@ -740,8 +740,12 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
     printf("clear_code = %d\n", clear_code);
 
     if(first_flag == 0) {
+        for(i = 0; i < byte_pos; i++) {
+            printf("next [%d] : %d\n", i, comp[i]);
+        }
         for(i = byte_pos; i < (compress_data_size+byte_pos); i++) {
             comp[i] = compress_data[i];
+            printf("next [%d] : %d\n", i, comp[i]);
         }
         compress_data_size += byte_pos;
         byte_pos = 0;
@@ -838,6 +842,7 @@ PASS:
         if((byte_pos*8+bit_pos+bit_length) > (compress_data_size*8)) {
             for(i = 0; i < (compress_data_size-byte_pos); i++) {
                 comp[i] = comp[i+byte_pos];
+                printf("next [%d] : %d\n", i, comp[i]);
             }
             byte_pos = i;
             printf("%d, %d\n", byte_pos, original_data_index);
