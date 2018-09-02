@@ -744,7 +744,7 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
             printf("next [%d] : %d\n", i, comp[i]);
         }
         for(i = byte_pos; i < (compress_data_size+byte_pos); i++) {
-            comp[i] = compress_data[i];
+            comp[i] = compress_data[i-byte_pos];
             printf("next [%d] : %d\n", i, comp[i]);
         }
         compress_data_size += byte_pos;
