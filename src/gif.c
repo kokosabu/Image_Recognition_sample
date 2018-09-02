@@ -863,14 +863,16 @@ PASS:
         }
         if(clear_code == output_code2) {
             init_table(initial_bit);
+            //bit_length_index = 0;
+            //read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
         }
         bit_length_index = 0;
 
         /* e.以下、b〜dの繰り返し */
-        if(suffix[0] == search_lzw_table((uint8_t *)END, 0)) {
-            for(i = 0; i < lzw_table_data_size[prefix[0]]; i++) {
-                printf("[%d] = %d\n", original_data_index, lzw_table[prefix[0]][i]);
-                original_data[original_data_index] = lzw_table[prefix[0]][i];
+        if(output_code1 == search_lzw_table((uint8_t *)END, 0)) {
+            for(i = 0; i < lzw_table_data_size[output_code1]; i++) {
+                printf("[%d] = %d\n", original_data_index, lzw_table[output_code1][i]);
+                original_data[original_data_index] = lzw_table[output_code1][i];
                 original_data_index += 1;
             }
             printf("END\n");
