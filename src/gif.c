@@ -98,9 +98,6 @@ static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index,
     int bits;
 
     bits = bit_read(data, byte_pos, bit_pos, length[*length_index]);
-    if(bits == search_lzw_table((uint8_t *)CLEAR, 0)) {
-        printf("[%d]-------\n", bits);
-    }
 
     if(length[*length_index] <= 8) {
         *data_index += 1;
@@ -139,13 +136,13 @@ static void entry_dict(uint8_t *com2, int com2_size)
     }
 
     if(lzw_table_size < 0xFFF) {
-        //printf("entry %d: ", lzw_table_size);
+        printf("entry %d: ", lzw_table_size);
         lzw_table[lzw_table_size] = (uint8_t *)malloc(sizeof(uint8_t) * com2_size);
         for(i = 0; i < com2_size; i++) {
             lzw_table[lzw_table_size][i] = com2[i];
-            //printf("%d, ", com2[i]);
+            printf("%d, ", com2[i]);
         }
-        //printf("\n");
+        printf("\n");
         lzw_table_data_size[lzw_table_size] = com2_size;
         lzw_table_size += 1;
     }
@@ -888,18 +885,21 @@ PASS:
         }
         if(clear_code == output_code2) {
             printf("init 3\n");
-            init_table(initial_bit);
-#if 0
-            prefix_size = 0;
-            read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
-            if(prefix_size == 1) {
-                output_code1 = prefix[0];
-            } else {
-                output_code1 = prefix[0] + (prefix[1] << 8);
+#if 1
+            copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
+            for(i = 0; i < com1_size; i++) {
+                //printf("[%d] = %d\n", original_data_index, com1[i]);
+                original_data[original_data_index] = com1[i];
+                original_data_index += 1;
             }
+            init_table(initial_bit);
+            prefix_size = 0;
+            bit_length_index = 0;
+            read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
             bit_length_index = 0;
             goto PASS;
 #else
+            init_table(initial_bit);
             suffix_size = 0;
             read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
             //printf("%d, %d, byte_pos:%d, bitpos:%d, bit_length:%d, compress_data_size:%d\n", suffix[0], suffix[1], byte_pos, bit_pos, bit_length, compress_data_size);
