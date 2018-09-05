@@ -290,9 +290,7 @@ void read_graphic_control_extension(FILE *input, GIF_INFO *gif_info)
     fread(&byte, 1, 1, input);
     delay_time += ((unsigned int)byte) << 8;
 
-    if(gif_info->transparent_color_flag == 1) {
-        fread(&(gif_info->transparent_color_index), 1, 1, input);
-    }
+    fread(&(gif_info->transparent_color_index), 1, 1, input);
 
     fread(&block_terminator, 1, 1, input);
     if(block_terminator != 0x00) {
@@ -445,7 +443,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     uint8_t block_size;
     uint8_t block_image_data[256];
     uint8_t block_terminator;
-    uint8_t original_data[4096];
+    uint8_t original_data[18384];
     int original_data_index;
     int past_size;
     RGBTRIPLE *global_color_table;
@@ -845,11 +843,13 @@ PASS:
         update_bit_length_for_decompress();
 
         /* c.辞書の出力数のページに書かれている値を書き出します。 */
+        printf("%d : ", original_data_index);
         for(i = 0; i < com1_size; i++) {
             //printf("[%d] = %d\n", original_data_index, com1[i]);
             original_data[original_data_index] = com1[i];
             original_data_index += 1;
         }
+        printf("%d\n", original_data_index);
 
         /* d.待機数を出力数に、新しく一つ読み込んで待機数に入れます。 */
         copy(prefix, &prefix_size, suffix, suffix_size);
