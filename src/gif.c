@@ -443,7 +443,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     uint8_t block_size;
     uint8_t block_image_data[256];
     uint8_t block_terminator;
-    uint8_t original_data[18384];
+    uint8_t original_data[65536];
     int original_data_index;
     int past_size;
     RGBTRIPLE *global_color_table;
