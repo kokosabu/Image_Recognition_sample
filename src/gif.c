@@ -461,7 +461,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     read_global_color_table(input, &global_color_table, global_color_table_flag, size_of_global_color_table);
 
     *image_data = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE **) * image_info->height);
-    for(int i = 0; i < image_info->width; i++) {
+    for(int i = 0; i < image_info->height; i++) {
         (*image_data)[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * image_info->width);
     }
 
@@ -486,13 +486,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 
                 printf("[%d][%d] -> [%d][%d]\n", (past_size)/image_info->width, (past_size)%image_info->width, (original_data_index-1+past_size)/image_info->width, (original_data_index-1+past_size)%image_info->width);
                 for(int i = 0; i < original_data_index; i++) {
-                    printf("i = %d\n", i);
-                    printf("past_size = %d\n", past_size);
-                    printf("image_info->width = %d\n", image_info->width);
-                    printf("original_data[i] = %d\n", original_data[i]);
-                    printf("(*image_data)[(i+past_size)/image_info->width][(i+past_size%image_info->width].rgbtRed\n", (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtRed);
                     (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtRed   = global_color_table[original_data[i]].rgbtRed;
-                    printf("(*image_data)[(i+past_size)/image_info->width][(i+past_size%image_info->width].rgbtRed\n", (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtRed);
                     (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtGreen = global_color_table[original_data[i]].rgbtGreen;
                     (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtBlue  = global_color_table[original_data[i]].rgbtBlue;
                     if(gif_info.transparent_color_flag == 1 && gif_info.transparent_color_index == original_data[i]) {
