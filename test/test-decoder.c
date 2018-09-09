@@ -13,6 +13,7 @@ void test_lzw_compress3(void);
 void test_lzw_decompress(void);
 void test_lzw_decompress2(void);
 void test_lzw_decompress3(void);
+void test_init_table(void);
 
 void cut_setup (void)
 {
@@ -420,5 +421,15 @@ void test_lzw_decompress3(void)
     cut_assert(original_data[8]  == 0);
     cut_assert(original_data[9]  == 0);
     cut_assert(original_data[10] == 0);
+}
+
+void test_init_table(void)
+{
+    int i;
+
+    for(i = 1; i < 10; i++) {
+        init_table(i);
+        cut_assert(1);
+    }
 }
 

@@ -20,6 +20,17 @@ static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index,
 static void entry_dict(uint8_t *com2, int com2_size);
 static void update_bit_length(void);
 
+static void *debug_malloc(uint8_t size)
+{
+    return malloc(size);
+}
+
+#if 0
+#define malloc(size)\
+    debug_malloc(size);\
+    printf("%d\n", __LINE__);
+#endif
+
 static void update_bit_length(void)
 {
     if((lzw_table_size-1) >= pow(2, bit_length)) {
@@ -200,6 +211,7 @@ void read_global_color_table(FILE *input, RGBTRIPLE **global_color_table, unsign
             (*global_color_table)[i].rgbtRed = 0;
             (*global_color_table)[i].rgbtGreen = 0;
             (*global_color_table)[i].rgbtBlue = 0;
+            //(*global_color_table)[i].rgbtAlpha = 0;
             fread(&((*global_color_table)[i].rgbtRed),   1, 1, input);
             fread(&((*global_color_table)[i].rgbtGreen), 1, 1, input);
             fread(&((*global_color_table)[i].rgbtBlue),  1, 1, input);
@@ -460,7 +472,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     read_logical_screen_descriptor(input, image_info, &global_color_table_flag, &size_of_global_color_table);
     read_global_color_table(input, &global_color_table, global_color_table_flag, size_of_global_color_table);
 
-    *image_data = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE **) * image_info->height);
+    *image_data = (RGBTRIPLE **)malloc(sizeof(RGBTRIPLE *) * image_info->height);
     for(int i = 0; i < image_info->height; i++) {
         (*image_data)[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * image_info->width);
     }
@@ -476,6 +488,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             printf("read_image_descriptor\n");
 
             fread(&LZW_minimum_code_size, 1, 1, input);
+            printf("%d\n", LZW_minimum_code_size);
             init_table(LZW_minimum_code_size+1);
             fread(&block_size, 1, 1, input);
             do {
@@ -542,7 +555,9 @@ void init_table(int bit)
 {
     int i;
 
-    for(i = 0; i < pow(2, bit-1); i++) {
+    printf("--init table-- : %d, %d\n", bit, (int)pow(2, bit-1));
+    for(i = 0; i < (int)pow(2, bit-1); i++) {
+        printf("i : %d\n", i);
         lzw_table[i] = (uint8_t *)malloc(sizeof(uint8_t) * 1);
         lzw_table[i][0] = i;
         lzw_table_data_size[i] = 1;
