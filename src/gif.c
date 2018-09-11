@@ -474,11 +474,13 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             printf("read_image_descriptor\n");
 
             fread(&LZW_minimum_code_size, 1, 1, input);
+            printf("read_image_descriptor2\n");
             init_table(LZW_minimum_code_size+1);
+            printf("read_image_descriptor3\n");
             fread(&block_size, 1, 1, input);
+
             do {
                 fread(block_image_data, 1, block_size, input);
-                fprintf(stderr, "block_image_data:%d\n", block_size);
                 original_data_index = decompress(block_image_data, block_size, original_data, sizeof(original_data), flag);
                 flag = 0;
 
@@ -537,13 +539,27 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 void init_table(int bit)
 {
     int i;
+    int cnt;
+    uint8_t *hoge[300];
 
-    for(i = 0; i < (int)pow(2, bit-1); i++) {
+    cnt = (int)pow(2, bit-1);
+    printf("init table 1\n");
+    for(i = 0; i < cnt; i++) {
+        fprintf(stderr, "init table i %d\n", i);
         lzw_table[i] = (uint8_t *)malloc(sizeof(uint8_t) * 1);
-        lzw_table[i][0] = i;
+        hoge[i] = (uint8_t *)malloc(sizeof(uint8_t) * 1);
+        fprintf(stderr, "init table i2 %d\n", i);
+        //lzw_table[i] = hoge;
+        //lzw_table[i] = (uint8_t *)malloc(sizeof(uint8_t) * 128);
+        //lzw_table[i][0] = i;
+        *(lzw_table[i]) = i;
+        //hoge[i][0] = i;
+        *(hoge[i]) = i;
+        fprintf(stderr, "init table i3 %d\n", i);
         lzw_table_data_size[i] = 1;
     }
 
+    printf("init table 2\n");
     lzw_table[i] = (uint8_t *)CLEAR;
     lzw_table_data_size[i] = 0;
     i += 1;
@@ -554,6 +570,10 @@ void init_table(int bit)
 
     lzw_table_size = i;
     bit_length = bit;
+
+    for(i = 0; i < cnt; i++) {
+        //lzw_table[i] = hoge[i];
+    }
 
     initial_bit = bit;
 }
