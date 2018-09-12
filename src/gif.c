@@ -193,12 +193,12 @@ void read_global_color_table(FILE *input, RGBTRIPLE **global_color_table, unsign
     int i;
 
     if(global_color_table_flag == 1) {
-        *global_color_table  = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * (uint8_t)pow(2, size_of_global_color_table+1));
+        *global_color_table  = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * (uint16_t)pow(2, size_of_global_color_table+1));
         for(i = 0; i < (uint16_t)pow(2, size_of_global_color_table+1); i++) {
             (*global_color_table)[i].rgbtRed = 0;
             (*global_color_table)[i].rgbtGreen = 0;
             (*global_color_table)[i].rgbtBlue = 0;
-            //(*global_color_table)[i].rgbtAlpha = 0;
+            (*global_color_table)[i].rgbtAlpha = 0;
             fread(&((*global_color_table)[i].rgbtRed),   1, 1, input);
             fread(&((*global_color_table)[i].rgbtGreen), 1, 1, input);
             fread(&((*global_color_table)[i].rgbtBlue),  1, 1, input);
@@ -471,12 +471,8 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             /* Image Block */
             read_image_descriptor(input);
 
-            printf("read_image_descriptor\n");
-
             fread(&LZW_minimum_code_size, 1, 1, input);
-            printf("read_image_descriptor2\n");
             init_table(LZW_minimum_code_size+1);
-            printf("read_image_descriptor3\n");
             fread(&block_size, 1, 1, input);
 
             do {
@@ -540,26 +536,14 @@ void init_table(int bit)
 {
     int i;
     int cnt;
-    uint8_t *hoge[300];
 
     cnt = (int)pow(2, bit-1);
-    printf("init table 1\n");
     for(i = 0; i < cnt; i++) {
-        fprintf(stderr, "init table i %d\n", i);
         lzw_table[i] = (uint8_t *)malloc(sizeof(uint8_t) * 1);
-        hoge[i] = (uint8_t *)malloc(sizeof(uint8_t) * 1);
-        fprintf(stderr, "init table i2 %d\n", i);
-        //lzw_table[i] = hoge;
-        //lzw_table[i] = (uint8_t *)malloc(sizeof(uint8_t) * 128);
-        //lzw_table[i][0] = i;
-        *(lzw_table[i]) = i;
-        //hoge[i][0] = i;
-        *(hoge[i]) = i;
-        fprintf(stderr, "init table i3 %d\n", i);
+        lzw_table[i][0] = i;
         lzw_table_data_size[i] = 1;
     }
 
-    printf("init table 2\n");
     lzw_table[i] = (uint8_t *)CLEAR;
     lzw_table_data_size[i] = 0;
     i += 1;
@@ -570,10 +554,6 @@ void init_table(int bit)
 
     lzw_table_size = i;
     bit_length = bit;
-
-    for(i = 0; i < cnt; i++) {
-        //lzw_table[i] = hoge[i];
-    }
 
     initial_bit = bit;
 }
