@@ -271,6 +271,8 @@ void read_graphic_control_extension(FILE *input, GIF_INFO *gif_info)
     uint16_t delay_time;
     uint8_t block_terminator;
 
+    printf("read graphics control\n");
+
     fread(&byte, 1, 1, input);
     if(byte != 0x04) {
         printf("error:%d\n", byte);
@@ -295,6 +297,8 @@ void read_graphic_control_extension(FILE *input, GIF_INFO *gif_info)
         printf("Block: Graphic Control Extension error\n");
         exit(1);
     }
+
+    printf("read graphics control\n");
 }
 
 void read_comment_extension(FILE *input)
@@ -466,18 +470,23 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 
     do {
         fread(&byte, 1, 1, input);
+        printf("head : %x\n", byte);
 
         if(byte == 0x2c) {
             /* Image Block */
             read_image_descriptor(input);
+            printf("stop1\n");
 
             fread(&LZW_minimum_code_size, 1, 1, input);
             init_table(LZW_minimum_code_size+1);
             fread(&block_size, 1, 1, input);
+            printf("stop2\n");
 
             do {
                 fread(block_image_data, 1, block_size, input);
+                printf("stop3\n");
                 original_data_index = decompress(block_image_data, block_size, original_data, sizeof(original_data), flag);
+                printf("stop4\n");
                 flag = 0;
 
                 for(int i = 0; i < original_data_index; i++) {
@@ -858,10 +867,6 @@ PASS:
 
         /* e.以下、b〜dの繰り返し */
         if(output_code1 == search_lzw_table((uint8_t *)END, 0)) {
-            for(i = 0; i < lzw_table_data_size[output_code1]; i++) {
-                original_data[original_data_index] = lzw_table[output_code1][i];
-                original_data_index += 1;
-            }
             break;
         }
     } while(1);
