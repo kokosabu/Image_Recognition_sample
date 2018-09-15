@@ -482,9 +482,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 
             do {
                 fread(block_image_data, 1, block_size, input);
-                printf("stop3\n");
                 original_data_index = decompress(block_image_data, block_size, original_data, sizeof(original_data), flag);
-                printf("stop4\n");
                 flag = 0;
 
                 for(int i = 0; i < original_data_index; i++) {
@@ -728,15 +726,12 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
 
     clear_code = search_lzw_table((uint8_t *)CLEAR, 0);
 
-    printf("decompress 1\n");
-
     if(first_flag == 0) {
         for(i = 0; i < compress_data_size; i++) {
             comp[i+byte_pos] = compress_data[i];
         }
         compress_data_size += byte_pos;
         byte_pos = 0;
-        printf("decompress 2\n");
         goto PASS;
     } else {
         byte_pos = 0;
@@ -778,7 +773,6 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
     }
     bit_length_index = 0;
 PASS:
-    printf("decompress 3\n");
     suffix_size = 0;
     read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
     if(suffix_size == 1) {
@@ -798,7 +792,6 @@ PASS:
     }
     bit_length_index = 0;
 
-    printf("decompress 4\n");
     do {
         /* b.辞書の出力数のページの値と辞書の待機数のページにある値の最初の文字を並べた数を辞書の新しいページに書き込みます。 */
         printf("prefix size = %d, prefix[0] = %d, prefix[1] = %d\n", prefix_size, prefix[0], prefix[1]);
@@ -814,13 +807,12 @@ PASS:
             output_code2 = suffix[0] + (suffix[1] << 8);
         }
 
-        printf("decompress 5-1\n");
         printf("output code 1 %d\n", output_code1);
         copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
 #if 0
         copy(com2, &com2_size, lzw_table[output_code2], lzw_table_data_size[output_code2]);
 #else
-        printf("decompress 5-2\n");
+        printf("suffix size = %d, suffix[0] = %d, suffix[1] = %d\n", suffix_size, suffix[0], suffix[1]);
         if(output_code2 < lzw_table_size) {
             copy(com2, &com2_size, lzw_table[output_code2], lzw_table_data_size[output_code2]);
         } else {
@@ -839,11 +831,11 @@ PASS:
         }
 
         /* d.待機数を出力数に、新しく一つ読み込んで待機数に入れます。 */
+        printf("%d %d %d\n", output_code1, output_code2, suffix_size);
         copy(prefix, &prefix_size, suffix, suffix_size);
         output_code1 = output_code2;
         suffix_size = 0;
 
-        printf("decompress 6\n");
         if((byte_pos*8+bit_pos+bit_length) > (compress_data_size*8)) {
             for(i = 0; i < (compress_data_size-byte_pos); i++) {
                 comp[i] = comp[i+byte_pos];
@@ -872,12 +864,10 @@ PASS:
         }
         bit_length_index = 0;
 
-        printf("decompress 7\n");
         /* e.以下、b〜dの繰り返し */
         if(output_code1 == search_lzw_table((uint8_t *)END, 0)) {
             break;
         }
-        printf("decompress 8\n");
     } while(1);
 
     printf("END\n");
