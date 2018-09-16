@@ -477,13 +477,17 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             read_image_descriptor(input);
 
             fread(&LZW_minimum_code_size, 1, 1, input);
+            printf("[init_table before] bit_length = %d\n", bit_length);
             init_table(LZW_minimum_code_size+1);
+            printf("[init_table after] bit_length = %d\n", bit_length);
             fread(&block_size, 1, 1, input);
 
             do {
                 fread(block_image_data, 1, block_size, input);
-                original_data_index = decompress(block_image_data, block_size, original_data, sizeof(original_data), flag);
-                flag = 0;
+                printf("[decompress before] bit_length = %d\n", bit_length);
+                original_data_index = decompress(block_image_data, block_size, original_data, sizeof(original_data), &flag);
+                printf("[decompress after] bit_length = %d\n", bit_length);
+                //flag = 0;
 
                 for(int i = 0; i < original_data_index; i++) {
                     (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtRed   = global_color_table[original_data[i]].rgbtRed;
@@ -502,12 +506,21 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                     }
                 }
                 past_size += original_data_index;
+                printf("[past_size] bit_length = %d\n", bit_length);
 
                 fread(&block_terminator, 1, 1, input);
                 if(block_terminator == 0x00) {
+                    printf("[block_termi] bit_length = %d\n", bit_length);
+
+#if 0
+                    image_info->fileSize = image_info->height*image_info->width*3 + 54;
+                    return;
+#endif
+
                     break;
                 }
                 block_size = block_terminator;
+                printf("[block_size] bit_length = %d\n", bit_length);
             } while(1);
         } else if(byte == 0x21) {
             fread(&byte, 1, 1, input);
@@ -697,7 +710,7 @@ FIVE:
     output_compress_data(compress_data, bit_lengths, &compress_data_index, output_code);
 }
 
-int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original_data, int original_data_size, int first_flag)
+int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original_data, int original_data_size, int *first_flag)
 {
     static uint8_t prefix[1024];
     uint8_t suffix[1024];
@@ -724,9 +737,10 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
     original_data_index = 0;
     bit_length_index = 0;
 
+    printf("[decompress head] bit_length_index = %d, bit_length = %d\n", bit_length_index, bit_length);
     clear_code = search_lzw_table((uint8_t *)CLEAR, 0);
 
-    if(first_flag == 0) {
+    if(*first_flag == 0) {
         for(i = 0; i < compress_data_size; i++) {
             comp[i+byte_pos] = compress_data[i];
         }
@@ -773,6 +787,8 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
     }
     bit_length_index = 0;
 PASS:
+    printf("0! suffix size = %d, suffix[0] = %d, suffix[1] = %d\n", suffix_size, suffix[0], suffix[1]);
+    printf("bit_length_index = %d, bit_length = %d\n", bit_length_index, bit_length);
     suffix_size = 0;
     read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
     if(suffix_size == 1) {
@@ -780,6 +796,7 @@ PASS:
     } else {
         output_code2 = suffix[0] + (suffix[1] << 8);
     }
+    printf("1! suffix size = %d, suffix[0] = %d, suffix[1] = %d\n", suffix_size, suffix[0], suffix[1]);
     if(clear_code == output_code2) {
         init_table(initial_bit);
         suffix_size = 0;
@@ -794,6 +811,7 @@ PASS:
 
     do {
         /* b.辞書の出力数のページの値と辞書の待機数のページにある値の最初の文字を並べた数を辞書の新しいページに書き込みます。 */
+        printf("bit_length_index = %d, bit_length = %d\n", bit_length_index, bit_length);
         printf("prefix size = %d, prefix[0] = %d, prefix[1] = %d\n", prefix_size, prefix[0], prefix[1]);
         if(prefix_size == 1) {
             output_code1 = prefix[0];
@@ -812,6 +830,7 @@ PASS:
 #if 0
         copy(com2, &com2_size, lzw_table[output_code2], lzw_table_data_size[output_code2]);
 #else
+        printf("bit_length_index = %d, bit_length = %d\n", bit_length_index, bit_length);
         printf("suffix size = %d, suffix[0] = %d, suffix[1] = %d\n", suffix_size, suffix[0], suffix[1]);
         if(output_code2 < lzw_table_size) {
             copy(com2, &com2_size, lzw_table[output_code2], lzw_table_data_size[output_code2]);
@@ -831,7 +850,7 @@ PASS:
         }
 
         /* d.待機数を出力数に、新しく一つ読み込んで待機数に入れます。 */
-        printf("%d %d %d\n", output_code1, output_code2, suffix_size);
+        printf("bit_length_index = %d, bit_length = %d\n", bit_length_index, bit_length);
         copy(prefix, &prefix_size, suffix, suffix_size);
         output_code1 = output_code2;
         suffix_size = 0;
@@ -841,6 +860,7 @@ PASS:
                 comp[i] = comp[i+byte_pos];
             }
             byte_pos = i;
+            *first_flag = 0;
             return original_data_index;
         }
         read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
@@ -866,11 +886,16 @@ PASS:
 
         /* e.以下、b〜dの繰り返し */
         if(output_code1 == search_lzw_table((uint8_t *)END, 0)) {
+            printf("byte pos = %d, bit pos = %d\n", byte_pos, bit_pos);
+            byte_pos = 0;
+            bit_pos = 0;
+            //*first_flag = 1;
             break;
         }
     } while(1);
 
     printf("END\n");
+    printf("[decompress tail] bit_length_index = %d, bit_length = %d\n", bit_length_index, bit_length);
     return original_data_index;
 }
 

@@ -325,9 +325,12 @@ void test_lzw_decompress(void)
     /* https://www.petitmonte.com/math_algorithm/lzw_gif.html */
     uint8_t compress_data[4] = { 0x0C, 0x60, 0x08, 0x05 };
     uint8_t original_data[8] = { 0, };
+    int flag;
+
+    flag = 1;
 
     init_table(3);
-    decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), 1);
+    decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), &flag);
 
     cut_assert(get_data(6)[0]  == 1);
     cut_assert(get_data(6)[1]  == 0);
@@ -357,9 +360,12 @@ void test_lzw_decompress2(void)
     /* https://www.petitmonte.com/math_algorithm/lzw_gif.html */
     uint8_t compress_data[3] = { 0x44, 0x8C, 0x57 };
     uint8_t original_data[9] = { 0, };
+    int flag;
+
+    flag = 1;
 
     init_table(3);
-    decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), 1);
+    decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), &flag);
 
     cut_assert(get_data(6)[0] == 0);
     cut_assert(get_data(6)[1] == 1);
@@ -389,9 +395,12 @@ void test_lzw_decompress3(void)
     /* https://www.petitmonte.com/math_algorithm/lzw_gif.html */
     uint8_t compress_data[4]  = { 0x84, 0x11, 0x79, 0x50 };
     uint8_t original_data[11] = { 0, };
+    int flag;
+
+    flag = 1;
 
     init_table(3);
-    decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), 1);
+    decompress(compress_data, sizeof(compress_data), original_data, sizeof(original_data), &flag);
 
     cut_assert(get_data(6)[0]  == 0);
     cut_assert(get_data(6)[1]  == 0);
