@@ -836,6 +836,7 @@ PASS:
         output_code1 = output_code2;
         suffix_size = 0;
 
+
         if((byte_pos*8+bit_pos+bit_length) > (compress_data_size*8)) {
             for(i = 0; i < (compress_data_size-byte_pos); i++) {
                 comp[i] = comp[i+byte_pos];
@@ -844,12 +845,15 @@ PASS:
             *first_flag = 0;
             return original_data_index;
         }
+
         read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
         if(suffix_size == 1) {
             output_code2 = suffix[0];
         } else {
             output_code2 = suffix[0] + (suffix[1] << 8);
         }
+        bit_length_index = 0;
+
         if(clear_code == output_code2) {
             copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
             for(i = 0; i < com1_size; i++) {
@@ -858,24 +862,31 @@ PASS:
             }
             init_table(initial_bit);
             prefix_size = 0;
-            bit_length_index = 0;
             read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
             bit_length_index = 0;
             goto PASS;
         }
-        bit_length_index = 0;
 
         /* e.以下、b〜dの繰り返し */
-        if(output_code1 == search_lzw_table((uint8_t *)END, 0)) {
+        //if(output_code1 == search_lzw_table((uint8_t *)END, 0)) {
+        //if(output_code2 == search_lzw_table((uint8_t *)END, 0)) {
+        //    break;
+        //}
+        if(output_code2 == search_lzw_table((uint8_t *)END, 0)) {
+            copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
+            for(i = 0; i < com1_size; i++) {
+                original_data[original_data_index] = com1[i];
+                original_data_index += 1;
+            }
             break;
         }
     } while(1);
 
-    printf("END\n");
-    printf("byte_pos = %d, bit_pos = %d\n", byte_pos, bit_pos);
-    //byte_pos = 0;
-    //bit_pos = 0;
-    //*first_flag = 1;
-    return original_data_index;
-}
+        printf("END\n");
+        printf("byte_pos = %d, bit_pos = %d\n", byte_pos, bit_pos);
+        byte_pos = 0;
+        bit_pos = 0;
+        *first_flag = 1;
+        return original_data_index;
+    }
 
