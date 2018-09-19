@@ -270,8 +270,6 @@ void read_graphic_control_extension(FILE *input, GIF_INFO *gif_info)
     uint16_t delay_time;
     uint8_t block_terminator;
 
-    printf("read graphics control\n");
-
     fread(&byte, 1, 1, input);
     if(byte != 0x04) {
         printf("error:%d\n", byte);
@@ -296,8 +294,6 @@ void read_graphic_control_extension(FILE *input, GIF_INFO *gif_info)
         printf("Block: Graphic Control Extension error\n");
         exit(1);
     }
-
-    printf("read graphics control\n");
 }
 
 void read_comment_extension(FILE *input)
@@ -482,6 +478,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 
             do {
                 fread(block_image_data, 1, block_size, input);
+                printf("block_size: %d\n", block_size);
                 original_data_index = decompress(block_image_data, block_size, original_data, sizeof(original_data), &flag);
                 //flag = 0;
 
@@ -491,16 +488,18 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                         (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtGreen = global_color_table[original_data[i]].rgbtGreen;
                         (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtBlue  = global_color_table[original_data[i]].rgbtBlue;
                     } else {
-                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtRed   = local_color_table[original_data[i]].rgbtRed;
-                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtGreen = local_color_table[original_data[i]].rgbtGreen;
-                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtBlue  = local_color_table[original_data[i]].rgbtBlue;
+                        //(*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtRed   = local_color_table[original_data[i]].rgbtRed;
+                        //(*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtGreen = local_color_table[original_data[i]].rgbtGreen;
+                        //(*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtBlue  = local_color_table[original_data[i]].rgbtBlue;
+                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtRed   = 128;
+                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtGreen = 128;
+                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtBlue  = 128;
                     }
                     if(gif_info.transparent_color_flag == 1 && gif_info.transparent_color_index == original_data[i]) {
                         (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtAlpha = 0;
                     } else {
                         (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtAlpha = 255;
                     }
-
                     if((i+past_size) == (image_info->width*image_info->height-1)) {
                         printf("EEEE\n");
                         image_info->fileSize = image_info->height*image_info->width*3 + 54;
@@ -568,6 +567,7 @@ void init_table(int bit)
     bit_length = bit;
 
     initial_bit = bit;
+
 }
 
 uint8_t *get_data(int index)
@@ -756,6 +756,7 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
     } else {
         output_code1 = prefix[0] + (prefix[1] << 8);
     }
+
     if(clear_code != output_code1) {
         goto PASS;
     }
@@ -763,41 +764,46 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
     /* a.最初の数を出力数に、次の数を待機数に読み込みます。辞書を初期化します。 */
     prefix_size = 0;
     read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+    bit_length_index = 0;
     if(prefix_size == 1) {
         output_code1 = prefix[0];
     } else {
         output_code1 = prefix[0] + (prefix[1] << 8);
     }
+
     if(clear_code == output_code1) {
+        printf("clear code#3\n");
         init_table(initial_bit);
         prefix_size = 0;
         read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+        bit_length_index = 0;
         if(prefix_size == 1) {
             output_code1 = prefix[0];
         } else {
             output_code1 = prefix[0] + (prefix[1] << 8);
         }
     }
-    bit_length_index = 0;
 PASS:
     suffix_size = 0;
     read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+    bit_length_index = 0;
     if(suffix_size == 1) {
         output_code2 = suffix[0];
     } else {
         output_code2 = suffix[0] + (suffix[1] << 8);
     }
     if(clear_code == output_code2) {
+        printf("clear code#2\n");
         init_table(initial_bit);
         suffix_size = 0;
         read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+        bit_length_index = 0;
         if(suffix_size == 1) {
             output_code2 = suffix[0];
         } else {
             output_code2 = suffix[0] + (suffix[1] << 8);
         }
     }
-    bit_length_index = 0;
 
     do {
         /* b.辞書の出力数のページの値と辞書の待機数のページにある値の最初の文字を並べた数を辞書の新しいページに書き込みます。 */
@@ -834,7 +840,6 @@ PASS:
         /* d.待機数を出力数に、新しく一つ読み込んで待機数に入れます。 */
         copy(prefix, &prefix_size, suffix, suffix_size);
         output_code1 = output_code2;
-        suffix_size = 0;
 
 
         if((byte_pos*8+bit_pos+bit_length) > (compress_data_size*8)) {
@@ -846,15 +851,17 @@ PASS:
             return original_data_index;
         }
 
+        suffix_size = 0;
         read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
+        bit_length_index = 0;
         if(suffix_size == 1) {
             output_code2 = suffix[0];
         } else {
             output_code2 = suffix[0] + (suffix[1] << 8);
         }
-        bit_length_index = 0;
 
         if(clear_code == output_code2) {
+            printf("clear code\n");
             copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
             for(i = 0; i < com1_size; i++) {
                 original_data[original_data_index] = com1[i];
@@ -868,10 +875,6 @@ PASS:
         }
 
         /* e.以下、b〜dの繰り返し */
-        //if(output_code1 == search_lzw_table((uint8_t *)END, 0)) {
-        //if(output_code2 == search_lzw_table((uint8_t *)END, 0)) {
-        //    break;
-        //}
         if(output_code2 == search_lzw_table((uint8_t *)END, 0)) {
             copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
             for(i = 0; i < com1_size; i++) {
@@ -882,11 +885,13 @@ PASS:
         }
     } while(1);
 
-        printf("END\n");
-        printf("byte_pos = %d, bit_pos = %d\n", byte_pos, bit_pos);
-        byte_pos = 0;
-        bit_pos = 0;
-        *first_flag = 1;
-        return original_data_index;
-    }
+    printf("END\n");
+    printf("byte_pos = %d, bit_pos = %d\n", byte_pos, bit_pos);
+
+    //byte_pos = 0;
+    //bit_pos = 0;
+    *first_flag = 1;
+
+    return original_data_index;
+}
 
