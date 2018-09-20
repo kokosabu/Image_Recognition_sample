@@ -756,6 +756,7 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
     } else {
         output_code1 = prefix[0] + (prefix[1] << 8);
     }
+    printf("[%d]#1 code1 : %d, code2 : %d\n", lzw_table_size, output_code1, output_code2);
 
     if(clear_code != output_code1) {
         goto PASS;
@@ -770,6 +771,7 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
     } else {
         output_code1 = prefix[0] + (prefix[1] << 8);
     }
+    printf("[%d]#2 code1 : %d, code2 : %d\n", lzw_table_size, output_code1, output_code2);
 
     if(clear_code == output_code1) {
         printf("clear code#3\n");
@@ -782,6 +784,7 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
         } else {
             output_code1 = prefix[0] + (prefix[1] << 8);
         }
+        printf("[%d]#3 code1 : %d, code2 : %d\n", lzw_table_size, output_code1, output_code2);
     }
 PASS:
     suffix_size = 0;
@@ -792,6 +795,7 @@ PASS:
     } else {
         output_code2 = suffix[0] + (suffix[1] << 8);
     }
+    printf("[%d]#4 code1 : %d, code2 : %d\n", lzw_table_size, output_code1, output_code2);
     if(clear_code == output_code2) {
         printf("clear code#2\n");
         init_table(initial_bit);
@@ -803,6 +807,7 @@ PASS:
         } else {
             output_code2 = suffix[0] + (suffix[1] << 8);
         }
+        printf("[%d]#5 code1 : %d, code2 : %d\n", lzw_table_size, output_code1, output_code2);
     }
 
     do {
@@ -818,6 +823,8 @@ PASS:
         } else {
             output_code2 = suffix[0] + (suffix[1] << 8);
         }
+
+        printf("[%d]#6 code1 : %d, code2 : %d\n", lzw_table_size, output_code1, output_code2);
 
         copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
         if(output_code2 < lzw_table_size) {
@@ -840,6 +847,7 @@ PASS:
         /* d.待機数を出力数に、新しく一つ読み込んで待機数に入れます。 */
         copy(prefix, &prefix_size, suffix, suffix_size);
         output_code1 = output_code2;
+        printf("[%d]#7 code1 : %d, code2 : %d\n", lzw_table_size, output_code1, output_code2);
 
 
         if((byte_pos*8+bit_pos+bit_length) > (compress_data_size*8)) {
@@ -860,6 +868,8 @@ PASS:
             output_code2 = suffix[0] + (suffix[1] << 8);
         }
 
+        printf("[%d]#8 code1 : %d, code2 : %d\n", lzw_table_size, output_code1, output_code2);
+
         if(clear_code == output_code2) {
             printf("clear code\n");
             copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
@@ -871,6 +881,12 @@ PASS:
             prefix_size = 0;
             read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
             bit_length_index = 0;
+            if(prefix_size == 1) {
+                output_code1 = prefix[0];
+            } else {
+                output_code1 = prefix[0] + (prefix[1] << 8);
+            }
+            printf("[%d]#9 code1 : %d, code2 : %d\n", lzw_table_size, output_code1, output_code2);
             goto PASS;
         }
 
