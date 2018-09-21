@@ -121,20 +121,6 @@ static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index,
 static void entry_dict(uint8_t *com2, int com2_size)
 {
     int i;
-    int j;
-
-    for(i = 0; i < lzw_table_size; i++) {
-        if(com2_size == lzw_table_data_size[i]) {
-            for(j = 0; j < lzw_table_data_size[i]; j++) {
-                if(com2[j] != lzw_table[i][j]) {
-                    break;
-                }
-            }
-            if(j == lzw_table_data_size[i]) {
-                return;
-            }
-        }
-    }
 
     if(lzw_table_size < 0xFFF) {
         lzw_table[lzw_table_size] = (uint8_t *)malloc(sizeof(uint8_t) * com2_size);
@@ -481,6 +467,8 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                 printf("block_size: %d\n", block_size);
                 original_data_index = decompress(block_image_data, block_size, original_data, sizeof(original_data), &flag);
                 //flag = 0;
+               
+                printf("[%d][%d]\n", (past_size)/image_info->width, (past_size)%image_info->width);
 
                 for(int i = 0; i < original_data_index; i++) {
                     if(local_color_table == NULL) {
@@ -488,12 +476,9 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                         (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtGreen = global_color_table[original_data[i]].rgbtGreen;
                         (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtBlue  = global_color_table[original_data[i]].rgbtBlue;
                     } else {
-                        //(*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtRed   = local_color_table[original_data[i]].rgbtRed;
-                        //(*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtGreen = local_color_table[original_data[i]].rgbtGreen;
-                        //(*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtBlue  = local_color_table[original_data[i]].rgbtBlue;
-                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtRed   = 128;
-                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtGreen = 128;
-                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtBlue  = 128;
+                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtRed   = local_color_table[original_data[i]].rgbtRed;
+                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtGreen = local_color_table[original_data[i]].rgbtGreen;
+                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtBlue  = local_color_table[original_data[i]].rgbtBlue;
                     }
                     if(gif_info.transparent_color_flag == 1 && gif_info.transparent_color_index == original_data[i]) {
                         (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtAlpha = 0;
@@ -856,6 +841,7 @@ PASS:
             }
             byte_pos = i;
             *first_flag = 0;
+            printf("END#1\n");
             return original_data_index;
         }
 
@@ -901,12 +887,12 @@ PASS:
         }
     } while(1);
 
-    printf("END\n");
+    printf("END#2\n");
     printf("byte_pos = %d, bit_pos = %d\n", byte_pos, bit_pos);
 
     //byte_pos = 0;
     //bit_pos = 0;
-    *first_flag = 1;
+    //*first_flag = 1;
 
     return original_data_index;
 }
