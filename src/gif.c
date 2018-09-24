@@ -194,13 +194,9 @@ void read_global_color_table(FILE *input, RGBTRIPLE **global_color_table, unsign
     }
 }
 
-void read_image_descriptor(FILE *input, RGBTRIPLE **local_color_table)
+void read_image_descriptor(FILE *input, RGBTRIPLE **local_color_table, GIF_INFO *gif_info)
 {
     unsigned char byte;
-    uint16_t image_left_position;
-    uint16_t image_top_position;
-    uint16_t image_width;
-    uint16_t image_height;
     uint8_t local_color_table_flag;
     uint8_t interlace_flag;
     uint8_t local_sort_flag;
@@ -209,24 +205,26 @@ void read_image_descriptor(FILE *input, RGBTRIPLE **local_color_table)
     int i;
 
     fread(&byte, 1, 1, input);
-    image_left_position = byte;
+    gif_info->image_left_position = byte;
     fread(&byte, 1, 1, input);
-    image_left_position += ((unsigned int)byte) << 8;
+    gif_info->image_left_position += ((unsigned int)byte) << 8;
 
     fread(&byte, 1, 1, input);
-    image_top_position = byte;
+    gif_info->image_top_position = byte;
     fread(&byte, 1, 1, input);
-    image_top_position += ((unsigned int)byte) << 8;
+    gif_info->image_top_position += ((unsigned int)byte) << 8;
 
     fread(&byte, 1, 1, input);
-    image_width = byte;
+    gif_info->image_width = byte;
     fread(&byte, 1, 1, input);
-    image_width += ((unsigned int)byte) << 8;
+    gif_info->image_width += ((unsigned int)byte) << 8;
 
     fread(&byte, 1, 1, input);
-    image_height = byte;
+    gif_info->image_height = byte;
     fread(&byte, 1, 1, input);
-    image_height += ((unsigned int)byte) << 8;
+    gif_info->image_height += ((unsigned int)byte) << 8;
+
+    printf("%d %d %d %d\n", gif_info->image_left_position, gif_info->image_top_position, gif_info->image_width, gif_info->image_height);
 
     fread(&byte, 1, 1, input);
     local_color_table_flag    = (byte & 0x80) >> 7;
@@ -433,9 +431,11 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     RGBTRIPLE *local_color_table;
     GIF_INFO gif_info;
     int flag;
+    int count;
 
     gif_info.transparent_color_flag  = 0;
     gif_info.transparent_color_index = 255;
+    /* aaaaaaaaaaaaa */
 
     original_data_index = 0;
     past_size = 0;
@@ -450,41 +450,58 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
         (*image_data)[i] = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * image_info->width);
     }
 
+    count = 0;
     do {
         fread(&byte, 1, 1, input);
         printf("head : %x\n", byte);
 
         if(byte == 0x2c) {
             /* Image Block */
-            read_image_descriptor(input, &local_color_table);
+            read_image_descriptor(input, &local_color_table, &gif_info);
 
             fread(&LZW_minimum_code_size, 1, 1, input);
             init_table(LZW_minimum_code_size+1);
             fread(&block_size, 1, 1, input);
+
+            //past_size = gif_info.image_top_position * gif_info.image_width + gif_info.image_left_position ;
+#if 0
+            for(int i = 0; i < image_info->height; i++) {
+                for(int j = 0; j < image_info->width; j++) {
+                    (*image_data)[i][j].rgbtRed   = 0;
+                    (*image_data)[i][j].rgbtGreen = 0;
+                    (*image_data)[i][j].rgbtBlue  = 0;
+                }
+            }
+#endif
 
             do {
                 fread(block_image_data, 1, block_size, input);
                 original_data_index = decompress(block_image_data, block_size, original_data, sizeof(original_data), &flag);
                
                 for(int i = 0; i < original_data_index; i++) {
-                    if(local_color_table == NULL) {
-                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtRed   = global_color_table[original_data[i]].rgbtRed;
-                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtGreen = global_color_table[original_data[i]].rgbtGreen;
-                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtBlue  = global_color_table[original_data[i]].rgbtBlue;
+                    if(gif_info.transparent_color_flag == 1 && gif_info.transparent_color_index == original_data[i] && count >= 1) {
+                        ;
+                    } else if(local_color_table == NULL) {
+                        (*image_data)[(i+past_size)/gif_info.image_width+gif_info.image_top_position][(i+past_size)%gif_info.image_width+gif_info.image_left_position].rgbtRed   = global_color_table[original_data[i]].rgbtRed;
+                        (*image_data)[(i+past_size)/gif_info.image_width+gif_info.image_top_position][(i+past_size)%gif_info.image_width+gif_info.image_left_position].rgbtGreen = global_color_table[original_data[i]].rgbtGreen;
+                        (*image_data)[(i+past_size)/gif_info.image_width+gif_info.image_top_position][(i+past_size)%gif_info.image_width+gif_info.image_left_position].rgbtBlue  = global_color_table[original_data[i]].rgbtBlue;
                     } else {
-                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtRed   = local_color_table[original_data[i]].rgbtRed;
-                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtGreen = local_color_table[original_data[i]].rgbtGreen;
-                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtBlue  = local_color_table[original_data[i]].rgbtBlue;
+                        (*image_data)[(i+past_size)/gif_info.image_width+gif_info.image_top_position][(i+past_size)%gif_info.image_width+gif_info.image_left_position].rgbtRed   = local_color_table[original_data[i]].rgbtRed;
+                        (*image_data)[(i+past_size)/gif_info.image_width+gif_info.image_top_position][(i+past_size)%gif_info.image_width+gif_info.image_left_position].rgbtGreen = local_color_table[original_data[i]].rgbtGreen;
+                        (*image_data)[(i+past_size)/gif_info.image_width+gif_info.image_top_position][(i+past_size)%gif_info.image_width+gif_info.image_left_position].rgbtBlue  = local_color_table[original_data[i]].rgbtBlue;
                     }
-                    if(gif_info.transparent_color_flag == 1 && gif_info.transparent_color_index == original_data[i]) {
-                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtAlpha = 0;
+                    if(gif_info.transparent_color_flag == 1 && gif_info.transparent_color_index == original_data[i] && count < 1) {
+                        //(*image_data)[(i+past_size)/gif_info.image_width+gif_info.image_top_position][(i+past_size)%gif_info.image_width+gif_info.image_left_position].rgbtAlpha = 255;
+                        (*image_data)[(i+past_size)/gif_info.image_width+gif_info.image_top_position][(i+past_size)%gif_info.image_width+gif_info.image_left_position].rgbtAlpha = 0;
                     } else {
-                        (*image_data)[(i+past_size)/image_info->width][(i+past_size)%image_info->width].rgbtAlpha = 255;
+                        (*image_data)[(i+past_size)/gif_info.image_width+gif_info.image_top_position][(i+past_size)%gif_info.image_width+gif_info.image_left_position].rgbtAlpha = 255;
                     }
-                    if((i+past_size) == (image_info->width*image_info->height-1)) {
+                    if((i+past_size) == (gif_info.image_width*gif_info.image_height-1)) {
                         printf("EEEE\n");
-                        image_info->fileSize = image_info->height*image_info->width*3 + 54;
-                        return;
+                        //image_info->fileSize = image_info->height*image_info->width*3 + 54;
+                        //return;
+                        past_size = 0;
+                        break;
                     }
                 }
                 past_size += original_data_index;
@@ -492,6 +509,12 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                 fread(&block_terminator, 1, 1, input);
                 if(block_terminator == 0x00) {
                     printf("NNNN\n");
+                    past_size = 0;
+                    count += 1;
+                    if(count >= 4) {
+                        image_info->fileSize = image_info->height*image_info->width*3 + 54;
+                        return;
+                    }
                     break;
                 }
                 block_size = block_terminator;
