@@ -19,7 +19,7 @@ static void connect(uint8_t *connect, int *size, uint8_t *prefix, int prefix_siz
 static void copy(uint8_t *prefix, int *prefix_size, uint8_t *suffix, int suffix_size);
 static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index, uint8_t *length, int *length_index, int *byte_pos, int *bit_pos);
 static void entry_dict(uint8_t *com2, int com2_size);
-static void update_bit_length(void);
+static int convert_output_code(uint8_t *data, int size);
 
 static void update_bit_length(void)
 {
@@ -132,6 +132,19 @@ static void entry_dict(uint8_t *com2, int com2_size)
     }
 }
 
+static int convert_output_code(uint8_t *data, int size)
+{
+    int output_code;
+
+    if(size == 1) {
+        output_code = data[0];
+    } else {
+        output_code = data[0] + (data[1] << 8);
+    }
+
+    return output_code;
+}
+
 void read_header(FILE *input)
 {
     char signature[4];
@@ -223,8 +236,6 @@ void read_image_descriptor(FILE *input, RGBTRIPLE **local_color_table, GIF_INFO 
     gif_info->image_height = byte;
     fread(&byte, 1, 1, input);
     gif_info->image_height += ((unsigned int)byte) << 8;
-
-    printf("%d %d %d %d\n", gif_info->image_left_position, gif_info->image_top_position, gif_info->image_width, gif_info->image_height);
 
     fread(&byte, 1, 1, input);
     local_color_table_flag    = (byte & 0x80) >> 7;
@@ -435,7 +446,6 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 
     gif_info.transparent_color_flag  = 0;
     gif_info.transparent_color_index = 255;
-    /* aaaaaaaaaaaaa */
 
     original_data_index = 0;
     past_size = 0;
@@ -463,44 +473,36 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             init_table(LZW_minimum_code_size+1);
             fread(&block_size, 1, 1, input);
 
-            //past_size = gif_info.image_top_position * gif_info.image_width + gif_info.image_left_position ;
-#if 0
-            for(int i = 0; i < image_info->height; i++) {
-                for(int j = 0; j < image_info->width; j++) {
-                    (*image_data)[i][j].rgbtRed   = 0;
-                    (*image_data)[i][j].rgbtGreen = 0;
-                    (*image_data)[i][j].rgbtBlue  = 0;
-                }
-            }
-#endif
-
             do {
                 fread(block_image_data, 1, block_size, input);
                 original_data_index = decompress(block_image_data, block_size, original_data, sizeof(original_data), &flag);
-               
+
+                int h = (0+past_size)/gif_info.image_width+gif_info.image_top_position;
+                int w = (0+past_size)%gif_info.image_width+gif_info.image_left_position;
+                printf("[%d][%d] : %d\n", h, w, original_data_index);
+
                 for(int i = 0; i < original_data_index; i++) {
+                    int h = (i+past_size)/gif_info.image_width+gif_info.image_top_position;
+                    int w = (i+past_size)%gif_info.image_width+gif_info.image_left_position;
                     if(gif_info.transparent_color_flag == 1 && gif_info.transparent_color_index == original_data[i] && count >= 1) {
                         ;
                     } else if(local_color_table == NULL) {
-                        (*image_data)[(i+past_size)/gif_info.image_width+gif_info.image_top_position][(i+past_size)%gif_info.image_width+gif_info.image_left_position].rgbtRed   = global_color_table[original_data[i]].rgbtRed;
-                        (*image_data)[(i+past_size)/gif_info.image_width+gif_info.image_top_position][(i+past_size)%gif_info.image_width+gif_info.image_left_position].rgbtGreen = global_color_table[original_data[i]].rgbtGreen;
-                        (*image_data)[(i+past_size)/gif_info.image_width+gif_info.image_top_position][(i+past_size)%gif_info.image_width+gif_info.image_left_position].rgbtBlue  = global_color_table[original_data[i]].rgbtBlue;
+                        (*image_data)[h][w].rgbtRed   = global_color_table[original_data[i]].rgbtRed;
+                        (*image_data)[h][w].rgbtGreen = global_color_table[original_data[i]].rgbtGreen;
+                        (*image_data)[h][w].rgbtBlue  = global_color_table[original_data[i]].rgbtBlue;
                     } else {
-                        (*image_data)[(i+past_size)/gif_info.image_width+gif_info.image_top_position][(i+past_size)%gif_info.image_width+gif_info.image_left_position].rgbtRed   = local_color_table[original_data[i]].rgbtRed;
-                        (*image_data)[(i+past_size)/gif_info.image_width+gif_info.image_top_position][(i+past_size)%gif_info.image_width+gif_info.image_left_position].rgbtGreen = local_color_table[original_data[i]].rgbtGreen;
-                        (*image_data)[(i+past_size)/gif_info.image_width+gif_info.image_top_position][(i+past_size)%gif_info.image_width+gif_info.image_left_position].rgbtBlue  = local_color_table[original_data[i]].rgbtBlue;
+                        (*image_data)[h][w].rgbtRed   = local_color_table[original_data[i]].rgbtRed;
+                        (*image_data)[h][w].rgbtGreen = local_color_table[original_data[i]].rgbtGreen;
+                        (*image_data)[h][w].rgbtBlue  = local_color_table[original_data[i]].rgbtBlue;
                     }
+
                     if(gif_info.transparent_color_flag == 1 && gif_info.transparent_color_index == original_data[i] && count < 1) {
-                        //(*image_data)[(i+past_size)/gif_info.image_width+gif_info.image_top_position][(i+past_size)%gif_info.image_width+gif_info.image_left_position].rgbtAlpha = 255;
                         (*image_data)[(i+past_size)/gif_info.image_width+gif_info.image_top_position][(i+past_size)%gif_info.image_width+gif_info.image_left_position].rgbtAlpha = 0;
                     } else {
                         (*image_data)[(i+past_size)/gif_info.image_width+gif_info.image_top_position][(i+past_size)%gif_info.image_width+gif_info.image_left_position].rgbtAlpha = 255;
                     }
+
                     if((i+past_size) == (gif_info.image_width*gif_info.image_height-1)) {
-                        printf("EEEE\n");
-                        //image_info->fileSize = image_info->height*image_info->width*3 + 54;
-                        //return;
-                        past_size = 0;
                         break;
                     }
                 }
@@ -508,7 +510,6 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 
                 fread(&block_terminator, 1, 1, input);
                 if(block_terminator == 0x00) {
-                    printf("NNNN\n");
                     past_size = 0;
                     count += 1;
                     if(count >= 4) {
@@ -755,11 +756,7 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
     prefix_size = 0;
     read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
     bit_length_index = 0;
-    if(prefix_size == 1) {
-        output_code1 = prefix[0];
-    } else {
-        output_code1 = prefix[0] + (prefix[1] << 8);
-    }
+    output_code1 = convert_output_code(prefix, prefix_size);
 
     if(clear_code != output_code1) {
         goto PASS;
@@ -769,57 +766,32 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
     prefix_size = 0;
     read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
     bit_length_index = 0;
-    if(prefix_size == 1) {
-        output_code1 = prefix[0];
-    } else {
-        output_code1 = prefix[0] + (prefix[1] << 8);
-    }
+    output_code1 = convert_output_code(prefix, prefix_size);
 
     if(clear_code == output_code1) {
         init_table(initial_bit);
         prefix_size = 0;
         read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
         bit_length_index = 0;
-        if(prefix_size == 1) {
-            output_code1 = prefix[0];
-        } else {
-            output_code1 = prefix[0] + (prefix[1] << 8);
-        }
+        output_code1 = convert_output_code(prefix, prefix_size);
     }
 PASS:
     suffix_size = 0;
     read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
     bit_length_index = 0;
-    if(suffix_size == 1) {
-        output_code2 = suffix[0];
-    } else {
-        output_code2 = suffix[0] + (suffix[1] << 8);
-    }
+    output_code2 = convert_output_code(suffix, suffix_size);
     if(clear_code == output_code2) {
         init_table(initial_bit);
         suffix_size = 0;
         read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
         bit_length_index = 0;
-        if(suffix_size == 1) {
-            output_code2 = suffix[0];
-        } else {
-            output_code2 = suffix[0] + (suffix[1] << 8);
-        }
+        output_code2 = convert_output_code(suffix, suffix_size);
     }
 
     do {
         /* b.辞書の出力数のページの値と辞書の待機数のページにある値の最初の文字を並べた数を辞書の新しいページに書き込みます。 */
-        if(prefix_size == 1) {
-            output_code1 = prefix[0];
-        } else {
-            output_code1 = prefix[0] + (prefix[1] << 8);
-        }
-
-        if(suffix_size == 1) {
-            output_code2 = suffix[0];
-        } else {
-            output_code2 = suffix[0] + (suffix[1] << 8);
-        }
+        output_code1 = convert_output_code(prefix, prefix_size);
+        output_code2 = convert_output_code(suffix, suffix_size);
 
         copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
         if(output_code2 < lzw_table_size) {
@@ -856,11 +828,7 @@ PASS:
         suffix_size = 0;
         read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
         bit_length_index = 0;
-        if(suffix_size == 1) {
-            output_code2 = suffix[0];
-        } else {
-            output_code2 = suffix[0] + (suffix[1] << 8);
-        }
+        output_code2 = convert_output_code(suffix, suffix_size);
 
         if(clear_code == output_code2) {
             copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
@@ -869,14 +837,11 @@ PASS:
                 original_data_index += 1;
             }
             init_table(initial_bit);
+
             prefix_size = 0;
             read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
             bit_length_index = 0;
-            if(prefix_size == 1) {
-                output_code1 = prefix[0];
-            } else {
-                output_code1 = prefix[0] + (prefix[1] << 8);
-            }
+            output_code1 = convert_output_code(prefix, prefix_size);
             goto PASS;
         }
 
