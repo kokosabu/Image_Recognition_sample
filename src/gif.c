@@ -194,9 +194,9 @@ void read_global_color_table(FILE *input, RGBTRIPLE **global_color_table, unsign
     if(global_color_table_flag == 1) {
         *global_color_table  = (RGBTRIPLE *)malloc(sizeof(RGBTRIPLE) * (uint16_t)pow(2, size_of_global_color_table+1));
         for(i = 0; i < (uint16_t)pow(2, size_of_global_color_table+1); i++) {
-            (*global_color_table)[i].rgbtRed = 0;
+            (*global_color_table)[i].rgbtRed   = 0;
             (*global_color_table)[i].rgbtGreen = 0;
-            (*global_color_table)[i].rgbtBlue = 0;
+            (*global_color_table)[i].rgbtBlue  = 0;
             (*global_color_table)[i].rgbtAlpha = 0;
             fread(&((*global_color_table)[i].rgbtRed),   1, 1, input);
             fread(&((*global_color_table)[i].rgbtGreen), 1, 1, input);
@@ -477,8 +477,8 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                 fread(block_image_data, 1, block_size, input);
                 original_data_index = decompress(block_image_data, block_size, original_data, sizeof(original_data), &flag);
 
-                int h = (0+past_size)/gif_info.image_width+gif_info.image_top_position;
-                int w = (0+past_size)%gif_info.image_width+gif_info.image_left_position;
+                int h = (past_size)/gif_info.image_width+gif_info.image_top_position;
+                int w = (past_size)%gif_info.image_width+gif_info.image_left_position;
                 printf("[%d][%d] : %d\n", h, w, original_data_index);
 
                 for(int i = 0; i < original_data_index; i++) {
@@ -497,9 +497,9 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                     }
 
                     if(gif_info.transparent_color_flag == 1 && gif_info.transparent_color_index == original_data[i] && count < 1) {
-                        (*image_data)[(i+past_size)/gif_info.image_width+gif_info.image_top_position][(i+past_size)%gif_info.image_width+gif_info.image_left_position].rgbtAlpha = 0;
+                        (*image_data)[h][w].rgbtAlpha = 0;
                     } else {
-                        (*image_data)[(i+past_size)/gif_info.image_width+gif_info.image_top_position][(i+past_size)%gif_info.image_width+gif_info.image_left_position].rgbtAlpha = 255;
+                        (*image_data)[h][w].rgbtAlpha = 255;
                     }
 
                     if((i+past_size) == (gif_info.image_width*gif_info.image_height-1)) {
@@ -507,6 +507,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                     }
                 }
                 past_size += original_data_index;
+                //printf("past_size:%d\n", past_size);
 
                 fread(&block_terminator, 1, 1, input);
                 if(block_terminator == 0x00) {
@@ -572,7 +573,6 @@ void init_table(int bit)
     bit_length = bit;
 
     initial_bit = bit;
-
 }
 
 uint8_t *get_data(int index)
@@ -758,7 +758,7 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
     bit_length_index = 0;
     output_code1 = convert_output_code(prefix, prefix_size);
 
-    if(clear_code != output_code1) {
+    if(output_code1 != clear_code) {
         goto PASS;
     }
 
@@ -768,8 +768,9 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
     bit_length_index = 0;
     output_code1 = convert_output_code(prefix, prefix_size);
 
-    if(clear_code == output_code1) {
+    if(output_code1 == clear_code) {
         init_table(initial_bit);
+        clear_code = search_lzw_table((uint8_t *)CLEAR, 0);
         prefix_size = 0;
         read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
         bit_length_index = 0;
@@ -780,8 +781,10 @@ PASS:
     read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
     bit_length_index = 0;
     output_code2 = convert_output_code(suffix, suffix_size);
-    if(clear_code == output_code2) {
+
+    if(output_code2 == clear_code) {
         init_table(initial_bit);
+        clear_code = search_lzw_table((uint8_t *)CLEAR, 0);
         suffix_size = 0;
         read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
         bit_length_index = 0;
@@ -815,7 +818,6 @@ PASS:
         copy(prefix, &prefix_size, suffix, suffix_size);
         output_code1 = output_code2;
 
-
         if((byte_pos*8+bit_pos+bit_length) > (compress_data_size*8)) {
             for(i = 0; i < (compress_data_size-byte_pos); i++) {
                 comp[i] = comp[i+byte_pos];
@@ -830,13 +832,14 @@ PASS:
         bit_length_index = 0;
         output_code2 = convert_output_code(suffix, suffix_size);
 
-        if(clear_code == output_code2) {
+        if(output_code2 == clear_code) {
             copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
             for(i = 0; i < com1_size; i++) {
                 original_data[original_data_index] = com1[i];
                 original_data_index += 1;
             }
             init_table(initial_bit);
+            clear_code = search_lzw_table((uint8_t *)CLEAR, 0);
 
             prefix_size = 0;
             read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
@@ -858,7 +861,6 @@ PASS:
 
     printf("END#2\n");
     *first_flag = 1;
-
     return original_data_index;
 }
 
