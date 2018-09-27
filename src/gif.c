@@ -18,7 +18,7 @@ static int search_lzw_table(uint8_t *code, int size);
 static void connect(uint8_t *connect, int *size, uint8_t *prefix, int prefix_size, uint8_t *suffix, int suffix_size);
 static void copy(uint8_t *prefix, int *prefix_size, uint8_t *suffix, int suffix_size);
 static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index, uint8_t *length, int *length_index, int *byte_pos, int *bit_pos);
-static void entry_dict(uint8_t *com2, int com2_size);
+static void entry_dict(uint8_t *com, int com_size);
 static int convert_output_code(uint8_t *data, int size);
 
 static void update_bit_length(void)
@@ -32,6 +32,9 @@ static void update_bit_length_for_decompress(void)
 {
     if((lzw_table_size) >= pow(2, bit_length)) {
         bit_length += 1;
+    }
+    if(bit_length >= 12) {
+        bit_length = 12;
     }
 }
 
@@ -118,16 +121,16 @@ static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index,
     }
 }
 
-static void entry_dict(uint8_t *com2, int com2_size)
+static void entry_dict(uint8_t *com, int com_size)
 {
     int i;
 
-    if(lzw_table_size < 0xFFF) {
-        lzw_table[lzw_table_size] = (uint8_t *)malloc(sizeof(uint8_t) * com2_size);
-        for(i = 0; i < com2_size; i++) {
-            lzw_table[lzw_table_size][i] = com2[i];
+    if(lzw_table_size <= 0xFFF) {
+        lzw_table[lzw_table_size] = (uint8_t *)malloc(sizeof(uint8_t) * com_size);
+        for(i = 0; i < com_size; i++) {
+            lzw_table[lzw_table_size][i] = com[i];
         }
-        lzw_table_data_size[lzw_table_size] = com2_size;
+        lzw_table_data_size[lzw_table_size] = com_size;
         lzw_table_size += 1;
     }
 }
@@ -477,10 +480,6 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                 fread(block_image_data, 1, block_size, input);
                 original_data_index = decompress(block_image_data, block_size, original_data, sizeof(original_data), &flag);
 
-                int h = (past_size)/gif_info.image_width+gif_info.image_top_position;
-                int w = (past_size)%gif_info.image_width+gif_info.image_left_position;
-                printf("[%d][%d] : %d\n", h, w, original_data_index);
-
                 for(int i = 0; i < original_data_index; i++) {
                     int h = (i+past_size)/gif_info.image_width+gif_info.image_top_position;
                     int w = (i+past_size)%gif_info.image_width+gif_info.image_left_position;
@@ -507,16 +506,17 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
                     }
                 }
                 past_size += original_data_index;
-                //printf("past_size:%d\n", past_size);
 
                 fread(&block_terminator, 1, 1, input);
                 if(block_terminator == 0x00) {
                     past_size = 0;
                     count += 1;
-                    if(count >= 4) {
+#if 0
+                    if(count >= 6) {
                         image_info->fileSize = image_info->height*image_info->width*3 + 54;
                         return;
                     }
+#endif
                     break;
                 }
                 block_size = block_terminator;
@@ -859,7 +859,6 @@ PASS:
         }
     } while(1);
 
-    printf("END#2\n");
     *first_flag = 1;
     return original_data_index;
 }
