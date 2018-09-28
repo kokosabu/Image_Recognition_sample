@@ -30,11 +30,8 @@ static void update_bit_length(void)
 
 static void update_bit_length_for_decompress(void)
 {
-    if((lzw_table_size) >= pow(2, bit_length)) {
+    if(bit_length < 12 && lzw_table_size >= pow(2, bit_length)) {
         bit_length += 1;
-    }
-    if(bit_length >= 12) {
-        bit_length = 12;
     }
 }
 
@@ -410,9 +407,9 @@ void read_application_extension(FILE *input)
             loop_count = byte;
             fread(&byte, 1, 1, input);
             loop_count += ((unsigned int)byte) << 8;
-            printf("loop_count %d\n", loop_count);
+            //printf("loop_count %d\n", loop_count);
         } else {
-            printf("%d\n", byte);
+            //printf("%d\n", byte);
         }
         fread(&byte, 1, 1, input);
     } else if(strcmp((char *)application_identifier, "XMP Data") == 0) {
@@ -466,7 +463,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
     count = 0;
     do {
         fread(&byte, 1, 1, input);
-        printf("head : %x\n", byte);
+        //printf("head : %x\n", byte);
 
         if(byte == 0x2c) {
             /* Image Block */
@@ -523,7 +520,7 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
             } while(1);
         } else if(byte == 0x21) {
             fread(&byte, 1, 1, input);
-            printf("21h %x\n", byte);
+            //printf("21h %x\n", byte);
 
             if(byte == 0xf9) {
                 read_graphic_control_extension(input, &gif_info);
