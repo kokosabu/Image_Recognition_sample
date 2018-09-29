@@ -548,27 +548,24 @@ void decode_gif(FILE *input, IMAGEINFO *image_info, RGBTRIPLE ***image_data)
 
 void init_table(int bit)
 {
-    int i;
     int cnt;
 
     cnt = (int)pow(2, bit-1);
-    for(i = 0; i < cnt; i++) {
-        lzw_table[i] = (uint8_t *)malloc(sizeof(uint8_t) * 1);
-        lzw_table[i][0] = i;
-        lzw_table_data_size[i] = 1;
+    for(lzw_table_size = 0; lzw_table_size < cnt; lzw_table_size++) {
+        lzw_table[lzw_table_size] = (uint8_t *)malloc(sizeof(uint8_t) * 1);
+        lzw_table[lzw_table_size][0] = lzw_table_size;
+        lzw_table_data_size[lzw_table_size] = 1;
     }
 
-    lzw_table[i] = (uint8_t *)CLEAR;
-    lzw_table_data_size[i] = 0;
-    i += 1;
+    lzw_table[lzw_table_size] = (uint8_t *)CLEAR;
+    lzw_table_data_size[lzw_table_size] = 0;
+    lzw_table_size += 1;
 
-    lzw_table[i] = (uint8_t *)END;
-    lzw_table_data_size[i] = 0;
-    i += 1;
+    lzw_table[lzw_table_size] = (uint8_t *)END;
+    lzw_table_data_size[lzw_table_size] = 0;
+    lzw_table_size += 1;
 
-    lzw_table_size = i;
     bit_length = bit;
-
     initial_bit = bit;
 }
 
