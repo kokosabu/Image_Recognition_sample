@@ -20,6 +20,7 @@ static void copy(uint8_t *prefix, int *prefix_size, uint8_t *suffix, int suffix_
 static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index, uint8_t *length, int *length_index, int *byte_pos, int *bit_pos);
 static void entry_dict(uint8_t *com, int com_size);
 static int convert_output_code(uint8_t *data, int size);
+static void write_original_data(uint8_t *original_data, int *original_data_index, uint8_t *com, int com_size);
 
 static void update_bit_length(void)
 {
@@ -143,6 +144,16 @@ static int convert_output_code(uint8_t *data, int size)
     }
 
     return output_code;
+}
+
+static void write_original_data(uint8_t *original_data, int *original_data_index, uint8_t *com, int com_size)
+{
+    int i;
+
+    for(i = 0; i < com_size; i++) {
+        original_data[*original_data_index] = com[i];
+        *original_data_index += 1;
+    }
 }
 
 void read_header(FILE *input)
@@ -803,10 +814,7 @@ PASS:
         update_bit_length_for_decompress();
 
         /* c.辞書の出力数のページに書かれている値を書き出します。 */
-        for(i = 0; i < com1_size; i++) {
-            original_data[original_data_index] = com1[i];
-            original_data_index += 1;
-        }
+        write_original_data(original_data, &original_data_index, com1, com1_size);
 
         /* d.待機数を出力数に、新しく一つ読み込んで待機数に入れます。 */
         copy(prefix, &prefix_size, suffix, suffix_size);
@@ -828,10 +836,7 @@ PASS:
 
         if(output_code2 == clear_code) {
             copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
-            for(i = 0; i < com1_size; i++) {
-                original_data[original_data_index] = com1[i];
-                original_data_index += 1;
-            }
+            write_original_data(original_data, &original_data_index, com1, com1_size);
             init_table(initial_bit);
             clear_code = search_lzw_table((uint8_t *)CLEAR, 0);
 
@@ -845,10 +850,7 @@ PASS:
         /* e.以下、b〜dの繰り返し */
         if(output_code2 == search_lzw_table((uint8_t *)END, 0)) {
             copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
-            for(i = 0; i < com1_size; i++) {
-                original_data[original_data_index] = com1[i];
-                original_data_index += 1;
-            }
+            write_original_data(original_data, &original_data_index, com1, com1_size);
             break;
         }
     } while(1);
