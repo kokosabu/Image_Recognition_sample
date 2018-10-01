@@ -16,7 +16,7 @@ static void update_bit_length_for_decompress(void);
 static void output_compress_data(uint8_t *compress_data, uint8_t *bit_lengths, int *compress_data_index, int output_code);
 static int search_lzw_table(uint8_t *code, int size);
 static void connect(uint8_t *connect, int *size, uint8_t *prefix, int prefix_size, uint8_t *suffix, int suffix_size);
-static void copy(uint8_t *prefix, int *prefix_size, uint8_t *suffix, int suffix_size);
+static void copy(uint8_t *to, int *to_size, uint8_t *from, int from_size);
 static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index, uint8_t *length, int *length_index, int *byte_pos, int *bit_pos);
 static void entry_dict(uint8_t *com, int com_size);
 static int convert_output_code(uint8_t *data, int size);
