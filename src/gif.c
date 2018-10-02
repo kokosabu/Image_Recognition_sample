@@ -21,6 +21,7 @@ static void read_char(uint8_t *to, int *to_size, uint8_t *data, int *data_index,
 static void entry_dict(uint8_t *com, int com_size);
 static int convert_output_code(uint8_t *data, int size);
 static void write_original_data(uint8_t *original_data, int *original_data_index, uint8_t *com, int com_size);
+static int read_output_code(int *size, uint8_t *data, uint8_t *comp, int *compress_data_index, int *bit_length_index, int *byte_pos, int *bit_pos);
 
 static void update_bit_length(void)
 {
@@ -154,6 +155,14 @@ static void write_original_data(uint8_t *original_data, int *original_data_index
         original_data[*original_data_index] = com[i];
         *original_data_index += 1;
     }
+}
+
+static int read_output_code(int *size, uint8_t *data, uint8_t *comp, int *compress_data_index, int *bit_length_index, int *byte_pos, int *bit_pos)
+{
+    *size = 0;
+    read_char(data, size, comp, compress_data_index, &bit_length, bit_length_index, byte_pos, bit_pos);
+    *bit_length_index = 0;
+    return convert_output_code(data, *size);
 }
 
 void read_header(FILE *input)
@@ -768,24 +777,15 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
     }
 
     /* a.最初の数を出力数に、次の数を待機数に読み込みます。辞書を初期化します。 */
-    prefix_size = 0;
-    read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
-    bit_length_index = 0;
-    output_code1 = convert_output_code(prefix, prefix_size);
+    output_code1 = read_output_code(&prefix_size, prefix, comp, &compress_data_index, &bit_length_index, &byte_pos, &bit_pos);
 
     if(output_code1 == clear_code) {
         init_table(initial_bit);
         clear_code = search_lzw_table((uint8_t *)CLEAR, 0);
-        prefix_size = 0;
-        read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
-        bit_length_index = 0;
-        output_code1 = convert_output_code(prefix, prefix_size);
+        output_code1 = read_output_code(&prefix_size, prefix, comp, &compress_data_index, &bit_length_index, &byte_pos, &bit_pos);
     }
 PASS:
-    suffix_size = 0;
-    read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
-    bit_length_index = 0;
-    output_code2 = convert_output_code(suffix, suffix_size);
+    output_code2 = read_output_code(&suffix_size, suffix, comp, &compress_data_index, &bit_length_index, &byte_pos, &bit_pos);
 
     if(output_code2 == clear_code) {
         init_table(initial_bit);
@@ -844,6 +844,8 @@ PASS:
             read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
             bit_length_index = 0;
             output_code1 = convert_output_code(prefix, prefix_size);
+
+
             goto PASS;
         }
 
