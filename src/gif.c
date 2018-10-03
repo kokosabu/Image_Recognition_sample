@@ -767,11 +767,7 @@ int decompress(uint8_t *compress_data, int compress_data_size, uint8_t *original
         }
     }
 
-    prefix_size = 0;
-    read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
-    bit_length_index = 0;
-    output_code1 = convert_output_code(prefix, prefix_size);
-
+    output_code1 = read_output_code(&prefix_size, prefix, comp, &compress_data_index, &bit_length_index, &byte_pos, &bit_pos);
     if(output_code1 != clear_code) {
         goto PASS;
     }
@@ -790,10 +786,7 @@ PASS:
     if(output_code2 == clear_code) {
         init_table(initial_bit);
         clear_code = search_lzw_table((uint8_t *)CLEAR, 0);
-        suffix_size = 0;
-        read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
-        bit_length_index = 0;
-        output_code2 = convert_output_code(suffix, suffix_size);
+        output_code2 = read_output_code(&suffix_size, suffix, comp, &compress_data_index, &bit_length_index, &byte_pos, &bit_pos);
     }
 
     do {
@@ -829,10 +822,7 @@ PASS:
             return original_data_index;
         }
 
-        suffix_size = 0;
-        read_char(suffix, &suffix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
-        bit_length_index = 0;
-        output_code2 = convert_output_code(suffix, suffix_size);
+        output_code2 = read_output_code(&suffix_size, suffix, comp, &compress_data_index, &bit_length_index, &byte_pos, &bit_pos);
 
         if(output_code2 == clear_code) {
             copy(com1, &com1_size, lzw_table[output_code1], lzw_table_data_size[output_code1]);
@@ -840,12 +830,7 @@ PASS:
             init_table(initial_bit);
             clear_code = search_lzw_table((uint8_t *)CLEAR, 0);
 
-            prefix_size = 0;
-            read_char(prefix, &prefix_size, comp, &compress_data_index, &bit_length, &bit_length_index, &byte_pos, &bit_pos);
-            bit_length_index = 0;
-            output_code1 = convert_output_code(prefix, prefix_size);
-
-
+            output_code1 = read_output_code(&prefix_size, prefix, comp, &compress_data_index, &bit_length_index, &byte_pos, &bit_pos);
             goto PASS;
         }
 
